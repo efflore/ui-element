@@ -1,4 +1,4 @@
-/* globals customElements, HTMLElement, requestAnimationFrame, requestIdleCallback */
+/* globals customElements, HTMLElement, requestAnimationFrame, setTimeout */
 
 /**
  * @license
@@ -143,7 +143,7 @@ export default class extends HTMLElement {
 		const next = () => {
 			activeEffect = next; // register the current effect
 			const cleanup = handler(); // execute handler function
-			isFunction(cleanup) && requestIdleCallback(cleanup); // execute cleanup function on idle
+			isFunction(cleanup) && setTimeout(cleanup, 0); // execute cleanup function on idle
 			activeEffect = null; // unregister the current effect
 		};
 		requestAnimationFrame(next); // wait for the next animation frame to bundle DOM updates

@@ -3,9 +3,21 @@
     "version": "0.1.0",
     "description": "UIElement - minimal reactive framework based on Web Components",
     "main": "index.js",
+    "scripts": {
+        "test": "run-s test:setup test:ci",
+        "test:setup": "npx playwright install-deps",
+        "test:ci": "web-test-runner \"test/*-test.html\" --node-resolve --playwright --browsers chromium firefox webkit",
+        "watch": "web-test-runner \"test/*-test.html\" --node-resolve --watch --playwright --browsers chromium firefox webkit"
+    },
     "keywords": [],
     "author": "Esther Brunner",
     "license": "BSD-3-Clause",
-    "type": "module"
-  }
-  
+    "type": "module",
+    "devDependencies": {
+        "@esm-bundle/chai": "^4.3.4-fix.0",
+        "@web/test-runner": "^0.18.1",
+        "@web/test-runner-playwright": "^0.11.0",
+        "npm-run-all": "^4.1.5",
+        "playwright": "^1.42.1"
+    }
+}

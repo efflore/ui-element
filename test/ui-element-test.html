@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>UIElement Test</title>
+</head>
+<body>
+
+  <void-component id="void">
+    <h1>Hello from Server</h1>
+  </void-component>
+  <causal-component id="causal">
+    <h1>Hello from Server</h1>
+  </causal-component>
+  <causal-component id="causal-with-attribute" heading="Hello from Attribute">
+    <h1>Hello from Server</h1>
+  </causal-component>
+  <updating-component id="updating">
+    <h1>Hello from Server</h1>
+  </updating-component>
+  <updating-component id="updating-with-attribute" heading="Hello from Attribute">
+    <h1>Hello from Server</h1>
+  </updating-component>
+
+  <script type="module">
+    import { runTests } from '@web/test-runner-mocha';
+    import { assert } from '@esm-bundle/chai';
+    import UIElement, { define } from '../index.js';
+
+    define('void-component', class extends UIElement {});
+
+    define('causal-component', class extends UIElement {
+
+      connectedCallback() {
+        this.cause('heading', 'Hello from Internal Cause');
+        this.ui.heading = this.querySelector('h1');
+
+        this.effect(() => {
+          this.ui.heading.textContent = this.heading;
+        });
+      }
+
+    });
+
+    define('updating-component', class extends UIElement {
+      static observedAttributes = ['heading'];
+
+      connectedCallback() {
+        this.ui.heading = this.querySelector('h1');
+
+        this.effect(() => {
+          this.ui.heading.textContent = this.heading;
+        });
+      }
+    });
+
+    runTests(() => {
+
+      describe('UIElement', () => {
+
+        describe('Void component', () => {
+          it('should do nothing at all', () => {
+            const voidComponent = document.getElementById('causal');
+            setTimeout(() => {
+              const textContent = voidComponent.querySelector('h1').textContent;
+              assert.equal(textContent, 'Hello from Server', 'Should not change server-side rendered heading');
+            }, 0);
+          });
+        });
+
+        describe('Causal component', () => {
+          it('should update according to internal cause', () => {
+            const causalComponent = document.getElementById('causal');
+            setTimeout(() => {
+              const textContent = causalComponent.querySelector('h1').textContent;
+              assert.equal(textContent, 'Hello from Internal Cause', 'Should have initial heading from internal cause');
+            }, 0);
+          });
+
+          it('should update when property set', () => {
+            const causalComponent = document.getElementById('causal');
+            causalComponent.heading = 'Hello from Property';
+            setTimeout(() => {
+              const textContent = causalComponent.querySelector('h1').textContent;
+              assert.equal(textContent, 'Hello from Property', 'Should update text content from setting heading property');
+            }, 0);
+          });
+
+          it('should ignore non-observed attributes', () => {
+            const causalComponent = document.getElementById('causal-with-attribute');
+            setTimeout(() => {
+              const textContent = causalComponent.querySelector('h1').textContent;
+              assert.equal(textContent, 'Hello from Internal Cause', 'Should have initial heading from internal cause');
+            }, 0);
+          });
+        });
+
+        describe('Updating component', () => {
+          it('should do nothing if attribute is not set', () => {
+            const updatingComponent = document.getElementById('updating');
+            setTimeout(() => {
+              const textContent = updatingComponent.querySelector('h1').textContent;
+              assert.equal(textContent, 'Hello from Server', 'Should not change server-side rendered heading');
+            }, 0);
+          });
+
+          it('should update from initial attribute', () => {
+            const updatingComponent = document.getElementById('updating-with-attribute');
+            setTimeout(() => {
+              const textContent = updatingComponent.querySelector('h1').textContent;
+              assert.equal(textContent, 'Hello from Attribute', 'Should have initial heading from attribute');
+            }, 0);
+          });
+
+          it('should update when attribute set', () => {
+            const updatingComponent = document.getElementById('updating-with-attribute');
+            updatingComponent.setAttribute('heading', 'Hello from Changed Attribute');
+            setTimeout(() => {
+              const textContent = updatingComponent.querySelector('h1').textContent;
+              assert.equal(textContent, 'Hello from Changed Attribute', 'Should update text content from setting heading attribute');
+            }, 0);
+          });
+
+          it('should update when property set', () => {
+            const updatingComponent = document.getElementById('updating-with-attribute');
+            updatingComponent.heading = 'Hello from Property';
+            setTimeout(() => {
+              const textContent = updatingComponent.querySelector('h1').textContent;
+              assert.equal(textContent, 'Hello from Property', 'Should update text content from setting heading property');
+            }, 0);
+          });
+        });
+      });
+    });
+  </script>
+</body>
+</html>
