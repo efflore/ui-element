@@ -1,0 +1,11 @@
+{
+    "name": "ui-element",
+    "version": "0.1.0",
+    "description": "UIElement - minimal reactive framework based on Web Components",
+    "main": "index.js",
+    "keywords": [],
+    "author": "Esther Brunner",
+    "license": "BSD-3-Clause",
+    "type": "module"
+  }
+  
