@@ -15,17 +15,33 @@
   <causal-component id="causal-with-attribute" heading="Hello from Attribute">
     <h1>Hello from Server</h1>
   </causal-component>
+  <defect-component id="defect">
+    <h1>Hello from Server</h1>
+  </defect-component>
   <updating-component id="updating">
     <h1>Hello from Server</h1>
   </updating-component>
   <updating-component id="updating-with-attribute" heading="Hello from Attribute">
     <h1>Hello from Server</h1>
   </updating-component>
+  <child-component id="orphan">
+    <h1>Hello from Server</h1>
+    <p>Text from Server</p>
+  </child-component>
+  <parent-component id="parent" heading="Hello from Attribute">
+    <child-component id="child">
+      <h1>Hello from Server</h1>
+      <p>Text from Server</p>
+    </child-component>
+  </parent-component>
 
   <script type="module">
     import { runTests } from '@web/test-runner-mocha';
     import { assert } from '@esm-bundle/chai';
     import UIElement, { define } from '../index.js';
+
+    const wait = ms => new Promise((resolve) => setTimeout(resolve), ms);
+    const paint = () => new Promise((resolve) => requestAnimationFrame(resolve));
 
     define('void-component', class extends UIElement {});
 
@@ -42,6 +58,16 @@
 
     });
 
+    /* define('defect-component', class extends UIElement {
+
+      connectedCallback() {
+        this.cause(NaN, 'Hello from Defect Cause');
+
+        this.effect('not a function');
+      }
+
+    }); */
+
     define('updating-component', class extends UIElement {
       static observedAttributes = ['heading'];
 
@@ -49,87 +75,149 @@
         this.ui.heading = this.querySelector('h1');
 
         this.effect(() => {
-          this.ui.heading.textContent = this.heading;
+          this.has('heading') && (this.ui.heading.textContent = this.heading);
+        });
+      }
+    });
+
+    define('parent-component', class extends UIElement {
+      static observedAttributes = ['heading'];
+
+      connectedCallback() {
+        this.ui.child = this.querySelector('child-component');
+        this.pass(this.ui.child, 'heading', 'heading');
+        this.derive(this.ui.child, 'text', () => this.heading.toUpperCase());
+      }
+    });
+
+    define('child-component', class extends UIElement {
+
+      connectedCallback() {
+        this.ui.heading = this.querySelector('h1');
+        this.ui.text = this.querySelector('p');
+
+        this.effect(() => {
+          this.has('heading') && (this.ui.heading.textContent = this.heading);
+        });
+
+        this.effect(() => {
+          this.has('text') && (this.ui.text.textContent = this.text);
         });
       }
     });
 
     runTests(() => {
 
-      describe('UIElement', () => {
+      describe('UIElement', function () {
 
-        describe('Void component', () => {
-          it('should do nothing at all', () => {
-            const voidComponent = document.getElementById('causal');
-            setTimeout(() => {
+        describe('Void component', function () {
+          it('should do nothing at all', async function () {
+            const voidComponent = document.getElementById('void');
+            await paint().then(() => {
               const textContent = voidComponent.querySelector('h1').textContent;
               assert.equal(textContent, 'Hello from Server', 'Should not change server-side rendered heading');
-            }, 0);
+            });
           });
         });
 
-        describe('Causal component', () => {
-          it('should update according to internal cause', () => {
+        describe('Causal component', function () {
+          it('should update according to internal cause', async function () {
             const causalComponent = document.getElementById('causal');
-            setTimeout(() => {
+            await paint().then(() => {
               const textContent = causalComponent.querySelector('h1').textContent;
               assert.equal(textContent, 'Hello from Internal Cause', 'Should have initial heading from internal cause');
-            }, 0);
+            });
           });
 
-          it('should update when property set', () => {
+          it('should update when property set', async function () {
             const causalComponent = document.getElementById('causal');
             causalComponent.heading = 'Hello from Property';
-            setTimeout(() => {
+            await paint().then(() => {
               const textContent = causalComponent.querySelector('h1').textContent;
               assert.equal(textContent, 'Hello from Property', 'Should update text content from setting heading property');
-            }, 0);
+            });
           });
 
-          it('should ignore non-observed attributes', () => {
+          it('should update after a delay when property set', async function () {
+            const causalComponent = document.getElementById('causal');
+            const delay = Math.floor(Math.random() * 1000);
+            wait(delay).then(() => {
+              causalComponent.heading = 'Hello from Delayed Property';
+            });
+            await wait(delay).then(() => paint().then(() => {
+              const textContent = causalComponent.querySelector('h1').textContent;
+              assert.equal(textContent, 'Hello from Delayed Property', 'Should update text content from setting heading property after a delay');
+            }));
+          });
+
+          it('should ignore non-observed attributes', async function () {
             const causalComponent = document.getElementById('causal-with-attribute');
-            setTimeout(() => {
+            await paint().then(() => {
               const textContent = causalComponent.querySelector('h1').textContent;
               assert.equal(textContent, 'Hello from Internal Cause', 'Should have initial heading from internal cause');
-            }, 0);
+            });
           });
         });
 
-        describe('Updating component', () => {
-          it('should do nothing if attribute is not set', () => {
+        describe('Defect component', function () {
+          it('should log an error if effect handler is not a function', async function () {
+            const defectComponent = document.getElementById('defect');
+            await paint().then(() => {
+              const textContent = defectComponent.querySelector('h1').textContent;
+              assert.equal(textContent, 'Hello from Server', 'Should not change server-side rendered heading');
+            });
+          });
+        });
+
+        describe('Updating component', function () {
+          it('should do nothing if attribute is not set', async function () {
             const updatingComponent = document.getElementById('updating');
-            setTimeout(() => {
+            await paint().then(() => {
               const textContent = updatingComponent.querySelector('h1').textContent;
               assert.equal(textContent, 'Hello from Server', 'Should not change server-side rendered heading');
-            }, 0);
+            });
           });
 
-          it('should update from initial attribute', () => {
+          it('should update from initial attribute', async function () {
             const updatingComponent = document.getElementById('updating-with-attribute');
-            setTimeout(() => {
+            await paint().then(() => {
               const textContent = updatingComponent.querySelector('h1').textContent;
               assert.equal(textContent, 'Hello from Attribute', 'Should have initial heading from attribute');
-            }, 0);
+            });
           });
 
-          it('should update when attribute set', () => {
+          it('should update when attribute set', async function () {
             const updatingComponent = document.getElementById('updating-with-attribute');
             updatingComponent.setAttribute('heading', 'Hello from Changed Attribute');
-            setTimeout(() => {
+            await paint().then(() => {
               const textContent = updatingComponent.querySelector('h1').textContent;
               assert.equal(textContent, 'Hello from Changed Attribute', 'Should update text content from setting heading attribute');
-            }, 0);
+            });
           });
 
-          it('should update when property set', () => {
+          it('should update when property set', async function () {
             const updatingComponent = document.getElementById('updating-with-attribute');
             updatingComponent.heading = 'Hello from Property';
-            setTimeout(() => {
+            await paint().then(() => {
               const textContent = updatingComponent.querySelector('h1').textContent;
               assert.equal(textContent, 'Hello from Property', 'Should update text content from setting heading property');
-            }, 0);
+            });
           });
         });
+        
+        describe('Orphan child component', function () {
+
+          it('should do nothing at all', async function () {
+            const orphanComponent = document.getElementById('orphan');
+            await paint().then(() => {
+              const headingContent = orphanComponent.querySelector('h1').textContent;
+              const textContent = orphanComponent.querySelector('p').textContent;
+              assert.equal(headingContent, 'Hello from Server', 'Should not change server-side rendered heading');
+              assert.equal(textContent, 'Text from Server', 'Should not change server-side rendered text');
+            });
+          });
+        });
+
       });
     });
   </script>
