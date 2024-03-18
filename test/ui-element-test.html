@@ -12,7 +12,7 @@
   <causal-component id="causal">
     <h1>Hello from Server</h1>
   </causal-component>
-  <causal-component id="causal-with-attribute" heading="Hello from Attribute">
+  <causal-component id="causal-with-ignored-attribute" heading="Hello from Attribute">
     <h1>Hello from Server</h1>
   </causal-component>
   <defect-component id="defect">
@@ -20,9 +20,19 @@
   </defect-component>
   <updating-component id="updating">
     <h1>Hello from Server</h1>
+    <p>Number of unread messages: <span></span></p>
   </updating-component>
-  <updating-component id="updating-with-attribute" heading="Hello from Attribute">
+  <updating-component id="updating-with-string-attribute" heading="Hello from Attribute">
     <h1>Hello from Server</h1>
+    <p>Number of unread messages: <span></span></p>
+  </updating-component>
+  <updating-component id="updating-with-number-attribute" amount="42">
+    <h1>Hello from Server</h1>
+    <p>Number of unread messages: <span></span></p>
+  </updating-component>
+  <updating-component id="updating-with-boolean-attribute" selected>
+    <h1>Hello from Server</h1>
+    <p>Number of unread messages: <span></span></p>
   </updating-component>
   <child-component id="orphan">
     <h1>Hello from Server</h1>
@@ -69,13 +79,30 @@
     }); */
 
     define('updating-component', class extends UIElement {
-      static observedAttributes = ['heading'];
+      static observedAttributes = ['heading', 'amount', 'selected'];
+
+      attributeChanged = {
+			  amount(v) { this.cause('amount', parseInt(v, 10)) },
+        selected(v) { this.cause('selected', (typeof v === 'string' ? true : false)) },
+      };
 
       connectedCallback() {
         this.ui.heading = this.querySelector('h1');
+        this.ui.badge = this.querySelector('span');
 
         this.effect(() => {
           this.has('heading') && (this.ui.heading.textContent = this.heading);
+        });
+
+        this.effect(() => {
+          this.has('amount') && (this.ui.badge.textContent = this.amount);
+        });
+
+        this.effect(() => {
+          const className = 'selected';
+          if (this.has(className)) {
+            this.selected ? this.ui.heading.classList.add(className) : this.ui.heading.classList.remove(className);
+          }
         });
       }
     });
@@ -151,7 +178,7 @@
           });
 
           it('should ignore non-observed attributes', async function () {
-            const causalComponent = document.getElementById('causal-with-attribute');
+            const causalComponent = document.getElementById('causal-with-ignored-attribute');
             await paint().then(() => {
               const textContent = causalComponent.querySelector('h1').textContent;
               assert.equal(textContent, 'Hello from Internal Cause', 'Should have initial heading from internal cause');
@@ -178,16 +205,32 @@
             });
           });
 
-          it('should update from initial attribute', async function () {
-            const updatingComponent = document.getElementById('updating-with-attribute');
+          it('should update from initial string attribute', async function () {
+            const updatingComponent = document.getElementById('updating-with-string-attribute');
             await paint().then(() => {
               const textContent = updatingComponent.querySelector('h1').textContent;
-              assert.equal(textContent, 'Hello from Attribute', 'Should have initial heading from attribute');
+              assert.equal(textContent, 'Hello from Attribute', 'Should have initial heading from string attribute');
             });
           });
 
-          it('should update when attribute set', async function () {
-            const updatingComponent = document.getElementById('updating-with-attribute');
+          it('should update from initial numeric attribute', async function () {
+            const updatingComponent = document.getElementById('updating-with-number-attribute');
+            await paint().then(() => {
+              const textContent = updatingComponent.querySelector('span').textContent;
+              assert.equal(textContent, '42', 'Should have initial amount from numeric attribute');
+            });
+          });
+
+          it('should add class from boolean attribute', async function () {
+            const updatingComponent = document.getElementById('updating-with-boolean-attribute');
+            await paint().then(() => {
+              const className = updatingComponent.querySelector('h1').className;
+              assert.equal(className, 'selected', 'Should have initial class from boolean attribute');
+            });
+          });
+
+          it('should update when string attribute set', async function () {
+            const updatingComponent = document.getElementById('updating-with-string-attribute');
             updatingComponent.setAttribute('heading', 'Hello from Changed Attribute');
             await paint().then(() => {
               const textContent = updatingComponent.querySelector('h1').textContent;
@@ -195,8 +238,26 @@
             });
           });
 
+          it('should update when numeric attribute set', async function () {
+            const updatingComponent = document.getElementById('updating-with-number-attribute');
+            updatingComponent.setAttribute('amount', '0');
+            await paint().then(() => {
+              const textContent = updatingComponent.querySelector('span').textContent;
+              assert.equal(textContent, '0', 'Should update text content from setting amount attribute');
+            });
+          });
+
+          it('should remove class when boolean attribute removed', async function () {
+            const updatingComponent = document.getElementById('updating-with-boolean-attribute');
+            updatingComponent.removeAttribute('selected');
+            await paint().then(() => {
+              const className = updatingComponent.querySelector('h1').className;
+              assert.equal(className, '', 'Should update text remove class from removing selected attribute');
+            });
+          });
+
           it('should update when property set', async function () {
-            const updatingComponent = document.getElementById('updating-with-attribute');
+            const updatingComponent = document.getElementById('updating-with-string-attribute');
             updatingComponent.heading = 'Hello from Property';
             await paint().then(() => {
               const textContent = updatingComponent.querySelector('h1').textContent;
