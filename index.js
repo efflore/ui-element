@@ -23,12 +23,19 @@ const reactiveMap = new WeakMap();
 const isFunction = fn => typeof fn === 'function';
 
 /**
- * Turn a function which takes a callback function as first argument into a Promise
+ * Ensure passed parameter is a valid function or throw a TypeError
  * 
- * @param {Function} fn function that accepts a callback function as first parameter
- * @returns {Promise} Promise to which `.then(callback)` can be chained
+ * @param {Function} fn function to be checked
+ * @param {HTMLElement} el current element
+ * @param {string} what description of parameter expected to be a function
+ * @returns 
  */
-const promisify = fn => new Promise(resolve => fn(resolve));
+const assertFunction = (fn, el, what) => {
+	if (!isFunction(fn)) {
+		throw new TypeError(`${what} in ${el.localName} is not a function`);
+	}
+	return true;
+}
 
 /**
  * Set up a reactive property on an object; defines the property if not already there; otherwise assign the current value
@@ -53,45 +60,7 @@ const getEffects = fn => {
 	return reactiveMap.get(fn);
 };
 
-/**
- * Track the use of a getter function of a reactive property
- * 
- * @param {Function} fn getter function of the reactive property to add to the effects `Set`
- * @returns {Set} `Set` object with added value
- */
-const track = fn => activeEffect && getEffects(fn).add(activeEffect);
-
-/**
- * Trigger effects when a reactive property is set
- * 
- * @param {*} fn getter function of the reactive property as key for the lookup
- */
-const trigger = async fn => {
-	getEffects(fn).forEach(effect => effect());
-	// const promises = Array.from(getEffects(fn)).map(effect => promisify(effect).catch(reason => console.error(reason)));
-	// result = await Promise.all(promises).catch(reason => console.error(reason));
-	// console.log(result);
-}
-
-/* === Exported helper functions === */
-
-/**
- * Convenience function to syntax highlight `html` tagged template literals
- * 
- * @param {string[]} strings text parts of template literal
- * @param {...any} values expression to be inserted in the current position, whose value is converted to a string
- * @returns {string} processed template literal with replaced expressions
- */
-export const html = (strings, ...values) => String.raw({ raw: strings }, ...values);
-
-/**
- * Convenience function to define a custom element if it's name is not already taken in the CustomElementRegistry
- * 
- * @param {string} tag name of the custom element to be defined; must consist of at least two word joined with - (kebab case)
- * @param {HTMLElement} el class of custom element; must extend HTMLElement; may be an anonymous class
- * @returns {void}
- */
-export const define = (tag, el) => customElements.get(tag) || customElements.define(tag, el);
+// const log = msg => console.log(msg);
 
 /* === Default export === */
 
@@ -100,11 +69,8 @@ export const define = (tag, el) => customElements.get(tag) || customElements.def
  */
 export default class extends HTMLElement {
 
-	// hold references to HTML elements used in the class 
-	ui = {};
-
-	// hold setter functions to be called on attributeChangedCallback
-	attributeChanged = {};
+	// hold [name, type] or just type map to be used on attributeChangedCallback
+	attrs = {};
 
 	/**
 	 * Native callback function when an observed attribute of the custom element changes
@@ -115,8 +81,20 @@ export default class extends HTMLElement {
 	 */
 	attributeChangedCallback(name, old, value) {
 		if (value !== old) {
-			const method = this.attributeChanged[name];
-			isFunction(method) ? method.call(this, value) : this.cause(name, value);
+			const mapProp = input => Array.isArray(input) ? input : [name, input];
+			const [prop, type] = mapProp(this.attrs[name]);
+			// this.debug && log(`Attribute ${name} of ${this.localName} changed from '${old}' to '${value}', parsed as ${type || 'string'} and assigned to ${prop}`);
+			this.cause(prop, () => {
+				if (isFunction(type)) {
+					return type(value, old);
+				}
+				const parser = {
+					boolean: v => typeof v === 'string' ? true : false,
+					integer: v => parseInt(v, 10),
+					number: v => parseFloat(v),
+				};
+				return parser[type] ? parser[type](value) : value;
+			});
 		};
 	}
 
@@ -138,15 +116,18 @@ export default class extends HTMLElement {
 	 */
 	cause(name, value) {
 		const getter = () => {
-			track(getter);
+			activeEffect && getEffects(getter).add(activeEffect);
+			// this.debug && log(`Get current value of ['${this.localName}'].${name} and track its use in effect`);
 			return isFunction(value) ? value() : value;
 		};
+		// this.debug && !Object.hasOwn(this, name) && log(`Reactive property ['${this.localName}'].${name} defined`);
 		setReactive(this, name, value, {
 			get: () => getter(),
 			set(updater) {
 				const old = value;
 				value = isFunction(updater) ? updater(value) : updater;
-				(value !== old) && trigger(getter);
+				// this.debug && log(`Set value of ['${this.localName}'].${name} to ${value} and trigger depending effects`);
+				(value !== old) && getEffects(getter).forEach(effect => effect());
 			}
 		});
 	}
@@ -160,6 +141,7 @@ export default class extends HTMLElement {
 	 */
 	pass(target, prop, name) {
 		setReactive(target, prop, this[name], Object.getOwnPropertyDescriptor(this, name));
+		// this.debug && log(`Reactive property ['${this.localName}'].${name} passed to ['${target.localName}'].${prop}`);
 	}
 
 	/**
@@ -170,25 +152,26 @@ export default class extends HTMLElement {
 	 * @param {Function} fn callback function to be evaluated when its value is retrieved
 	 */
 	derive(target, prop, fn) {
+		assertFunction(fn, this, 'Derive callback');
 		setReactive(target, prop, fn.call(this), { get: fn.bind(this) });
+		// this.debug && log(`Derived reactive property getter function attached to ['${target.localName}'].${prop}`);
 	}
 
 	/**
 	 * Main method to define what happens when a reactive dependecy (`cause`) changes; function may return a cleanup function to be executed on idle
 	 * 
 	 * @param {Function} handler callback function to be executed when a reactive dependecy (`cause`) changes
+	 * @returns {Promise} resolved or rejected Promise for effect to happen
 	 */
 	async effect(handler) {
-		if (!isFunction(handler)) {
-			throw new Error(`Effect handler in ${this.localName} is not a function`);
-		}
+		assertFunction(handler, this, 'Effect handler');
 		const next = () => {
 			activeEffect = next; // register the current effect
 			const cleanup = handler(); // execute handler function
-			isFunction(cleanup) && setTimeout(cleanup); // execute possibly returned cleanup function on nextTick
+			isFunction(cleanup) && setTimeout(cleanup); // execute possibly returned cleanup function on next tick
 			activeEffect = null; // unregister the current effect
 		};
-		requestAnimationFrame(next); // wait for the next animation frame to bundle DOM updates
+		return new Promise(resolve => requestAnimationFrame(resolve)).then(next); // wait for the next animation frame to bundle DOM updates
 	}
 
 }
