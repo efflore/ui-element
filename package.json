@@ -1,5 +1,5 @@
 {
-    "name": "ui-element",
+    "name": "@efflore/ui-element",
     "version": "0.1.0",
     "description": "UIElement - minimal reactive framework based on Web Components",
     "main": "index.js",
