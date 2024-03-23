@@ -46,7 +46,7 @@
     import { runTests } from '@web/test-runner-mocha';
     import { assert } from '@esm-bundle/chai';
     import define from '../lib/define.js';
-    import UIElement from '../index.js'; // '../index.min.js';
+    import UIElement from '../index-dev.mjs'; // '../index.min.js';
 
     const wait = ms => new Promise((resolve) => setTimeout(resolve), ms);
     const paint = () => new Promise((resolve) => requestAnimationFrame(resolve));
@@ -54,28 +54,31 @@
     define('void-component', class extends UIElement {});
 
     define('causal-component', class extends UIElement {
+      // debug = true;
 
       ui = {};
 
       connectedCallback() {
-        this.cause('heading', 'Hello from Internal Cause');
+        this.set('heading', 'Hello from Internal Cause');
         this.ui.heading = this.querySelector('h1');
 
         this.effect(() => {
-          this.ui.heading.textContent = this.heading;
+          this.ui.heading.textContent = this.get('heading');
         });
       }
 
     });
 
     define('updating-component', class extends UIElement {
-      static observedAttributes = ['heading', 'amount', 'selected'];
-
-      attrs = {
+      static observedAttributes = ['heading', 'amount', 'step', 'selected', 'value'];
+      static attributeMapping = {
         amount: 'integer',
+        step: 'number',
         selected: 'boolean',
-        value: (v, o) => Number.isInteger(this.step) ? parseInt(v, 10) : parseFloat(v), 
+        value: (v, o) => Number.isInteger(this.get('step')) ? parseInt(v, 10) : parseFloat(v), 
       };
+
+      // debug = true;
 
       ui = {};
 
@@ -84,17 +87,17 @@
         this.ui.badge = this.querySelector('span');
 
         this.effect(() => {
-          this.has('heading') && (this.ui.heading.textContent = this.heading);
+          this.has('heading') && (this.ui.heading.textContent = this.get('heading'));
         });
 
         this.effect(() => {
-          this.has('amount') && (this.ui.badge.textContent = this.amount);
+          this.has('amount') && (this.ui.badge.textContent = this.get('amount'));
         });
 
         this.effect(() => {
           const className = 'selected';
           if (this.has(className)) {
-            this.selected ? this.ui.heading.classList.add(className) : this.ui.heading.classList.remove(className);
+            this.get(className) ? this.ui.heading.classList.add(className) : this.ui.heading.classList.remove(className);
           }
         });
       }
@@ -103,16 +106,22 @@
     define('parent-component', class extends UIElement {
       static observedAttributes = ['heading'];
 
+      // debug = true;
+
       ui = {};
 
       connectedCallback() {
         this.ui.child = this.querySelector('child-component');
-        this.pass(this.ui.child, 'heading', 'heading');
-        this.derive(this.ui.child, 'text', () => this.heading.toUpperCase());
+
+        requestAnimationFrame(() => {
+          this.ui.child.set('heading', [this, 'heading']);
+          this.ui.child.set('text', () => this.get('heading').toUpperCase());
+        });
       }
     });
 
     define('child-component', class extends UIElement {
+      // debug = true;
 
       ui = {};
 
@@ -121,11 +130,11 @@
         this.ui.text = this.querySelector('p');
 
         this.effect(() => {
-          this.has('heading') && (this.ui.heading.textContent = this.heading);
+          this.has('heading') && (this.ui.heading.textContent = this.get('heading'));
         });
 
         this.effect(() => {
-          this.has('text') && (this.ui.text.textContent = this.text);
+          this.has('text') && (this.ui.text.textContent = this.get('text'));
         });
       }
     });
@@ -155,7 +164,7 @@
 
           it('should update when property set', async function () {
             const causalComponent = document.getElementById('causal');
-            causalComponent.heading = 'Hello from Property';
+            causalComponent.set('heading', 'Hello from Property');
             await paint().then(() => {
               const textContent = causalComponent.querySelector('h1').textContent;
               assert.equal(textContent, 'Hello from Property', 'Should update text content from setting heading property');
@@ -166,7 +175,7 @@
             const causalComponent = document.getElementById('causal');
             const delay = Math.floor(Math.random() * 1000);
             wait(delay).then(() => {
-              causalComponent.heading = 'Hello from Delayed Property';
+              causalComponent.set('heading', 'Hello from Delayed Property');
             });
             await wait(delay).then(() => paint().then(() => {
               const textContent = causalComponent.querySelector('h1').textContent;
@@ -182,16 +191,15 @@
             });
           });
 
-          /* it('should throw a type error if effect handler is not a function', async function () {
+          it('should throw a type error if effect handler is not a function', async function () {
             const causalComponent = document.getElementById('causal');
-            // try {
-            causalComponent.effect();
-            assert.fail('TypeError: Effect handler in causal-component is not a function');
-            // } catch (error) {
-              // await paint().then(() => {
-            // });
-            // }
-          }); */
+            try {
+              const promise = await causalComponent.effect();
+              assert.isRejected(promise, TypeError, `TypeError: Effect handler in 'causal-component' is not a function`);
+            } catch (error) {
+              // console.log(error);
+            }
+          });
         });
 
         describe('Updating component', function () {
@@ -256,7 +264,7 @@
 
           it('should update when property set', async function () {
             const updatingComponent = document.getElementById('updating-with-string-attribute');
-            updatingComponent.heading = 'Hello from Property';
+            updatingComponent.set('heading', 'Hello from Property');
             await paint().then(() => {
               const textContent = updatingComponent.querySelector('h1').textContent;
               assert.equal(textContent, 'Hello from Property', 'Should update text content from setting heading property');

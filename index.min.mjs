@@ -1,0 +1,6 @@
+/**
+ * @license
+ * Copyright 2024 Esther Brunner
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+let t=null;const e=new WeakMap,s=t=>"function"==typeof t,a=t=>(!e.has(t)&&e.set(t,new Set),e.get(t));export default class extends HTMLElement{static attributeMapping={};#t=new Map;attributeChangedCallback(t,e,a){if(a!==e){const n=e=>Array.isArray(e)?e:[t,e],[r,i]=n(this.constructor.attributeMapping[t]),h=()=>{if(s(i))return i(a,e);const t={boolean:t=>"string"==typeof t,integer:t=>parseInt(t,10),number:t=>parseFloat(t)};return t[i]?t[i](a):a};this.set(r,h())}}has(t){return this.#t.has(t)}get(t){if(this.#t.has(t))return this.#t.get(t)()}set(e,n){if(this.#t.has(e))this.#t.get(e).set(n);else{let r;if(Array.isArray(n)&&n[0]instanceof HTMLElement){const[t,e]=n;r=()=>t.get(e),r.set=s=>t.set(e,s)}else r=()=>(t&&a(r).add(t),s(n)?n():n),r.set=t=>{const e=n;(n=s(t)?t(n):t)!==e&&a(r).forEach((t=>t()))};this.#t.set(e,r)}}delete(t){this.#t.has(t)&&(this.#t.get(t).set(),this.#t.delete(t))}clear(){this.#t.forEach((t=>t.set())),this.#t.clear()}keys(){return this.#t.keys()}get size(){return this.#t.size}async effect(e){if(!s(e))throw new TypeError(`Effect handler in '${this.localName}' is not a function`);const a=()=>{t=a;const n=e();s(n)&&setTimeout(n),t=null};return requestAnimationFrame(a)}}
