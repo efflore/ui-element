@@ -33,30 +33,6 @@ const getEffects = fn => {
 	return reactiveMap.get(fn);
 };
 
-/**
- * Main function to define a new reactive property, called `cause` in UIElement
- * 
- * @param {any} value value to be assigned to the reactive property; may be a function to be evaluated when its value is retrieved
- */
-const cause = value => {
-    const reactive = () => {
-        activeEffect && getEffects(reactive).add(activeEffect);
-        return isFunction(value) ? value() : value;
-    };
-    reactive.set = updater => {
-        const old = value;
-        value = isFunction(updater) ? updater(value) : updater;
-        (value !== old) && getEffects(reactive).forEach(async effect => {
-            try {
-                await effect();
-            } catch (error) {
-                console.error(error);
-            }
-        });
-    }
-    return reactive;
-}
-
 /* === Default export === */
 
 /**
