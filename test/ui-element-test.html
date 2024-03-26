@@ -64,6 +64,7 @@
   <script type="module">
     import { runTests } from '@web/test-runner-mocha';
     import { assert } from '@esm-bundle/chai';
+    import sinon from'sinon';
     import define from '../lib/define.mjs';
     import UIElement from '../index-dev.mjs'; // '../index.min.js';
 
@@ -176,6 +177,13 @@
       describe('UIElement', function () {
 
         describe('Void component', function () {
+
+          it('should be an instance of HTMLElement', async function () {
+            const voidComponent = document.getElementById('void');
+            assert.instanceOf(voidComponent, HTMLElement);
+            assert.equal(voidComponent.localName, 'void-component');
+          });
+
           it('should do nothing at all', async function () {
             const voidComponent = document.getElementById('void');
             await paint().then(() => {
@@ -183,6 +191,32 @@
               assert.equal(textContent, 'Hello from Server', 'Should not change server-side rendered heading');
             });
           });
+
+          it('should create a new reactive property with set', async function () {
+            const voidComponent = document.getElementById('void');
+            voidComponent.set('test', 'test');
+            assert.equal(voidComponent.get('test'), 'test');
+          });
+
+          it('should update an existing reactive property with set', async function () {
+            const voidComponent = document.getElementById('void');
+            voidComponent.set('test', 'test');
+            voidComponent.set('test', 'updated');
+            assert.equal(voidComponent.get('test'), 'updated');
+          });
+
+          /* it('should trigger dependent effects', async function () {
+            const voidComponent = document.getElementById('void');
+            let spy;
+            const effect = () => {
+              voidComponent.get('test');
+              spy = sinon.spy();
+            };
+            voidComponent.effect(effect);
+            voidComponent.set('test', 'test');
+            sinon.assert.calledOnce(spy);
+            // assert.equal(effect.called, true);
+          }); */
         });
 
         describe('Causal component', function () {
