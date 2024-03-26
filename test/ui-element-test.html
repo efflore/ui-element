@@ -205,18 +205,20 @@
             assert.equal(voidComponent.get('test'), 'updated');
           });
 
-          /* it('should trigger dependent effects', async function () {
+          it('should trigger dependent effects', async function () {
             const voidComponent = document.getElementById('void');
-            let spy;
-            const effect = () => {
-              voidComponent.get('test');
-              spy = sinon.spy();
-            };
-            voidComponent.effect(effect);
-            voidComponent.set('test', 'test');
-            sinon.assert.calledOnce(spy);
-            // assert.equal(effect.called, true);
-          }); */
+            let result = 0;
+            voidComponent.effect(() => {
+              if (voidComponent.has('another')) {
+                result = 42;
+                voidComponent.get('another');
+              }
+            });
+            voidComponent.set('another', 'test');
+            await paint().then(() => {
+              assert.equal(result, 42);
+            });
+          });
         });
 
         describe('Causal component', function () {

@@ -55,7 +55,7 @@ export default class extends HTMLElement {
   attributeMapping = {};
 
   /*
-   * Private: hold state of reactive properties – use `has()`, `get()`, `set()`, `delete()` to access and modify
+   * @private hold state of reactive properties – use `has()`, `get()`, `set()`, `delete()` to access and modify
    */
   #state = new Map();
 
@@ -149,7 +149,7 @@ export default class extends HTMLElement {
     
     // call set method on already defined reactive property
     } else {
-      this.debug && console.debug(`Set reactive property ['${this.localName}'].set('${name}', '${value}') and trigger depending effects`);
+      this.debug && console.debug(`Set reactive property ['${this.localName}'].set('${name}', '${value}') and trigger dependent effects`);
       this.#state.get(name).set(value);
     }
   }
@@ -161,7 +161,7 @@ export default class extends HTMLElement {
    */
   delete(name) {
     if (this.#state.has(name)) {
-      this.debug && console.debug(`Delete reactive property ['${this.localName}'].set('${name}') and trigger depending effects`);
+      this.debug && console.debug(`Delete reactive property ['${this.localName}'].set('${name}') and trigger dependent effects`);
       this.#state.get(name).set(); // call set method of reactive property a last time with undefined value
       this.#state.delete(name);
     }
@@ -171,7 +171,7 @@ export default class extends HTMLElement {
    * Delete all reactive properties on this object
    */
   clear() {
-    this.debug && console.debug(`Delete all reactive properties from ['${this.localName}'] and trigger depending effects`);
+    this.debug && console.debug(`Delete all reactive properties from ['${this.localName}'] and trigger dependent effects`);
     this.#state.forEach(reactive => reactive.set()); // call set method of reactive property a last time with undefined value
     this.#state.clear();
   }
@@ -215,12 +215,10 @@ export default class extends HTMLElement {
   /**
    * Main method to define what happens when a reactive dependency changes; function may return a cleanup function to be executed on idle
    * 
-   * @async effect is deferred to the next animation frame to bundle DOM updates
    * @param {Function} handler callback function to be executed when a reactive dependency changes
-   * @returns {Promise} resolved or rejected Promise for effect to happen
    * @throws {TypeError} if handler is not a function
    */
-  async effect(handler) {
+  effect(handler) {
     if (!isFunction(handler)) throw new TypeError(`Effect handler in '${this.localName}' is not a function`);
     const next = () => {
       activeEffect = next; // register the current effect
@@ -228,7 +226,7 @@ export default class extends HTMLElement {
       isFunction(cleanup) && setTimeout(cleanup); // execute possibly returned cleanup function on next tick
       activeEffect = null; // unregister the current effect
     };
-    return requestAnimationFrame(next); // wait for the next animation frame to bundle DOM updates
+    requestAnimationFrame(next); // wait for the next animation frame to bundle DOM updates
   }
 
 }

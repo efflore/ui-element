@@ -149,7 +149,7 @@ export default class extends HTMLElement {
     
     // call set method on already defined reactive property
     } else {
-      // this.debug && console.debug(`Set reactive property ['${this.localName}'].set('${name}', '${value}') and trigger depending effects`);
+      // this.debug && console.debug(`Set reactive property ['${this.localName}'].set('${name}', '${value}') and trigger dependent effects`);
       this.#state.get(name).set(value);
     }
   }
@@ -161,7 +161,7 @@ export default class extends HTMLElement {
    */
   delete(name) {
     if (this.#state.has(name)) {
-      // this.debug && console.debug(`Delete reactive property ['${this.localName}'].set('${name}') and trigger depending effects`);
+      // this.debug && console.debug(`Delete reactive property ['${this.localName}'].set('${name}') and trigger dependent effects`);
       this.#state.get(name).set(); // call set method of reactive property a last time with undefined value
       this.#state.delete(name);
     }
@@ -171,7 +171,7 @@ export default class extends HTMLElement {
    * Delete all reactive properties on this object
    */
   clear() {
-    // this.debug && console.debug(`Delete all reactive properties from ['${this.localName}'] and trigger depending effects`);
+    // this.debug && console.debug(`Delete all reactive properties from ['${this.localName}'] and trigger dependent effects`);
     this.#state.forEach(reactive => reactive.set()); // call set method of reactive property a last time with undefined value
     this.#state.clear();
   }
