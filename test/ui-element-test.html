@@ -66,7 +66,7 @@
     import { assert } from '@esm-bundle/chai';
     import sinon from'sinon';
     import define from '../lib/define.mjs';
-    import UIElement from '../index-dev.mjs'; // '../index.min.js';
+    import UIElement from '../index.mjs'; // '../index.min.js';
 
     const wait = ms => new Promise((resolve) => setTimeout(resolve), ms);
     const paint = () => new Promise((resolve) => requestAnimationFrame(resolve));
@@ -261,11 +261,13 @@
 
           it('should throw a TypeError if effect handler is not a function', async function () {
             const causalComponent = document.getElementById('causal');
-            try {
-              const fn = async () => await causalComponent.effect(42);
-              assert.throws(await fn(), TypeError);
-            } catch (error) {
-              // console.log(error);
+            if (causalComponent.debug) {
+              try {
+                const fn = async () => await causalComponent.effect(42);
+                assert.throws(await fn(), TypeError);
+              } catch (error) {
+                // console.log(error);
+              }
             }
           });
         });

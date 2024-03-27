@@ -118,16 +118,17 @@ export default class extends HTMLElement {
   }
 
   /**
-   * Create a reactive property or update its value; to pass a reactive property, value must be a function with a 'set' method
+   * Create a reactive property or update its value; to inherit a reactive property, value must be a function with a 'set' method
    * 
    * @param {any} key reactive property to set a value to
-   * @param {any} value initial or new value; may be a function (gets old value as parameter) to be evaluated when value is retrieved
+   * @param {any} value initial or new value; may be a function (gets old value as parameter) to be evaluated when value is retrieved; reactive accessor function for inheritance must have a'set' method
    */
   set(key, value) {
     if (!this.#state.has(key)) {
 
       // value is already a reactive property
       if (isFunction(value) && isFunction(value.set)) {
+        this.debug && console.debug(`Create inherited reactive property ['${this.localName}'].set('${key}'`);
         this.#state.set(key, value);
 
       // create a new reactive property
@@ -214,10 +215,10 @@ export default class extends HTMLElement {
    * Main method to define what happens when a reactive dependency changes; function may return a cleanup function to be executed on idle
    * 
    * @param {Function} handler callback function to be executed when a reactive dependency changes
-   * @throws {TypeError} if handler is not a function
+   * @throws {TypeError} if in debug mode and handler is not a function
    */
   effect(handler) {
-    if (!isFunction(handler)) throw new TypeError(`Effect handler in '${this.localName}' is not a function`);
+    if (this.debug && !isFunction(handler)) throw new TypeError(`Effect handler in '${this.localName}' is not a function`);
     const next = () => {
       activeEffect = next; // register the current effect
       const cleanup = handler(); // execute handler function
