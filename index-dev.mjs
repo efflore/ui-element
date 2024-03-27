@@ -69,7 +69,7 @@ export default class extends HTMLElement {
   attributeChangedCallback(name, old, value) {
     if (value !== old) {
       const mapToProp = input => Array.isArray(input) ? input : [name, input];
-      const [prop, type] = mapToProp(this.attributeMapping[name]);
+      const [key, type] = mapToProp(this.attributeMapping[name]);
       const parsed = () => {
         if (isFunction(type)) return type.call(this, value, old);
         const parser = {
@@ -80,7 +80,7 @@ export default class extends HTMLElement {
         return parser[type] ? parser[type](value) : value;
       };
       this.debug && console.debug(`Attribute '${name}' of ['${this.localName}'] changed from '${old}' to '${value}', parsed as ${type || 'string'}: ${parsed()}`);
-      this.set(prop, parsed());
+      this.set(key, parsed());
     };
   }
 
@@ -96,45 +96,43 @@ export default class extends HTMLElement {
   /**
    * Check whether a reactive property is set
    * 
-   * @param {any} name identifier of reactive property to be checked
-   * @returns {boolean} true if `this` has reactive property with the passed name
+   * @param {any} key reactive property to be checked
+   * @returns {boolean} true if `this` has reactive property with the passed key; false otherwise
    */
-  has(name) {
-    return this.#state.has(name);
+  has(key) {
+    return this.#state.has(key);
   }
 
   /**
    * Get the current value of a reactive property
    * 
-   * @param {any} name identifier of reactive property to get value from
+   * @param {any} key reactive property to get value from
+   * @param {boolean} raw if true, return the reactive property function, otherwise return the current value
    * @returns {any} current value of reactive property
    */
-  get(name) {
-    if (!this.#state.has(name)) return;
-    this.debug && console.debug(`Get reactive property ['${this.localName}'].get('${name}') and track its use in effect`);
-    return this.#state.get(name)();
+  get(key, raw = false) {
+    if (!this.#state.has(key)) return;
+    this.debug && console.debug(`Get reactive property ['${this.localName}'].get('${key}') and track its use in effect`);
+    const reactive = this.#state.get(key);
+    return raw ? reactive : reactive();
   }
 
   /**
-   * Create a new reactive property or set its value; to pass a reactive property set its value to [UIElement, name] to reference the source
+   * Create a reactive property or update its value; to pass a reactive property, value must be a function with a 'set' method
    * 
-   * @param {any} name identifier of reactive property to set a value to
+   * @param {any} key reactive property to set a value to
    * @param {any} value initial or new value; may be a function (gets old value as parameter) to be evaluated when value is retrieved
    */
-  set(name, value) {
-    if (!this.#state.has(name)) {
-      let reactive;
+  set(key, value) {
+    if (!this.#state.has(key)) {
 
-      // get passed reactive property from another UIElement
-      if (Array.isArray(value) && (value[0] instanceof HTMLElement)) {
-        const [el, key] = value;
-        reactive = () => el.get(key);
-        reactive.set = updater => el.set(key, updater);
-        this.debug && console.debug(`Pass reactive property ['${el.localName}'].get('${key}') to ['${this.localName}'].set('${name}', '${el.get(key)})'`);
-      
+      // value is already a reactive property
+      if (isFunction(value) && isFunction(value.set)) {
+        this.#state.set(key, value);
+
       // create a new reactive property
       } else {
-        reactive = () => {
+        const reactive = () => {
           activeEffect && getEffects(reactive).add(activeEffect);
           return isFunction(value) ? value() : value;
         };
@@ -143,38 +141,38 @@ export default class extends HTMLElement {
           value = isFunction(updater) ? updater(value) : updater;
           (value !== old) && getEffects(reactive).forEach(effect => effect());
         };
-        this.debug && console.debug(`Create reactive property ['${this.localName}'].set('${name}', '${value})'`);
+        this.debug && console.debug(`Create reactive property ['${this.localName}'].set('${key}', '${value})'`);
+        this.#state.set(key, reactive);
       }
-      this.#state.set(name, reactive);
     
     // call set method on already defined reactive property
     } else {
-      this.debug && console.debug(`Set reactive property ['${this.localName}'].set('${name}', '${value}') and trigger dependent effects`);
-      this.#state.get(name).set(value);
+      this.debug && console.debug(`Set reactive property ['${this.localName}'].set('${key}', '${value}') and trigger dependent effects`);
+      this.#state.get(key).set(value);
     }
   }
 
   /**
    * Delete a new reactive property
    * 
-   * @param {any} name identifier of reactive property to delete
+   * @param {any} key reactive property to delete
    */
-  delete(name) {
-    if (this.#state.has(name)) {
-      this.debug && console.debug(`Delete reactive property ['${this.localName}'].set('${name}') and trigger dependent effects`);
-      this.#state.get(name).set(); // call set method of reactive property a last time with undefined value
-      this.#state.delete(name);
+  delete(key) {
+    if (this.#state.has(key)) {
+      this.debug && console.debug(`Delete reactive property ['${this.localName}'].set('${key}') and trigger dependent effects`);
+      this.#state.get(key).set(); // call set method of reactive property a last time with undefined value
+      this.#state.delete(key);
     }
   }
 
   /**
    * Delete all reactive properties on this object
-   */
+   * /
   clear() {
     this.debug && console.debug(`Delete all reactive properties from ['${this.localName}'] and trigger dependent effects`);
     this.#state.forEach(reactive => reactive.set()); // call set method of reactive property a last time with undefined value
     this.#state.clear();
-  }
+  } */
 
   /**
    * Get a MapIterator to access all defined reactive property keys on this object
@@ -190,20 +188,20 @@ export default class extends HTMLElement {
    * 
    * @ignore UNTESTED and deliberatly UNDOCUMENTED at this stage; returns raw reactive property functions as values, not the actual values!
    * @returns {MapIterator}
-   */
+   * /
   values() {
     return this.#state.values();
-  }
+  } */
 
   /**
    * Get a MapIterator to access all defined reactive property entries on this object
    * 
    * @ignore UNTESTED and deliberatly UNDOCUMENTED at this stage; returns raw reactive property functions as values, not the actual values!
    * @returns {MapIterator}
-   */
+   * /
   entries() {
     return this.#state.entries();
-  }
+  } */
 
   /**
    * Get the number of reactive properies on this object

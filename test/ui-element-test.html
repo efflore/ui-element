@@ -151,7 +151,7 @@
         const child = this.querySelector('child-component');
 
         requestAnimationFrame(() => {
-          child.set('heading', [this, 'heading']);
+          child.set('heading', this.get('heading', true));
           child.set('text', () => this.get('heading').toUpperCase());
         });
       }
@@ -422,6 +422,23 @@
               assert.equal(headingContent, 'Hello from Changed Attribute', 'Should have changed heading from attribute of parent component');
               assert.equal(textContent, 'Hello from Changed Attribute'.toUpperCase(), 'Should have changed text from derived attribute of parent component');
             });
+          });
+
+          it('should change heading if inherited reactive property is set', async function () {
+            const parentComponent = document.getElementById('parent');
+            const childComponent = document.getElementById('child');
+            childComponent.set('heading', 'Hello from Property on Child');
+            await paint().then(() => {
+              const headingContent = childComponent.querySelector('h1').textContent;
+              assert.equal(headingContent, 'Hello from Property on Child', 'Should have changed heading from property of child component');
+            });
+          });
+
+          it('should propagate change to inherited reactive property to parent component', async function () {
+            const parentComponent = document.getElementById('parent');
+            const childComponent = document.getElementById('child');
+            childComponent.set('heading', 'Hello from Updated Property on Child');
+            assert.equal(parentComponent.get('heading'), 'Hello from Updated Property on Child', 'Should have changed heading property on parent from updated property of child component');
           });
         });
 
