@@ -107,7 +107,7 @@ export default class extends HTMLElement {
    * Get the current value of a reactive property
    * 
    * @param {any} key reactive property to get value from
-   * @param {boolean} raw if true, return the reactive property function, otherwise return the current value
+   * @param {boolean} raw if true, return the reactive accessor function, otherwise return the current value
    * @returns {any} current value of reactive property
    */
   get(key, raw = false) {
@@ -186,7 +186,7 @@ export default class extends HTMLElement {
   /**
    * Get a MapIterator to access all defined reactive property values on this object
    * 
-   * @ignore UNTESTED and deliberatly UNDOCUMENTED at this stage; returns raw reactive property functions as values, not the actual values!
+   * @ignore UNTESTED and deliberatly UNDOCUMENTED at this stage; returns raw reactive accessor functions as values, not the actual values!
    * @returns {MapIterator}
    * /
   values() {
@@ -196,7 +196,7 @@ export default class extends HTMLElement {
   /**
    * Get a MapIterator to access all defined reactive property entries on this object
    * 
-   * @ignore UNTESTED and deliberatly UNDOCUMENTED at this stage; returns raw reactive property functions as values, not the actual values!
+   * @ignore UNTESTED and deliberatly UNDOCUMENTED at this stage; returns raw reactive accessor functions as values, not the actual values!
    * @returns {MapIterator}
    * /
   entries() {
