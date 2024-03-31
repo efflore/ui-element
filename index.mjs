@@ -23,7 +23,7 @@ const reactiveMap = new WeakMap();
 const isFunction = fn => typeof fn === 'function';
 
 /**
- * Get the set of effects associated to the cause getter function in the reactive map
+ * Get the set of effects dependent on a reactive property from the reactivity tree
  * 
  * @param {Function} fn - getter function of the reactive property as key for the lookup
  * @returns {Set} set of effects associated with the reactive property
@@ -34,7 +34,7 @@ const getEffects = fn => {
 };
 
 /**
- * Main function to define a reactive property
+ * Define a reactive property
  * 
  * @param {any} value - initial value or value getter function
  * @returns reactive accessor function
@@ -53,7 +53,7 @@ const cause = value => {
 }
 
 /**
- * Main function to define what happens when a reactive dependency changes; function may return a cleanup function to be executed on next tick
+ * Define what happens when a reactive dependency changes; function may return a cleanup function to be executed on next tick
  * 
  * @param {Function} handler - callback function to be executed when a reactive dependency changes
  */
@@ -66,6 +66,22 @@ const effect = handler => {
   };
   requestAnimationFrame(next); // wait for the next animation frame to bundle DOM updates
 }
+
+/**
+ * Parse an attribute value
+ * 
+ * @param {string} value - attribute value
+ * @param {string} type - attribute type: `'boolean'`, `'integer'`, `'number'`; everything else will be treated as `'string'`
+ * @returns {boolean | number | string} parsed attribute value
+ */
+const parseAttribute = (value, type) => {
+  const parser = {
+    boolean: v => typeof v === 'string' ? true : false,
+    integer: v => parseInt(v, 10),
+    number: v => parseFloat(v),
+  };
+  return parser[type] ? parser[type](value) : value;
+};
 
 /* === Default export === */
 
@@ -102,19 +118,11 @@ export default class extends HTMLElement {
    */
   attributeChangedCallback(name, old, value) {
     if (value !== old) {
-      const mapToProp = input => Array.isArray(input) ? input : [name, input];
-      const [key, type] = mapToProp(this.attributeMapping[name]);
-      const parsed = () => {
-        if (isFunction(type)) return type.call(this, value, old);
-        const parser = {
-          boolean: v => typeof v === 'string' ? true : false,
-          integer: v => parseInt(v, 10),
-          number: v => parseFloat(v),
-        };
-        return parser[type] ? parser[type](value) : value;
-      };
-      // this.debug && console.debug(`Attribute '${name}' of ['${this.localName}'] changed from '${old}' to '${value}', parsed as ${type || 'string'}: ${parsed()}`);
-      this.set(key, parsed());
+      const input = this.attributeMapping[name];
+      const [key, type] = Array.isArray(input) ? input : [name, input];
+      const parsed = isFunction(type) ? type.call(this, value, old) : parseAttribute(value, type);
+      // this.debug && console.debug(`Attribute '${name}' of ['${this.localName}'] changed from '${old}' to '${value}', parsed as ${type || 'string'}: ${parsed}`);
+      this.set(key, parsed);
     };
   }
 
