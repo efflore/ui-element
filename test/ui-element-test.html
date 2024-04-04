@@ -151,8 +151,8 @@
         const child = this.querySelector('child-component');
 
         requestAnimationFrame(() => {
-          child.set('heading', this.get('heading', true));
-          child.set('text', () => this.get('heading').toUpperCase());
+          child.derive('heading', () => this.get('heading'));
+          child.derive('text', () => this.get('heading').toUpperCase());
         });
       }
     });
@@ -436,12 +436,6 @@
             });
           });
 
-          it('should propagate change to inherited reactive property to parent component', async function () {
-            const parentComponent = document.getElementById('parent');
-            const childComponent = document.getElementById('child');
-            childComponent.set('heading', 'Hello from Updated Property on Child');
-            assert.equal(parentComponent.get('heading'), 'Hello from Updated Property on Child', 'Should have changed heading property on parent from updated property of child component');
-          });
         });
 
       });

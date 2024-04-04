@@ -17,10 +17,20 @@ const reactiveMap = new WeakMap();
 /**
  * Check if a given variable is a function
  * 
- * @param {any} fn - variable to check
+ * @param {any} fn - variable to check if it is a function
  * @returns {boolean} true if supplied parameter is a function
  */
 const isFunction = fn => typeof fn === 'function';
+
+/**
+ * Call a function if it is a function; otherwise return the fallback value
+ * 
+ * @param {any} fn - variable to check if it is a function
+ * @param {Array} args - arguments to pass to the function; defaults to empty array (called with null this without arguments)
+ * @param {any} fallback - value to return if the supplied function is not a function; defaults to the not-a-function first parameter
+ * @returns {any} value returned by the supplied function if it is a function; otherwise returns the fallback value
+ */
+const maybeFunction = (fn, args = [], fallback = fn) => isFunction(fn) ? fn.call(...args) : fallback;
 
 /**
  * Get the set of effects dependent on a reactive property from the reactivity tree
@@ -42,15 +52,15 @@ const getEffects = fn => {
 const cause = value => {
   const reactive = () => {
     activeEffect && getEffects(reactive).add(activeEffect);
-    return isFunction(value) ? value() : value;
+    return maybeFunction(value);
   };
   reactive.set = updater => {
-    const old = value;
-    value = isFunction(updater) ? updater(old) : updater;
+    const old = maybeFunction(value);
+    value = maybeFunction(updater, [null, old]);
     (value !== old) && getEffects(reactive).forEach(effect => effect());
   };
   return reactive;
-}
+};
 
 /**
  * Define what happens when a reactive dependency changes; function may return a cleanup function to be executed on next tick
@@ -64,8 +74,8 @@ const effect = handler => {
     isFunction(cleanup) && setTimeout(cleanup); // execute possibly returned cleanup function on next tick
     activeEffect = null; // unregister the current effect
   };
-  requestAnimationFrame(next); // wait for the next animation frame to bundle DOM updates
-}
+  next();
+};
 
 /**
  * Parse an attribute value
@@ -90,7 +100,7 @@ const parseAttribute = (value, type) => {
  */
 export default class extends HTMLElement {
 
-  /*
+  /**
    * Hold [name, type] or just type mapping to be used on attributeChangedCallback
    *
    * @example
@@ -104,9 +114,7 @@ export default class extends HTMLElement {
    */
   attributeMapping = {};
 
-  /*
-   * @private hold state of reactive properties – use `has()`, `get()`, `set()`, `delete()` to access and modify
-   */
+  // @private hold state of reactive properties – use `has()`, `get()`, `set()`, `delete()` to access and modify
   #state = new Map();
 
   /**
@@ -120,8 +128,8 @@ export default class extends HTMLElement {
     if (value !== old) {
       const input = this.attributeMapping[name];
       const [key, type] = Array.isArray(input) ? input : [name, input];
-      const parsed = isFunction(type) ? type.call(this, value, old) : parseAttribute(value, type);
-      this.debug && console.debug(`Attribute '${name}' of ['${this.localName}'] changed from '${old}' to '${value}', parsed as ${type || 'string'}: ${parsed}`);
+      const parsed = maybeFunction(type, [this, value, old], parseAttribute(value, type));
+      this.log(`Attribute '${name}' of ['${this.localName}'] changed from '${old}' to '${value}', parsed as ${type || 'string'}: ${parsed}`);
       this.set(key, parsed);
     };
   }
@@ -140,14 +148,12 @@ export default class extends HTMLElement {
    * Get the current value of a reactive property
    * 
    * @param {any} key - reactive property to get value from
-   * @param {boolean} raw - if `true`, return the reactive accessor function, otherwise return the current value; optional; default: `false`
    * @returns {any} current value of reactive property
    */
-  get(key, raw = false) {
+  get(key) {
     if (!this.#state.has(key)) return;
-    this.debug && console.debug(`Get reactive property ['${this.localName}'].get('${key}') and track its use in effect`);
-    const reactive = this.#state.get(key);
-    return raw ? reactive : reactive();
+    this.log(`['${this.localName}'].get('${key}') and track its use in effect`);
+    return this.#state.get(key)();
   }
 
   /**
@@ -158,23 +164,25 @@ export default class extends HTMLElement {
    */
   set(key, value) {
     if (!this.#state.has(key)) {
-
-      // value is already a reactive property
-      if (isFunction(value) && isFunction(value.set)) {
-        this.debug && console.debug(`Inherit reactive property ['${this.localName}'].set('${key}'`);
-        this.#state.set(key, value);
-
-      // create a new reactive property
-      } else {
-        this.debug && console.debug(`Create reactive property ['${this.localName}'].set('${key}', '${value}')`);
-        this.#state.set(key, cause(value));
-      }
-    
-    // call set method on already defined reactive property
+      this.log(`Create ['${this.localName}'].set('${key}', '${value}')`);
+      this.#state.set(key, cause(value)); // create a new reactive property
     } else {
-      this.debug && console.debug(`Set reactive property ['${this.localName}'].set('${key}', '${value}') and trigger dependent effects`);
-      this.#state.get(key).set(value);
+      this.log(`Set ['${this.localName}'].set('${key}', '${value}') and trigger dependent effects`);
+      maybeFunction(this.#state.get(key).set, [this, value]); // call set method on already defined reactive property
     }
+  }
+
+  /**
+   * Derive a read-only reactive property
+   * 
+   * @param {any} key - reactive property to set derived value to
+   * @param {Function} getter - callback function to get the value of the reactive property
+   * @throws {TypeError} if getter is not a function
+   */
+  derive(key, getter) {
+    this.debug && !isFunction(getter) && this.error(new TypeError(`Getter of ['${this.localName}'].derive('${key}', getter) is not a function`));
+    this.log(`Derive ['${this.localName}'].derive('${key}', ${getter})`);
+    effect(() => this.set(key, getter));
   }
 
   /**
@@ -184,21 +192,40 @@ export default class extends HTMLElement {
    */
   delete(key) {
     if (this.#state.has(key)) {
-      this.debug && console.debug(`Delete reactive property ['${this.localName}'].set('${key}') and trigger dependent effects`);
-      this.#state.get(key).set(); // call set method of reactive property a last time with undefined value
+      this.log(`Delete ['${this.localName}'].delete('${key}') and trigger dependent effects`);
+      maybeFunction(this.#state.get(key).set); // call set method of reactive property a last time with undefined value
       this.#state.delete(key);
     }
   }
 
   /**
-   * Main method to define what happens when a reactive dependency changes; function may return a cleanup function to be executed on next tick
+   * Define what happens when a reactive dependency changes; function may return a cleanup function to be executed on next tick
    * 
    * @param {Function} handler - callback function to be executed when a reactive dependency changes
    * @throws {TypeError} if handler is not a function
+   * @returns {number} requestAnimationFrame ID to be used with `cancelAnimationFrame()`
    */
   effect(handler) {
-    if (this.debug && !isFunction(handler)) throw new TypeError(`Effect handler in ${this.localName} is not a function`);
-    effect(handler);
+    this.debug && !isFunction(handler) && this.error(new TypeError(`Effect handler in ${this.localName} is not a function`));
+    return requestAnimationFrame(effect.bind(null, handler)); // wait for the next animation frame to bundle DOM updates
+  }
+
+  /**
+   * Log messages in debug mode
+   * 
+   * @param {string} msg - debug message to be logged
+   */
+  log(msg) {
+    this.debug && console.debug(msg);
+  }
+
+  /**
+   * Throw an error
+   * 
+   * @param {Error} err 
+   */
+  error(err) {
+    throw err;
   }
 
 }
