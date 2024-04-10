@@ -98,7 +98,7 @@ customElements.define('my-slider', class extends UIElement {
 Or from client side:
 
 ```html
-<script type="module" src="js/ui-element.mjs"></script>
+<script type="module" src="js/ui-element.js"></script>
 <script defer src="js/my-counter.js"></script>
 <script defer src="js/my-input.js"></script>
 <script defer src="js/my-slider.js"></script>
