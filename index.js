@@ -95,10 +95,20 @@ export default class extends HTMLElement {
   }
 
   /**
+   * Check whether a reactive property is set
+   * 
+   * @param {any} key - reactive property to be checked
+   * @returns {boolean} `true` if this element has reactive property with the passed key; `false` otherwise
+   */
+  has(key) {
+    return this.#state.has(key);
+  }
+
+  /**
    * Get the current value of a reactive property
    * 
    * @param {any} key - reactive property to get value from
-   * @returns {any} current value of reactive property
+   * @returns {any} current value of reactive property; undefined if reactive property does not exist
    */
   get(key) {
     if (!this.#state.has(key)) return;
@@ -119,7 +129,7 @@ export default class extends HTMLElement {
     };
     reactive.set = updater => {
       const old = maybeFunction(value);
-      value = maybeFunction(updater, [null, old]);
+      value = maybeFunction(updater, [this, old]);
       (value !== old) && getEffects(reactive).forEach(effect => effect());
     };
     this.#state.set(key, reactive);
@@ -133,17 +143,14 @@ export default class extends HTMLElement {
   effect(handler) {
     let requestId = null;
     if (requestId) return; // effect already scheduled
-    // wait for the next animation frame to bundle DOM updates
-    requestId = requestAnimationFrame(() => {
-      const next = () => {
-        activeEffect = next; // register the current effect
-        const cleanup = handler(); // execute handler function
-        isFunction(cleanup) && setTimeout(cleanup); // execute possibly returned cleanup function on next tick
-        activeEffect = null; // unregister the current effect
-      };
-      next();
-      requestId = null;
-    });
+    const next = () => {
+      activeEffect = next; // register the current effect
+      const cleanup = handler(); // execute handler function
+      isFunction(cleanup) && setTimeout(cleanup); // execute possibly returned cleanup function on next tick
+      activeEffect = null; // unregister the current effect
+      requestId = null; // reset requestId
+    };
+    requestId = requestAnimationFrame(next); // wait for the next animation frame to bundle DOM updates
   }
 
 }
