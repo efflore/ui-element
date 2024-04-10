@@ -1,6 +1,0 @@
-/**
- * @license
- * Copyright 2024 Esther Brunner
- * SPDX-License-Identifier: BSD-3-Clause
- */
-let t=null;const e=new WeakMap,s=t=>"function"==typeof t,a=(t,e=[],a=t)=>s(t)?t.call(...e):a,n=t=>(!e.has(t)&&e.set(t,new Set),e.get(t)),i=e=>{const a=()=>{t=a;const n=e();s(n)&&setTimeout(n),t=null};a()};export default class extends HTMLElement{attributeMapping={};#t=new Map;attributeChangedCallback(t,e,s){if(s!==e){const n=this.attributeMapping[t],[i,r]=Array.isArray(n)?n:[t,n],h=a(r,[this,s,e],((t,e)=>{const s={boolean:t=>"string"==typeof t,integer:t=>parseInt(t,10),number:t=>parseFloat(t)};return s[e]?s[e](t):t})(s,r));this.set(i,h)}}has(t){return this.#t.has(t)}get(t){if(this.#t.has(t))return this.#t.get(t)()}set(e,s){this.#t.has(e)?a(this.#t.get(e).set,[this,s]):this.#t.set(e,(e=>{const s=()=>(t&&n(s).add(t),a(e));return s.set=t=>{const i=a(e);(e=a(t,[null,i]))!==i&&n(s).forEach((t=>t()))},s})(s))}derive(t,e){i((()=>this.set(t,e)))}delete(t){this.#t.has(t)&&(a(this.#t.get(t).set),this.#t.delete(t))}effect(t){return requestAnimationFrame(i.bind(null,t))}}
