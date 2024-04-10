@@ -116,26 +116,20 @@
         const badge = this.querySelector('span');
         const input = this.querySelector('input');
 
-        const isNumber = num => (typeof num === 'number') && !isNaN(num);
-
         this.effect(() => {
-          const title = this.get('title');
-          title && (heading.textContent = title);
+          this.has('title') && (heading.textContent = this.get('title'));
         });
 
         this.effect(() => {
-          const count = this.get('count');
-          isNumber(count) && (badge.textContent = count);
+          this.has('count') && (badge.textContent = this.get('count'));
         });
 
         this.effect(() => {
-          const step = this.get('step');
-          isNumber(step) && (step > 0) && input.setAttribute('step', step);
+          this.has('step') && input.setAttribute('step', this.get('step'));
         });
 
         this.effect(() => {
-          const value = this.get('value');
-          isNumber(value) && input.setAttribute('value', value);
+          this.has('value') && input.setAttribute('value', this.get('value'));
         });
 
         this.effect(() => {
@@ -166,13 +160,11 @@
       connectedCallback() {
 
         this.effect(() => {
-          const heading = this.get('heading');
-          heading && (this.querySelector('h1').textContent = heading);
+          this.has('heading') && (this.querySelector('h1').textContent = this.get('heading'));
         });
 
         this.effect(() => {
-          const text = this.get('text');
-          text && (this.querySelector('p').textContent = text);
+          this.has('text') && (this.querySelector('p').textContent = this.get('text'));
         });
       }
     });

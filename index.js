@@ -56,6 +56,7 @@ export default class extends HTMLElement {
   /**
    * Hold [name, type] or just type mapping to be used on attributeChangedCallback
    *
+   * @property {Object} attributeMapping - mapping of attribute names to property keys and types or parser functions
    * @example
    * attributeMapping = {
    *   heading: ['title'],  // attribute mapped to a property with a different name; type 'string' is optional (default)
@@ -67,7 +68,7 @@ export default class extends HTMLElement {
    */
   attributeMapping = {};
 
-  // @private hold state of reactive properties – use `has()`, `get()`, `set()`, `delete()` to access and modify
+  // @private hold state of reactive properties – use `has()`, `get()` and `set()` to access and modify
   #state = new Map();
 
   /**
