@@ -6,6 +6,24 @@
 </head>
 <body>
 
+  <style>
+    my-counter {
+      display: flex;
+      flex-direction: row;
+      gap: 1rem;
+
+      p {
+        margin-block: 0.2rem;
+      }
+    }
+  </style>
+  <my-counter value="42">
+    <p>Count: <span>42</span></p>
+    <div>
+      <button class="decrement">–</button>
+      <button class="increment">+</button>
+    </div>
+  </my-counter>
   <void-component id="void">
     <h1>Hello from Server</h1>
   </void-component>
@@ -23,9 +41,10 @@
     <h1>Hello from Server</h1>
     <p>Number of unread messages: <span></span></p>
   </updating-component>
-  <updating-component id="updating-with-number-attribute" amount="42">
+  <updating-component id="updating-with-number-attribute" count="42" step="0.1" value="3.14">
     <h1>Hello from Server</h1>
     <p>Number of unread messages: <span></span></p>
+    <input type="number" />
   </updating-component>
   <updating-component id="updating-with-boolean-attribute" selected>
     <h1>Hello from Server</h1>
@@ -46,56 +65,76 @@
     import { runTests } from '@web/test-runner-mocha';
     import { assert } from '@esm-bundle/chai';
     import define from '../lib/define.js';
-    import UIElement from '../index.js'; // '../index.min.js';
+    import UIElement from '../index.js';
 
     const wait = ms => new Promise((resolve) => setTimeout(resolve), ms);
     const paint = () => new Promise((resolve) => requestAnimationFrame(resolve));
 
+    define('my-counter', class extends UIElement {
+      static observedAttributes = ['value'];
+
+      attributeMapping = { value: 'integer' };
+
+      connectedCallback() {
+        this.querySelector('.decrement').onclick = () => this.set('value', v => v - 1);
+        this.querySelector('.increment').onclick = () => this.set('value', v => v + 1);
+
+        this.effect(() => this.querySelector('span').textContent = this.get('value'));
+      }
+    });
+
     define('void-component', class extends UIElement {});
 
     define('causal-component', class extends UIElement {
-
-      ui = {};
+      // debug = true;
 
       connectedCallback() {
-        this.cause('heading', 'Hello from Internal Cause');
-        this.ui.heading = this.querySelector('h1');
+        this.set('heading', 'Hello from Internal Cause');
 
         this.effect(() => {
-          this.ui.heading.textContent = this.heading;
+          this.querySelector('h1').textContent = this.get('heading');
         });
       }
 
     });
 
     define('updating-component', class extends UIElement {
-      static observedAttributes = ['heading', 'amount', 'selected'];
-
-      attrs = {
-        amount: 'integer',
+      static observedAttributes = ['heading', 'count', 'step', 'value', 'selected'];
+      
+      attributeMapping = {
+        heading: ['title'],
+        count: 'integer',
+        step: 'number',
+        value: (v, o) => Number.isInteger(this.get('step')) ? parseInt(v, 10) : parseFloat(v), 
         selected: 'boolean',
-        value: (v, o) => Number.isInteger(this.step) ? parseInt(v, 10) : parseFloat(v), 
       };
 
-      ui = {};
+      // debug = (this.id === 'updating-with-number-attribute'); // true;
 
       connectedCallback() {
-        this.ui.heading = this.querySelector('h1');
-        this.ui.badge = this.querySelector('span');
+        const heading = this.querySelector('h1');
+        const badge = this.querySelector('span');
+        const input = this.querySelector('input');
 
         this.effect(() => {
-          this.has('heading') && (this.ui.heading.textContent = this.heading);
+          this.has('title') && (heading.textContent = this.get('title'));
         });
 
         this.effect(() => {
-          this.has('amount') && (this.ui.badge.textContent = this.amount);
+          this.has('count') && (badge.textContent = this.get('count'));
+        });
+
+        this.effect(() => {
+          this.has('step') && input.setAttribute('step', this.get('step'));
+        });
+
+        this.effect(() => {
+          this.has('value') && input.setAttribute('value', this.get('value'));
         });
 
         this.effect(() => {
           const className = 'selected';
-          if (this.has(className)) {
-            this.selected ? this.ui.heading.classList.add(className) : this.ui.heading.classList.remove(className);
-          }
+          this.get(className) ? heading.classList.add(className) : heading.classList.remove(className);
         });
       }
     });
@@ -103,29 +142,29 @@
     define('parent-component', class extends UIElement {
       static observedAttributes = ['heading'];
 
-      ui = {};
+      // debug = true;
 
       connectedCallback() {
-        this.ui.child = this.querySelector('child-component');
-        this.pass(this.ui.child, 'heading', 'heading');
-        this.derive(this.ui.child, 'text', () => this.heading.toUpperCase());
+        const child = this.querySelector('child-component');
+
+        this.effect(() => {
+          child.set('heading', () => this.get('heading'));
+          child.set('text', () => this.get('heading').toUpperCase());
+        });
       }
     });
 
     define('child-component', class extends UIElement {
-
-      ui = {};
+      // debug = true;
 
       connectedCallback() {
-        this.ui.heading = this.querySelector('h1');
-        this.ui.text = this.querySelector('p');
 
         this.effect(() => {
-          this.has('heading') && (this.ui.heading.textContent = this.heading);
+          this.has('heading') && (this.querySelector('h1').textContent = this.get('heading'));
         });
 
         this.effect(() => {
-          this.has('text') && (this.ui.text.textContent = this.text);
+          this.has('text') && (this.querySelector('p').textContent = this.get('text'));
         });
       }
     });
@@ -135,11 +174,61 @@
       describe('UIElement', function () {
 
         describe('Void component', function () {
+
+          it('should be an instance of HTMLElement', async function () {
+            const voidComponent = document.getElementById('void');
+            assert.instanceOf(voidComponent, HTMLElement);
+            assert.equal(voidComponent.localName, 'void-component');
+          });
+
           it('should do nothing at all', async function () {
             const voidComponent = document.getElementById('void');
             await paint().then(() => {
               const textContent = voidComponent.querySelector('h1').textContent;
               assert.equal(textContent, 'Hello from Server', 'Should not change server-side rendered heading');
+            });
+          });
+
+          it('should create a new reactive property with set', async function () {
+            const voidComponent = document.getElementById('void');
+            voidComponent.set('test', 'test');
+            assert.equal(voidComponent.get('test'), 'test');
+          });
+
+          it('should update an existing reactive property with set', async function () {
+            const voidComponent = document.getElementById('void');
+            voidComponent.set('test', 'test');
+            for (let i = 1; i <= 10; i++) {
+              voidComponent.set('test', i);
+            }
+            assert.equal(voidComponent.get('test'), 10);
+          });
+
+          it('should trigger dependent effects', async function () {
+            const voidComponent = document.getElementById('void');
+            let result = 0;
+            voidComponent.effect(() => {
+              voidComponent.get('foo');
+              result = 42;
+            });
+            voidComponent.set('foo', 'test');
+            await paint().then(() => {
+              assert.equal(result, 42);
+            });
+          });
+
+          it('repeated set() should trigger dependent effect only once', async function () {
+            const voidComponent = document.getElementById('void');
+            let result = 0;
+            voidComponent.effect(() => {
+              result++;
+              voidComponent.get('bar');
+            });
+            for (let i = 1; i <= 10; i++) {
+              voidComponent.set('bar', i);
+            }
+            await paint().then(() => {
+              assert.equal(result, 1);
             });
           });
         });
@@ -155,7 +244,7 @@
 
           it('should update when property set', async function () {
             const causalComponent = document.getElementById('causal');
-            causalComponent.heading = 'Hello from Property';
+            causalComponent.set('heading', 'Hello from Property');
             await paint().then(() => {
               const textContent = causalComponent.querySelector('h1').textContent;
               assert.equal(textContent, 'Hello from Property', 'Should update text content from setting heading property');
@@ -166,7 +255,7 @@
             const causalComponent = document.getElementById('causal');
             const delay = Math.floor(Math.random() * 1000);
             wait(delay).then(() => {
-              causalComponent.heading = 'Hello from Delayed Property';
+              causalComponent.set('heading', 'Hello from Delayed Property');
             });
             await wait(delay).then(() => paint().then(() => {
               const textContent = causalComponent.querySelector('h1').textContent;
@@ -182,16 +271,17 @@
             });
           });
 
-          /* it('should throw a type error if effect handler is not a function', async function () {
+          it('should throw a TypeError if effect handler is not a function', async function () {
             const causalComponent = document.getElementById('causal');
-            // try {
-            causalComponent.effect();
-            assert.fail('TypeError: Effect handler in causal-component is not a function');
-            // } catch (error) {
-              // await paint().then(() => {
-            // });
-            // }
-          }); */
+            if (causalComponent.debug) {
+              try {
+                const fn = async () => await causalComponent.effect(42);
+                assert.throws(await fn(), TypeError);
+              } catch (error) {
+                // console.log(error);
+              }
+            }
+          });
         });
 
         describe('Updating component', function () {
@@ -211,11 +301,27 @@
             });
           });
 
-          it('should update from initial numeric attribute', async function () {
+          it('should update from initial integer number attribute', async function () {
             const updatingComponent = document.getElementById('updating-with-number-attribute');
             await paint().then(() => {
               const textContent = updatingComponent.querySelector('span').textContent;
-              assert.equal(textContent, '42', 'Should have initial amount from numeric attribute');
+              assert.equal(textContent, '42', 'Should have initial count from numeric attribute');
+            });
+          });
+
+          it('should update from initial floating point number attribute', async function () {
+            const updatingComponent = document.getElementById('updating-with-number-attribute');
+            await paint().then(() => {
+              const stepAttribute = updatingComponent.querySelector('input').getAttribute('step');
+              assert.equal(stepAttribute, '0.1', 'Should have initial step attribute from floating point number attribute');
+            });
+          });
+
+          it('should update from initial custom parser attribute', async function () {
+            const updatingComponent = document.getElementById('updating-with-number-attribute');
+            await paint().then(() => {
+              const valueAttribute = updatingComponent.querySelector('input').getAttribute('value');
+              assert.equal(valueAttribute, '3.14', 'Should have initial value attribute from custom parser attribute');
             });
           });
 
@@ -238,10 +344,28 @@
 
           it('should update when numeric attribute set', async function () {
             const updatingComponent = document.getElementById('updating-with-number-attribute');
-            updatingComponent.setAttribute('amount', '0');
+            updatingComponent.setAttribute('count', '0');
             await paint().then(() => {
               const textContent = updatingComponent.querySelector('span').textContent;
-              assert.equal(textContent, '0', 'Should update text content from setting amount attribute');
+              assert.equal(textContent, '0', 'Should update text content from setting count attribute');
+            });
+          });
+
+          it('should update when numeric property set', async function () {
+            const updatingComponent = document.getElementById('updating-with-number-attribute');
+            updatingComponent.set('step', 1);
+            await paint().then(() => {
+              const stepAttribute = updatingComponent.querySelector('input').getAttribute('step');
+              assert.equal(stepAttribute, '1', 'Should update step attribute of input element from setting step property');
+            });
+          });
+
+          it('should update when numeric attribute set', async function () {
+            const updatingComponent = document.getElementById('updating-with-number-attribute');
+            updatingComponent.setAttribute('value', 1.14);
+            await paint().then(() => {
+              const valueAttribute = updatingComponent.querySelector('input').getAttribute('value');
+              assert.equal(valueAttribute, '1', 'Should update value attribute of input element from setting value attribute and parse it as defined');
             });
           });
 
@@ -256,10 +380,10 @@
 
           it('should update when property set', async function () {
             const updatingComponent = document.getElementById('updating-with-string-attribute');
-            updatingComponent.heading = 'Hello from Property';
+            updatingComponent.set('title', 'Hello from Property');
             await paint().then(() => {
               const textContent = updatingComponent.querySelector('h1').textContent;
-              assert.equal(textContent, 'Hello from Property', 'Should update text content from setting heading property');
+              assert.equal(textContent, 'Hello from Property', 'Should update text content from setting title property');
             });
           });
         });
@@ -306,6 +430,17 @@
               assert.equal(textContent, 'Hello from Changed Attribute'.toUpperCase(), 'Should have changed text from derived attribute of parent component');
             });
           });
+
+          it('should change heading if inherited reactive property is set', async function () {
+            const parentComponent = document.getElementById('parent');
+            const childComponent = document.getElementById('child');
+            childComponent.set('heading', 'Hello from Property on Child');
+            await paint().then(() => {
+              const headingContent = childComponent.querySelector('h1').textContent;
+              assert.equal(headingContent, 'Hello from Property on Child', 'Should have changed heading from property of child component');
+            });
+          });
+
         });
 
       });

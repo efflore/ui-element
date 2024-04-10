@@ -1,4 +1,4 @@
-/* globals customElements, HTMLElement, requestAnimationFrame, setTimeout */
+/* globals HTMLElement, requestAnimationFrame, setTimeout */
 
 /**
  * @license
@@ -17,161 +17,141 @@ const reactiveMap = new WeakMap();
 /**
  * Check if a given variable is a function
  * 
- * @param {any} fn variable to check
+ * @param {any} fn - variable to check if it is a function
  * @returns {boolean} true if supplied parameter is a function
  */
 const isFunction = fn => typeof fn === 'function';
 
 /**
- * Ensure passed parameter is a valid function or throw a TypeError
+ * Call a function if it is a function; otherwise return the fallback value
  * 
- * @param {Function} fn function to be checked
- * @param {HTMLElement} el current element
- * @param {string} what description of parameter expected to be a function
- * @returns 
+ * @param {any} fn - variable to check if it is a function
+ * @param {Array} args - arguments to pass to the function; defaults to empty array (called with null this without arguments)
+ * @param {any} fallback - value to return if the supplied function is not a function; defaults to the not-a-function first parameter
+ * @returns {any} value returned by the supplied function if it is a function; otherwise returns the fallback value
  */
-const assertFunction = (fn, el, what) => {
-	if (!isFunction(fn)) {
-		throw new TypeError(`${what} in ${el.localName} is not a function`);
-	}
-	return true;
-}
+const maybeFunction = (fn, args = [], fallback = fn) => isFunction(fn) ? fn.call(...args) : fallback;
 
 /**
- * Set up a reactive property on an object; defines the property if not already there; otherwise assign the current value
+ * Get the set of effects dependent on a reactive property from the reactivity tree
  * 
- * @param {HTMLElement} target element on which to define the property
- * @param {string} prop key of the property to be defined or modified
- * @param {any} value value of the property to be modified in case the property already exists
- * @param {Object} descriptor descriptor for the property being defined in case the property does not exist yet
- */
-const setReactive = (target, prop, value, descriptor) => {
-	Object.hasOwn(target, prop) ? target[prop] = value : Object.defineProperty(target, prop, descriptor);
-};
-
-/**
- * Get the set of effects associated to the cause getter function in the reactive map
- * 
- * @param {Function} fn getter function of the reactive property as key for the lookup
+ * @param {Function} fn - getter function of the reactive property as key for the lookup
  * @returns {Set} set of effects associated with the reactive property
  */
 const getEffects = fn => {
-	!reactiveMap.has(fn) && reactiveMap.set(fn, new Set());
-	return reactiveMap.get(fn);
+  !reactiveMap.has(fn) && reactiveMap.set(fn, new Set());
+  return reactiveMap.get(fn);
 };
-
-// const log = msg => console.log(msg);
 
 /* === Default export === */
 
 /**
- * Base class for reactive custom elements, usually called UIElement; extends HTMLElement
+ * Base class for reactive custom elements, usually called UIElement
+ * 
+ * @class
+ * @extends HTMLElement
  */
 export default class extends HTMLElement {
 
-	// hold [name, type] or just type map to be used on attributeChangedCallback
-	attrs = {};
+  /**
+   * Hold [name, type] or just type mapping to be used on attributeChangedCallback
+   *
+   * @property {Object} attributeMapping - mapping of attribute names to property keys and types or parser functions
+   * @example
+   * attributeMapping = {
+   *   heading: ['title'],  // attribute mapped to a property with a different name; type 'string' is optional (default)
+   *   count: 'integer',    // will be parsed with v => parseInt(v, 10)
+   *   step: 'number',      // will be parsed with v => parseFloat(v)
+   *   value: (v, o) => Number.isInteger(this.get('step')) ? parseInt(v, 10) : parseFloat(v), // custom parser function
+   *   selected: 'boolean', // boolean attribute will be parsed with v => typeof v === 'string' ? true : false
+   * };
+   */
+  attributeMapping = {};
 
-	/**
-	 * Native callback function when an observed attribute of the custom element changes
-	 * 
-	 * @param {string} name name of the modified attribute
-	 * @param {any} old old value of the modified attribute
-	 * @param {any} value new value of the modified attribute
-	 */
-	attributeChangedCallback(name, old, value) {
-		if (value !== old) {
-			const mapProp = input => Array.isArray(input) ? input : [name, input];
-			const [prop, type] = mapProp(this.attrs[name]);
-			// this.debug && log(`Attribute ${name} of ${this.localName} changed from '${old}' to '${value}', parsed as ${type || 'string'} and assigned to ${prop}`);
-			this.cause(prop, () => {
-				if (isFunction(type)) {
-					return type(value, old);
-				}
-				const parser = {
-					boolean: v => typeof v === 'string' ? true : false,
-					integer: v => parseInt(v, 10),
-					number: v => parseFloat(v),
-				};
-				return parser[type] ? parser[type](value) : value;
-			});
-		};
-	}
+  // @private hold state of reactive properties – use `has()`, `get()` and `set()` to access and modify
+  #state = new Map();
 
-	/**
-	 * Wrapper around `Object.hasOwn` to simplify conditional execution
-	 * 
-	 * @param {string} name name of property to be check on `this` object instance
-	 * @returns {boolean} true if `this` has own property with the passed name
-	 */
-	has(name) {
-		return Object.hasOwn(this, name);
-	}
+  /**
+   * Native callback function when an observed attribute of the custom element changes
+   * 
+   * @param {string} name - name of the modified attribute
+   * @param {any} old - old value of the modified attribute
+   * @param {any} value - new value of the modified attribute
+   */
+  attributeChangedCallback(name, old, value) {
+    if (value !== old) {
+      const input = this.attributeMapping[name];
+      const [key, type] = Array.isArray(input) ? input : [name, input];
+      const parseAttribute = () => {
+        const parser = {
+          boolean: v => typeof v === 'string' ? true : false,
+          integer: v => parseInt(v, 10),
+          number: v => parseFloat(v),
+        };
+        return parser[type] ? parser[type](value) : value;
+      };
+      const parsed = maybeFunction(type, [this, value, old], parseAttribute());
+      this.set(key, parsed);
+    };
+  }
 
-	/**
-	 * Main method to define a new reactive property, called `cause` in UIElement; updates the value of the property already exists
-	 * 
-	 * @param {string} name name of the reactive property to be assigned to `this` object instance
-	 * @param {any} value value to be assigned to the reactive property; may be a function to be evaluated when its value is retrieved
-	 */
-	cause(name, value) {
-		const getter = () => {
-			activeEffect && getEffects(getter).add(activeEffect);
-			// this.debug && log(`Get current value of ['${this.localName}'].${name} and track its use in effect`);
-			return isFunction(value) ? value() : value;
-		};
-		// this.debug && !Object.hasOwn(this, name) && log(`Reactive property ['${this.localName}'].${name} defined`);
-		setReactive(this, name, value, {
-			get: () => getter(),
-			set(updater) {
-				const old = value;
-				value = isFunction(updater) ? updater(value) : updater;
-				// this.debug && log(`Set value of ['${this.localName}'].${name} to ${value} and trigger depending effects`);
-				(value !== old) && getEffects(getter).forEach(effect => effect());
-			}
-		});
-	}
+  /**
+   * Check whether a reactive property is set
+   * 
+   * @param {any} key - reactive property to be checked
+   * @returns {boolean} `true` if this element has reactive property with the passed key; `false` otherwise
+   */
+  has(key) {
+    return this.#state.has(key);
+  }
 
-	/**
-	 * Pass a reactive property to a different HTMLElement; its property descriptor is copied so they reference the same getter and setter functions
-	 * 
-	 * @param {HTMLElement} target element on which to assign the reactive property
-	 * @param {string} prop name of the reactive property to be assigned on the target object
-	 * @param {string} name name of the reactive property on the source object instance (`this`)
-	 */
-	pass(target, prop, name) {
-		setReactive(target, prop, this[name], Object.getOwnPropertyDescriptor(this, name));
-		// this.debug && log(`Reactive property ['${this.localName}'].${name} passed to ['${target.localName}'].${prop}`);
-	}
+  /**
+   * Get the current value of a reactive property
+   * 
+   * @param {any} key - reactive property to get value from
+   * @returns {any} current value of reactive property; undefined if reactive property does not exist
+   */
+  get(key) {
+    if (!this.#state.has(key)) return;
+    return this.#state.get(key)();
+  }
 
-	/**
-	 * Derive a computed reactive property and assign it to a given target element
-	 * 
-	 * @param {HTMLElement} target element on which to assign the reactive property; may be `this` or a different element
-	 * @param {string} prop name of the reactive property to be assigned on the target object
-	 * @param {Function} fn callback function to be evaluated when its value is retrieved
-	 */
-	derive(target, prop, fn) {
-		assertFunction(fn, this, 'Derive callback');
-		setReactive(target, prop, fn.call(this), { get: fn.bind(this) });
-		// this.debug && log(`Derived reactive property getter function attached to ['${target.localName}'].${prop}`);
-	}
+  /**
+   * Create a reactive property or update its value; to inherit a reactive property, value must be a function with a `set` method
+   * 
+   * @param {any} key - reactive property to set value to
+   * @param {any} value - initial or new value; may be a function (gets old value as parameter) to be evaluated when value is retrieved; reactive accessor function for inheritance must have a `set` method
+   */
+  set(key, value) {
+    if (this.#state.has(key)) return maybeFunction(this.#state.get(key).set, [this, value]);
+    const reactive = () => {
+      activeEffect && getEffects(reactive).add(activeEffect);
+      return maybeFunction(value);
+    };
+    reactive.set = updater => {
+      const old = maybeFunction(value);
+      value = maybeFunction(updater, [this, old]);
+      (value !== old) && getEffects(reactive).forEach(effect => effect());
+    };
+    this.#state.set(key, reactive);
+  }
 
-	/**
-	 * Main method to define what happens when a reactive dependecy (`cause`) changes; function may return a cleanup function to be executed on idle
-	 * 
-	 * @param {Function} handler callback function to be executed when a reactive dependecy (`cause`) changes
-	 * @returns {Promise} resolved or rejected Promise for effect to happen
-	 */
-	async effect(handler) {
-		assertFunction(handler, this, 'Effect handler');
-		const next = () => {
-			activeEffect = next; // register the current effect
-			const cleanup = handler(); // execute handler function
-			isFunction(cleanup) && setTimeout(cleanup); // execute possibly returned cleanup function on next tick
-			activeEffect = null; // unregister the current effect
-		};
-		return new Promise(resolve => requestAnimationFrame(resolve)).then(next); // wait for the next animation frame to bundle DOM updates
-	}
+  /**
+   * Define what happens when a reactive dependency changes; function may return a cleanup function to be executed on next tick
+   * 
+   * @param {Function} handler - callback function to be executed when a reactive dependency changes
+   */
+  effect(handler) {
+    let requestId = null;
+    if (requestId) return; // effect already scheduled
+    const next = () => {
+      activeEffect = next; // register the current effect
+      const cleanup = handler(); // execute handler function
+      isFunction(cleanup) && setTimeout(cleanup); // execute possibly returned cleanup function on next tick
+      activeEffect = null; // unregister the current effect
+      requestId = null; // reset requestId
+    };
+    requestId = requestAnimationFrame(next); // wait for the next animation frame to bundle DOM updates
+  }
 
 }
