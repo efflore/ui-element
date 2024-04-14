@@ -10,7 +10,7 @@ It will parse attributes in `attributeChangedCallback()` and assign the values t
 
 `UIElement` implements a `Map`-like interface on top of `HTMLElement` to access and modify reactive properties. This allows to use any value as key for reactive properties, as opposed to using direct properties on the element object. This way, we can avoid accidental name clashes with global HTML attributes, JavaScript reserved words or method names and don't have to convert from kebab-case to camelCase and vice versa. The method names `this.has()`, `this.get()`, and `this.set()` feel familar to JavaScript developers and mirror what you already use to access and modify attributes.
 
-In the `connectedCallback()` you setup references to inner elements, add event listeners and pass reactive properties to sub-components. Additionally, for every independent reactive property you define what happens when it changes with `this.effect()`. `UIElement` will automatically trigger these effects and bundle the surgical DOM updates when the browser refreshes the view.
+In the `connectedCallback()` you setup references to inner elements, add event listeners and pass reactive properties to sub-components. Additionally, for every independent reactive property you define what happens when it changes with `effect()`. `UIElement` will automatically trigger these effects and bundle the surgical DOM updates when the browser refreshes the view.
 
 That's all.
 
@@ -35,7 +35,7 @@ npm install @efflore/ui-element
 In JavaScript:
 
 ```js
-import UIElement from '@efflore/ui-element';
+import UIElement, { effect } from '@efflore/ui-element';
 
 customElements.define('my-counter', class extends UIElement {
   static observedAttributes = ['value'];
@@ -46,7 +46,7 @@ customElements.define('my-counter', class extends UIElement {
     this.querySelector('.decrement').onclick = () => this.set('value', v => v - 1);
     this.querySelector('.increment').onclick = () => this.set('value', v => v + 1);
 
-    this.effect(() => this.querySelector('span').textContent = this.get('value'));
+    effect(() => this.querySelector('span').textContent = this.get('value'));
   }
 });
 ```
@@ -80,7 +80,7 @@ Important: Make sure you either bundle JavaScript on the server side or referenc
 So, for example, for server side:
 
 ```js
-import UIElement from '@efflore/ui-element';
+import UIElement, { effect } from '@efflore/ui-element';
 
 customElements.define('my-counter', class extends UIElement {
   ...
