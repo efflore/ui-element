@@ -8,12 +8,6 @@
 
 /* === Internal variables and functions to the module === */
 
-// hold the currently active effect
-let activeEffect = null;
-
-// set up an empty WeakMap to hold the reactivity tree
-const reactiveMap = new WeakMap();
-
 /**
  * Check if a given variable is a function
  * 
@@ -26,22 +20,66 @@ const isFunction = fn => typeof fn === 'function';
  * Call a function if it is a function; otherwise return the fallback value
  * 
  * @param {any} fn - variable to check if it is a function
- * @param {Array} args - arguments to pass to the function; defaults to empty array (called with null this without arguments)
+ * @param {Array} args - arguments to pass to `fn.call()`; defaults to empty array (called with null `this` without arguments)
  * @param {any} fallback - value to return if the supplied function is not a function; defaults to the not-a-function first parameter
  * @returns {any} value returned by the supplied function if it is a function; otherwise returns the fallback value
  */
-const maybeFunction = (fn, args = [], fallback = fn) => isFunction(fn) ? fn.call(...args) : fallback;
+const maybeCall = (fn, args = [], fallback = fn) => isFunction(fn) ? fn.call(...args) : fallback;
+
+// hold the currently active effect
+let pending;
+
+// set up an empty WeakMap to hold the reactivity tree
+const reactivityMap = new WeakMap();
 
 /**
- * Get the set of effects dependent on a reactive property from the reactivity tree
+ * Get the set of effects dependent on a state from the reactivity tree
  * 
- * @param {Function} fn - getter function of the reactive property as key for the lookup
- * @returns {Set} set of effects associated with the reactive property
+ * @param {Function} fn - getter function of the state as key for the lookup
+ * @returns {Set} set of effects associated with the state
  */
 const getEffects = fn => {
-  !reactiveMap.has(fn) && reactiveMap.set(fn, new Set());
-  return reactiveMap.get(fn);
+  !reactivityMap.has(fn) && reactivityMap.set(fn, new Set());
+  return reactivityMap.get(fn);
 };
+
+/**
+ * Define a state and return an object duck-typing Signal.State
+ * 
+ * @param {any} value - initial value of the state; may be a function to be called on first access
+ * @returns {Object} state object with `get` and `set` methods
+ * @see https://github.com/tc39/proposal-signals/
+ */
+export const cause = value => {
+  const state = {
+    get: () => {
+      pending && getEffects(state).add(pending); // track dependency
+      return maybeCall(value);
+    },
+    set: updater => {
+      const old = maybeCall(value);
+      value = maybeCall(updater, [state, old]);
+      !Object.is(value, old) && getEffects(state).forEach(effect => effect()); // trigger effects
+    }
+  };
+  return state;
+};
+
+/**
+ * Define what happens when a reactive dependency changes; function may return a cleanup function to be executed on next tick
+ * 
+ * @param {Function} handler - callback function to be executed when a reactive dependency changes
+ * @returns {void}
+ */
+export const effect = handler => {
+  const next = () => {
+    pending = next; // register the current effect
+    const cleanup = handler(); // execute handler function
+    isFunction(cleanup) && setTimeout(cleanup); // execute possibly returned cleanup function on next tick
+    pending = null; // unregister the current effect
+  };
+  requestAnimationFrame(next); // wait for the next animation frame to bundle DOM updates
+}
 
 /* === Default export === */
 
@@ -68,7 +106,7 @@ export default class extends HTMLElement {
    */
   attributeMapping = {};
 
-  // @private hold state of reactive properties – use `has()`, `get()` and `set()` to access and modify
+  // @private hold states – use `has()`, `get()` and `set()` to access and modify
   #state = new Map();
 
   /**
@@ -77,81 +115,53 @@ export default class extends HTMLElement {
    * @param {string} name - name of the modified attribute
    * @param {any} old - old value of the modified attribute
    * @param {any} value - new value of the modified attribute
+   * @returns {void}
    */
   attributeChangedCallback(name, old, value) {
     if (value !== old) {
       const input = this.attributeMapping[name];
       const [key, type] = Array.isArray(input) ? input : [name, input];
-      const parseAttribute = () => {
-        const parser = {
-          boolean: v => typeof v === 'string' ? true : false,
-          integer: v => parseInt(v, 10),
-          number: v => parseFloat(v),
-        };
-        return parser[type] ? parser[type](value) : value;
+      const parser = {
+        boolean: v => typeof v === 'string' ? true : false,
+        integer: v => parseInt(v, 10),
+        number: v => parseFloat(v),
       };
-      const parsed = maybeFunction(type, [this, value, old], parseAttribute());
+      const parsed = maybeCall(type, [this, value, old], parser[type] ? parser[type](value) : value);
       this.set(key, parsed);
-    };
+    }
   }
 
   /**
-   * Check whether a reactive property is set
+   * Check whether a state is set
    * 
-   * @param {any} key - reactive property to be checked
-   * @returns {boolean} `true` if this element has reactive property with the passed key; `false` otherwise
+   * @param {any} key - state to be checked
+   * @returns {boolean} `true` if this element has state with the passed key; `false` otherwise
    */
   has(key) {
     return this.#state.has(key);
   }
 
   /**
-   * Get the current value of a reactive property
+   * Get the current value of a state
    * 
-   * @param {any} key - reactive property to get value from
-   * @returns {any} current value of reactive property; undefined if reactive property does not exist
+   * @param {any} key - state to get value from
+   * @returns {any} current value of state; undefined if state does not exist
    */
   get(key) {
-    if (!this.#state.has(key)) return;
-    return this.#state.get(key)();
+    return this.has(key) && this.#state.get(key).get();
   }
 
   /**
-   * Create a reactive property or update its value; to inherit a reactive property, value must be a function with a `set` method
+   * Create a state or update its value
    * 
-   * @param {any} key - reactive property to set value to
-   * @param {any} value - initial or new value; may be a function (gets old value as parameter) to be evaluated when value is retrieved; reactive accessor function for inheritance must have a `set` method
+   * @param {any} key - state to set value to
+   * @param {any} value - initial or new value; may be a function (gets old value as parameter) to be evaluated when value is retrieved
+   * @returns {void}
    */
   set(key, value) {
-    if (this.#state.has(key)) return maybeFunction(this.#state.get(key).set, [this, value]);
-    const reactive = () => {
-      activeEffect && getEffects(reactive).add(activeEffect);
-      return maybeFunction(value);
-    };
-    reactive.set = updater => {
-      const old = maybeFunction(value);
-      value = maybeFunction(updater, [this, old]);
-      (value !== old) && getEffects(reactive).forEach(effect => effect());
-    };
-    this.#state.set(key, reactive);
-  }
-
-  /**
-   * Define what happens when a reactive dependency changes; function may return a cleanup function to be executed on next tick
-   * 
-   * @param {Function} handler - callback function to be executed when a reactive dependency changes
-   */
-  effect(handler) {
-    let requestId = null;
-    if (requestId) return; // effect already scheduled
-    const next = () => {
-      activeEffect = next; // register the current effect
-      const cleanup = handler(); // execute handler function
-      isFunction(cleanup) && setTimeout(cleanup); // execute possibly returned cleanup function on next tick
-      activeEffect = null; // unregister the current effect
-      requestId = null; // reset requestId
-    };
-    requestId = requestAnimationFrame(next); // wait for the next animation frame to bundle DOM updates
+    this.has(key)
+      ? maybeCall(this.#state.get(key).set, [this, value]) // update state value
+      : this.#state.set(key, cause(value)); // create state
   }
 
 }
