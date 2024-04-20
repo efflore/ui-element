@@ -65,7 +65,7 @@
     import { runTests } from '@web/test-runner-mocha';
     import { assert } from '@esm-bundle/chai';
     import define from '../lib/define.js';
-    import UIElement, { effect } from '../index.min.js';
+    import UIElement, { effect } from '../index.js';
 
     const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
     const paint = () => new Promise(resolve => requestAnimationFrame(resolve));

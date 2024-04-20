@@ -35,17 +35,18 @@ const reactivityMap = new WeakMap();
 /**
  * Get the set of effects dependent on a state from the reactivity tree
  * 
- * @param {Function} fn - getter function of the state as key for the lookup
+ * @param {Object} state - getter function of the state as key for the lookup
  * @returns {Set} set of effects associated with the state
  */
-const getEffects = fn => {
-  !reactivityMap.has(fn) && reactivityMap.set(fn, new Set());
-  return reactivityMap.get(fn);
+const getEffects = state => {
+  !reactivityMap.has(state) && reactivityMap.set(state, new Set());
+  return reactivityMap.get(state);
 };
 
 /**
  * Define a state and return an object duck-typing Signal.State
  * 
+ * @since 0.3.0
  * @param {any} value - initial value of the state; may be a function to be called on first access
  * @returns {Object} state object with `get` and `set` methods
  * @see https://github.com/tc39/proposal-signals/
@@ -68,6 +69,7 @@ export const cause = value => {
 /**
  * Define what happens when a reactive dependency changes; function may return a cleanup function to be executed on next tick
  * 
+ * @since 0.3.0
  * @param {Function} handler - callback function to be executed when a reactive dependency changes
  * @returns {void}
  */
@@ -94,6 +96,7 @@ export default class extends HTMLElement {
   /**
    * Hold [name, type] or just type mapping to be used on attributeChangedCallback
    *
+   * @since 0.2.0
    * @property {Object} attributeMapping - mapping of attribute names to property keys and types or parser functions
    * @example
    * attributeMapping = {
@@ -112,6 +115,7 @@ export default class extends HTMLElement {
   /**
    * Native callback function when an observed attribute of the custom element changes
    * 
+   * @since 0.1.0
    * @param {string} name - name of the modified attribute
    * @param {any} old - old value of the modified attribute
    * @param {any} value - new value of the modified attribute
@@ -134,6 +138,7 @@ export default class extends HTMLElement {
   /**
    * Check whether a state is set
    * 
+   * @since 0.2.0
    * @param {any} key - state to be checked
    * @returns {boolean} `true` if this element has state with the passed key; `false` otherwise
    */
@@ -144,6 +149,7 @@ export default class extends HTMLElement {
   /**
    * Get the current value of a state
    * 
+   * @since 0.2.0
    * @param {any} key - state to get value from
    * @returns {any} current value of state; undefined if state does not exist
    */
@@ -154,6 +160,7 @@ export default class extends HTMLElement {
   /**
    * Create a state or update its value
    * 
+   * @since 0.2.0
    * @param {any} key - state to set value to
    * @param {any} value - initial or new value; may be a function (gets old value as parameter) to be evaluated when value is retrieved
    * @returns {void}
@@ -162,6 +169,17 @@ export default class extends HTMLElement {
     this.has(key)
       ? maybeCall(this.#state.get(key).set, [this, value]) // update state value
       : this.#state.set(key, cause(value)); // create state
+  }
+
+  /**
+   * Delete a state, also removing all effects dependent on the state
+   * 
+   * @since 0.4.0
+   * @param {any} key - state to be deleted
+   * @returns {void}
+   */
+  delete(key) {
+    this.has(key) && this.#state.delete(key);
   }
 
 }
