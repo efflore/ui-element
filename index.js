@@ -1,6 +1,8 @@
-/* globals HTMLElement, requestAnimationFrame, setTimeout */
+/// <reference path="types.d.ts"/>
 
 /**
+ * @name UIElement
+ * @version 0.4.0
  * @license
  * Copyright 2024 Esther Brunner
  * SPDX-License-Identifier: BSD-3-Clause
@@ -29,13 +31,13 @@ const maybeCall = (fn, args = [], fallback = fn) => isFunction(fn) ? fn.call(...
 // hold the currently active effect
 let pending;
 
-// set up an empty WeakMap to hold the reactivity tree
+// set up an empty WeakMap to hold the reactivity map
 const reactivityMap = new WeakMap();
 
 /**
- * Get the set of effects dependent on a state from the reactivity tree
+ * Get the set of effects dependent on a state from the reactivity map
  * 
- * @param {Object} state - getter function of the state as key for the lookup
+ * @param {import("./types").State<any>} state - state object as key for the lookup
  * @returns {Set} set of effects associated with the state
  */
 const getEffects = state => {
@@ -43,12 +45,14 @@ const getEffects = state => {
   return reactivityMap.get(state);
 };
 
+/* === Public API === */
+
 /**
  * Define a state and return an object duck-typing Signal.State
  * 
  * @since 0.3.0
  * @param {any} value - initial value of the state; may be a function to be called on first access
- * @returns {Object} state object with `get` and `set` methods
+ * @returns {import("./types").State<any>} state object with `get` and `set` methods
  * @see https://github.com/tc39/proposal-signals/
  */
 export const cause = value => {
@@ -57,7 +61,7 @@ export const cause = value => {
       pending && getEffects(state).add(pending); // track dependency
       return maybeCall(value);
     },
-    set: updater => {
+    set: (/** @type {any} */ updater) => {
       const old = maybeCall(value);
       value = maybeCall(updater, [state, old]);
       !Object.is(value, old) && getEffects(state).forEach(effect => effect()); // trigger effects
@@ -70,8 +74,7 @@ export const cause = value => {
  * Define what happens when a reactive dependency changes; function may return a cleanup function to be executed on next tick
  * 
  * @since 0.3.0
- * @param {Function} handler - callback function to be executed when a reactive dependency changes
- * @returns {void}
+ * @param {() => (() => void) | undefined} handler - callback function to be executed when a reactive dependency changes
  */
 export const effect = handler => {
   const next = () => {
@@ -97,7 +100,7 @@ export default class extends HTMLElement {
    * Hold [name, type] or just type mapping to be used on attributeChangedCallback
    *
    * @since 0.2.0
-   * @property {Object} attributeMapping - mapping of attribute names to property keys and types or parser functions
+   * @property {Record<string, import("./types").AttributeParser | import("./types").MappedAttributeParser>} attributeMapping - mapping of attribute names to state keys and types or parser functions
    * @example
    * attributeMapping = {
    *   heading: ['title'],  // attribute mapped to a property with a different name; type 'string' is optional (default)
@@ -109,7 +112,7 @@ export default class extends HTMLElement {
    */
   attributeMapping = {};
 
-  // @private hold states – use `has()`, `get()` and `set()` to access and modify
+  // @private hold states – use `has()`, `get()`, `set()` and `delete()` to access and modify
   #state = new Map();
 
   /**
@@ -117,18 +120,17 @@ export default class extends HTMLElement {
    * 
    * @since 0.1.0
    * @param {string} name - name of the modified attribute
-   * @param {any} old - old value of the modified attribute
-   * @param {any} value - new value of the modified attribute
-   * @returns {void}
+   * @param {string|undefined} old - old value of the modified attribute
+   * @param {string|undefined} value - new value of the modified attribute
    */
   attributeChangedCallback(name, old, value) {
     if (value !== old) {
       const input = this.attributeMapping[name];
       const [key, type] = Array.isArray(input) ? input : [name, input];
       const parser = {
-        boolean: v => typeof v === 'string' ? true : false,
-        integer: v => parseInt(v, 10),
-        number: v => parseFloat(v),
+        boolean: (/** @type {string|undefined} */ v) => typeof v === 'string' ? true : false,
+        integer: (/** @type {string} */ v) => parseInt(v, 10),
+        number: (/** @type {string} */ v) => parseFloat(v),
       };
       const parsed = maybeCall(type, [this, value, old], parser[type] ? parser[type](value) : value);
       this.set(key, parsed);
@@ -163,7 +165,6 @@ export default class extends HTMLElement {
    * @since 0.2.0
    * @param {any} key - state to set value to
    * @param {any} value - initial or new value; may be a function (gets old value as parameter) to be evaluated when value is retrieved
-   * @returns {void}
    */
   set(key, value) {
     this.has(key)
@@ -176,7 +177,6 @@ export default class extends HTMLElement {
    * 
    * @since 0.4.0
    * @param {any} key - state to be deleted
-   * @returns {void}
    */
   delete(key) {
     this.has(key) && this.#state.delete(key);
