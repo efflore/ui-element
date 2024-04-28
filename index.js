@@ -100,7 +100,7 @@ export const effect = fn => {
     pending = null;
   };
   next();
-}
+};
 
 /* === Default export === */
 

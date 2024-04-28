@@ -1,13 +1,11 @@
 export type State<T> = {
-  get<T>(): T;
-  set?<T>(t: T): void;
-};
-
-type EffectFn = () => void | (() => void)
+  get(): T;
+  set?(v: T): void;
+}
 declare function cause(value: any): State<any>
 declare function compute(fn: () => any): State<any>
-declare function effect(fn: EffectFn): () => void
-declare function batch(fn: () => void): void;
+declare function effect(fn: () => void | (() => void)): () => void
+export { cause, compute, effect }
 
 export type ParserTypeString = 'boolean' | 'integer' | 'number' | 'string';
 export type AttributeParser = ParserTypeString | ((v: string | undefined) => any) | undefined;
@@ -20,4 +18,5 @@ export default class extends HTMLElement {
   get(key: any): any;
   set(key: any, value: any): void;
   delete(key: any): void;
+  effect(fn: () => void | (() => void)): () => void;
 }
