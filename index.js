@@ -1,5 +1,3 @@
-/// <reference path="types.d.ts"/>
-
 /**
  * @name UIElement
  * @version 0.4.0
@@ -31,6 +29,12 @@ const maybeCall = (fn, args = [], fallback = fn) => isFunction(fn) ? fn.call(...
 // hold the currently active effect
 let pending;
 
+// hold batching flag
+let batching = false;
+
+// hold scheduled effects
+const scheduled = new Set();
+
 // set up an empty WeakMap to hold the reactivity map
 const reactivityMap = new WeakMap();
 
@@ -43,6 +47,24 @@ const reactivityMap = new WeakMap();
 const getEffects = state => {
   !reactivityMap.has(state) && reactivityMap.set(state, new Set());
   return reactivityMap.get(state);
+};
+
+/**
+ * Add pending effect to track dependency on a state
+ * 
+ * @param {import("./types").State<any>} state 
+ */
+const track = state => {
+  pending && getEffects(state).add(pending);
+};
+
+/**
+ * Run dependent effects on a state
+ * 
+ * @param {import("./types").State<any>} state 
+ */
+const trigger = state => {
+  getEffects(state).forEach(effect => effect());
 };
 
 /* === Public API === */
@@ -58,33 +80,73 @@ const getEffects = state => {
 export const cause = value => {
   const state = {
     get: () => {
-      pending && getEffects(state).add(pending); // track dependency
-      return maybeCall(value);
+      track(state);
+      return value;
     },
     set: (/** @type {any} */ updater) => {
-      const old = maybeCall(value);
+      const old = value;
       value = maybeCall(updater, [state, old]);
-      !Object.is(value, old) && getEffects(state).forEach(effect => effect()); // trigger effects
+      !Object.is(value, old) && trigger(state);
     }
   };
   return state;
 };
 
 /**
- * Define what happens when a reactive dependency changes; function may return a cleanup function to be executed on next tick
+ * Define a computed state and return an object duck-typing Signal.Computed
+ * 
+ * @since 0.4.0
+ * @param {() => any} fn - computation function to be called
+ * @returns {import("./types").State<any>} state object with `get` method
+ * @see https://github.com/tc39/proposal-signals/
+ */
+export const compute = fn => {
+  let value;
+  const state = {
+    get: () => {
+      track(state);
+      const old = value;
+      const prev = pending;
+      pending = null;
+      value = fn();
+      pending = prev;
+      !Object.is(value, old) && trigger(state);
+      return value;
+    }
+  };
+  return state;
+};
+
+/**
+ * Define what happens when a reactive state changes; function may return a cleanup function to be executed on next tick
  * 
  * @since 0.3.0
- * @param {() => (() => void) | undefined} handler - callback function to be executed when a reactive dependency changes
+ * @param {() => (() => void) | undefined} fn - callback function to be executed when a state changes
  */
-export const effect = handler => {
+export const effect = fn => {
   const next = () => {
-    pending = next; // register the current effect
-    const cleanup = handler(); // execute handler function
-    isFunction(cleanup) && setTimeout(cleanup); // execute possibly returned cleanup function on next tick
-    pending = null; // unregister the current effect
+    pending = next;
+    const cleanup = fn();
+    isFunction(cleanup) && setTimeout(cleanup);
+    pending = null;
   };
-  requestAnimationFrame(next); // wait for the next animation frame to bundle DOM updates
+  batching ? scheduled.add(next) : next();
 }
+
+/**
+ * Batch multiple effects in a single tick
+ * 
+ * @since 0.4.0
+ * @param {*} fn 
+ */
+export const batch = fn => {
+  if (batching) return fn();
+  batching = true;
+  fn();
+  scheduled.forEach(effect => effect());
+  scheduled.clear();
+  batching = false;
+};
 
 /* === Default export === */
 
@@ -156,7 +218,7 @@ export default class extends HTMLElement {
    * @returns {any} current value of state; undefined if state does not exist
    */
   get(key) {
-    return this.has(key) && this.#state.get(key).get();
+    return this.has(key) && maybeCall(this.#state.get(key).get());
   }
 
   /**
@@ -180,6 +242,16 @@ export default class extends HTMLElement {
    */
   delete(key) {
     this.has(key) && this.#state.delete(key);
+  }
+
+  /**
+   * Define what happens when a reactive state changes; function may return a cleanup function to be executed on next tick
+   * 
+   * @since 0.1.0
+   * @param {() => (() => void) | undefined} fn - callback function to be executed when a state changes
+   */
+  effect(fn) {
+    isFunction(fn) && requestAnimationFrame(() => effect(fn)); // wait for the next animation frame to bundle DOM updates
   }
 
 }

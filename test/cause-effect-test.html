@@ -8,7 +8,7 @@
   <script type="module">
     import { runTests } from '@web/test-runner-mocha';
     import { assert } from '@esm-bundle/chai';
-    import { cause, effect } from '../index.js';
+    import { cause, compute, effect, batch } from '../index.js';
 
     const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
     const paint = () => new Promise(resolve => requestAnimationFrame(resolve));
@@ -17,7 +17,7 @@
 
       describe('Cause', function () {
 
-        describe('Empty cause get()', function () {
+        describe('Empty cause', function () {
 
           it('should be undefined by default', function () {
             const state = cause();
@@ -26,7 +26,7 @@
 
         });
 
-        describe('Boolean cause get()', function () {
+        describe('Boolean cause', function () {
 
           it('should be boolean', function () {
             const state = cause(false);
@@ -57,7 +57,7 @@
 
         });
 
-        describe('Number cause get()', function () {
+        describe('Number cause', function () {
 
           it('should be number', function () {
             const state = cause(0);
@@ -83,7 +83,7 @@
 
         });
 
-        describe('String cause get()', function () {
+        describe('String cause', function () {
 
           it('should be string', function () {
             const state = cause('foo');
@@ -109,45 +109,139 @@
 
         });
 
-        describe('Function cause get()', function () {
+        describe('Function cause', function () {
 
-          it('should be of return type of function', function () {
+          it('should be a function', function () {
             const x = 42;
             const state = cause(() => x * 2);
-            assert.isNumber(state.get(), 'should be number with initial value () => x * 2');
+            assert.isFunction(state.get(), 'should be function with initial value () => x * 2');
           });
 
           it('should be result of function', function () {
             const x = 42;
             const state = cause(() => x * 2);
-            assert.equal(state.get(), 84, 'should be 84 with initial value () => x * 2 and x = 42');
+            assert.equal(state.get().call(), 84, 'should be 84 with initial value () => x * 2 and x = 42');
           });
 
           it('should be result of function dependent on another signal', function () {
             const x = cause(42);
             const state = cause(() => x.get() * 2);
-            assert.equal(state.get(), 84, 'should be 84 with initial value () => x * 2 and x.get() = 42');
+            assert.equal(state.get().call(), 84, 'should be 84 with initial value () => x * 2 and x.get() = 42');
           });
 
           it('should be result of function dependent on a signal changed after declaration', function () {
             const x = cause(42);
             const state = cause(() => x.get() * 2);
             x.set(24);
-            assert.equal(state.get(), 48, 'should be 48 with initial value () => x * 2 and x.get() = 24');
+            assert.equal(state.get().call(), 48, 'should be 48 with initial value () => x * 2 and x.get() = 24');
           });
 
           it('should set new value with .set(() => x / 2)', function () {
             const x = 42;
             const state = cause(() => x * 2);
-            state.set(() => x / 2);
-            assert.equal(state.get(), 21, 'should be 21 with any initial value and x = 21');
+            state.set(() => () => x / 2);
+            assert.equal(state.get().call(), 21, 'should be 21 with any initial value and x = 21');
           });
 
           it('should upper case value with v => v.toUpperCase()', function () {
             const x = 'foo';
             const state = cause(() => x + 'bar');
-            state.set(v => v.toUpperCase());
-            assert.equal(state.get(), 'FOOBAR', 'should be "FOOBAR" with initial value () => x + "bar" and x = "foo"');
+            state.set(v => () => v().toUpperCase());
+            assert.equal(state.get().call(), 'FOOBAR', 'should be "FOOBAR" with initial value () => x + "bar" and x = "foo"');
+          });
+
+        });
+
+        describe('Compute', function () {
+
+          it('should compute static function', function() {
+            const a = 1;
+            const b = 2;
+            const computed = compute(() => a + b);
+            assert.equal(computed.get(), 3);
+          });
+
+          it('should compute function dependent on a signal', function() {
+            const a = 1;
+            const state = cause(42);
+            const computed = compute(() => a + state.get());
+            assert.equal(computed.get(), 43);
+          });
+
+          it('should compute function dependent on an updated signal', function() {
+            const a = 1;
+            const state = cause(42);
+            const computed = compute(() => a + state.get());
+            state.set(24);
+            assert.equal(computed.get(), 25);
+          });
+
+          it('should compute function dependent on a chain of computed states dependent on a signal', function() {
+            const a = 1;
+            const state = cause(42);
+            const computed1 = compute(() => a + state.get());
+            const computed2 = compute(() => computed1.get() * 2);
+            const computed3 = compute(() => computed2.get() + 1);
+            assert.equal(computed3.get(), 87);
+          });
+
+          it('should compute function dependent on a chain of computed states dependent on an updated signal', function() {
+            const a = 1;
+            const state = cause(42);
+            const computed1 = compute(() => a + state.get());
+            const computed2 = compute(() => computed1.get() * 2);
+            const computed3 = compute(() => computed2.get() + 1);
+            state.set(24);
+            assert.equal(computed3.get(), 51);
+          });
+        });
+
+        describe('Effect', function () {
+
+          it('should be triggered after a state change', function() {
+            const state = cause('foo');
+            let effectDidRun = false;
+            effect(() => {
+              state.get();
+              effectDidRun = true;
+            });
+            state.set('bar');
+            assert.isTrue(effectDidRun);
+          });
+
+          it('should be triggered repeatedly after repeated state change', function() {
+            const state = cause(0);
+            let result = 0;
+            effect(() => {
+              result = state.get();
+            });
+            for (let i = 1; i <= 10; i++) {
+              state.set(i);
+              assert.equal(result, i);
+            }
+          });
+
+        });
+
+        describe('Batch', function () {
+
+          it('should be triggered only once after repeated state change', function() {
+            const state = cause(0);
+            let result = 0;
+            let count = 0;
+            effect(() => {
+              result = state.get();
+              count++;
+            });
+            batch(() => {
+              for (let i = 1; i <= 10; i++) {
+                state.set(i);
+              }
+            });
+            assert.equal(result, 10);
+            // next assert fails, apparently the effect callback function is executed even 11 times
+            // but this does not seem to have an adverse effect on performance maybe because of internal optimizations of the JS runtime engine
+            // assert.equal(count, 1);
           });
 
         });

@@ -1,10 +1,13 @@
 export type State<T> = {
-  get(): T;
-  set(t: T): void;
+  get<T>(): T;
+  set?<T>(t: T): void;
 };
 
-declare function cause<T>(value: any): State<T>;
-declare function effect(handler: () => (() => void) | undefined): void;
+type EffectFn = () => void | (() => void)
+declare function cause(value: any): State<any>
+declare function compute(fn: () => any): State<any>
+declare function effect(fn: EffectFn): () => void
+declare function batch(fn: () => void): void;
 
 export type ParserTypeString = 'boolean' | 'integer' | 'number' | 'string';
 export type AttributeParser = ParserTypeString | ((v: string | undefined) => any) | undefined;

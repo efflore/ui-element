@@ -145,7 +145,7 @@
       connectedCallback() {
         const child = this.querySelector('child-component');
 
-        effect(() => {
+        this.effect(() => {
           child.set('heading', () => this.get('heading'));
           child.set('text', () => this.get('heading').toUpperCase());
         });
@@ -157,11 +157,11 @@
 
       connectedCallback() {
 
-        effect(() => {
+        this.effect(() => {
           this.has('heading') && (this.querySelector('h1').textContent = this.get('heading'));
         });
 
-        effect(() => {
+        this.effect(() => {
           this.has('text') && (this.querySelector('p').textContent = this.get('text'));
         });
       }
@@ -187,10 +187,21 @@
             });
           });
 
+          it('should return false with has() for unset state', async function () {
+            const voidComponent = document.getElementById('void');
+            assert.equal(voidComponent.has('test'), false);
+          });
+
           it('should create a new state with set', async function () {
             const voidComponent = document.getElementById('void');
             voidComponent.set('test', 'test');
             assert.equal(voidComponent.get('test'), 'test');
+          });
+
+          it('should return true with has() for set state', async function () {
+            const voidComponent = document.getElementById('void');
+            voidComponent.set('test', 'test');
+            assert.equal(voidComponent.has('test'), true);
           });
 
           it('should update an existing state with set', async function () {
@@ -204,14 +215,14 @@
 
           it('should trigger dependent effects', async function () {
             const voidComponent = document.getElementById('void');
-            let result = 0;
+            let effectDidRun = false;
             effect(() => {
               voidComponent.get('foo');
-              result = 42;
+              effectDidRun = true;
             });
             voidComponent.set('foo', 'test');
             await paint().then(() => {
-              assert.equal(result, 42);
+              assert.isTrue(effectDidRun);
             });
           });
 
@@ -228,6 +239,13 @@
             await paint().then(() => {
               assert.equal(result, 1);
             });
+          });
+
+          it('should return false with has() for deleted state', async function () {
+            const voidComponent = document.getElementById('void');
+            voidComponent.set('test', 'test');
+            voidComponent.delete('test');
+            assert.equal(voidComponent.has('test'), false);
           });
         });
 
