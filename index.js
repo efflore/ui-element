@@ -76,19 +76,15 @@ export const cause = value => {
  * @returns {import("./types").State<any>} state object with `get` method
  * @see https://github.com/tc39/proposal-signals/
  */
-export const compute = fn => {
-  let value;
-  const state = {
-    get: () => {
-      const prev = pending;
-      pending = null;
-      value = fn();
-      pending = prev;
-      return value;
-    }
-  };
-  return state;
-};
+export const compute = fn => ({
+  get: () => {
+    const prev = pending;
+    pending = null;
+    const value = fn();
+    pending = prev;
+    return value;
+  }
+});
 
 /**
  * Define what happens when a reactive state changes; function may return a cleanup function to be executed on next tick
@@ -187,12 +183,9 @@ export default class extends HTMLElement {
    * @param {any} value - initial or new value; may be a function (gets old value as parameter) to be evaluated when value is retrieved
    */
   set(key, value) {
-    if (this.has(key)) {
-      maybeCall(this.#state.get(key).set, [this, value]) // update state value
-    } else {
-      const state = isFunction(value) ? compute(value) : cause(value);
-      this.#state.set(key, state); // create state
-    }
+    this.has(key)
+      ? maybeCall(this.#state.get(key).set, [this, value]) // update state value
+      : this.#state.set(key, isFunction(value) ? compute(value) : cause(value)); // create state
   }
 
   /**
