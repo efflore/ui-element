@@ -8,7 +8,7 @@
   <script type="module">
     import { runTests } from '@web/test-runner-mocha';
     import { assert } from '@esm-bundle/chai';
-    import { cause, compute, effect, batch } from '../index.js';
+    import { cause, compute, effect } from '../index.js';
 
     import { makeGraph, runGraph, Counter } from "./util/dependency-graph.js";
 
@@ -33,7 +33,7 @@
         return { read: () => c.get() };
       },
       effect: fn => effect(fn),
-      withBatch: fn => batch(fn),
+      withBatch: fn => fn(),
       withBuild: fn => fn(),
     };
     const testPullCounts = false;
@@ -406,12 +406,12 @@
             const G = framework.computed(
               () => C.read() + (C.read() || E.read() % 2) + D.read()[4].x + F.read()
             );
-            // framework.effect(() => res.push(hard(G.read(), "H")));
-            // framework.effect(() => res.push(G.read()), "I");
-            // framework.effect(() => res.push(hard(F.read(), "J")));
-            framework.effect(() => res[0] = hard(G.read(), "H"));
-            framework.effect(() => res[1] = G.read(), "I");
-            framework.effect(() => res[2] = hard(F.read(), "J"));
+            framework.effect(() => res.push(hard(G.read(), "H")));
+            framework.effect(() => res.push(G.read()), "I");
+            framework.effect(() => res.push(hard(F.read(), "J")));
+            // framework.effect(() => res[0] = hard(G.read(), "H"));
+            // framework.effect(() => res[1] = G.read(), "I");
+            // framework.effect(() => res[2] = hard(F.read(), "J"));
 
             return (i) => {
               res.length = 0;

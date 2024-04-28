@@ -146,8 +146,8 @@
         const child = this.querySelector('child-component');
 
         this.effect(() => {
-          child.set('heading', () => this.get('heading'));
-          child.set('text', () => this.get('heading').toUpperCase());
+          child.set('heading', this.get('heading'));
+          child.set('text', this.get('heading').toUpperCase());
         });
       }
     });

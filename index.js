@@ -29,12 +29,6 @@ const maybeCall = (fn, args = [], fallback = fn) => isFunction(fn) ? fn.call(...
 // hold the currently active effect
 let pending;
 
-// hold batching flag
-let batching = false;
-
-// hold scheduled effects
-const scheduled = new Set();
-
 // set up an empty WeakMap to hold the reactivity map
 const reactivityMap = new WeakMap();
 
@@ -47,24 +41,6 @@ const reactivityMap = new WeakMap();
 const getEffects = state => {
   !reactivityMap.has(state) && reactivityMap.set(state, new Set());
   return reactivityMap.get(state);
-};
-
-/**
- * Add pending effect to track dependency on a state
- * 
- * @param {import("./types").State<any>} state 
- */
-const track = state => {
-  pending && getEffects(state).add(pending);
-};
-
-/**
- * Run dependent effects on a state
- * 
- * @param {import("./types").State<any>} state 
- */
-const trigger = state => {
-  getEffects(state).forEach(effect => effect());
 };
 
 /* === Public API === */
@@ -80,13 +56,13 @@ const trigger = state => {
 export const cause = value => {
   const state = {
     get: () => {
-      track(state);
+      pending && getEffects(state).add(pending);
       return value;
     },
     set: (/** @type {any} */ updater) => {
       const old = value;
       value = maybeCall(updater, [state, old]);
-      !Object.is(value, old) && trigger(state);
+      !Object.is(value, old) && getEffects(state).forEach(effect => effect());
     }
   };
   return state;
@@ -104,13 +80,10 @@ export const compute = fn => {
   let value;
   const state = {
     get: () => {
-      track(state);
-      const old = value;
       const prev = pending;
       pending = null;
       value = fn();
       pending = prev;
-      !Object.is(value, old) && trigger(state);
       return value;
     }
   };
@@ -130,23 +103,8 @@ export const effect = fn => {
     isFunction(cleanup) && setTimeout(cleanup);
     pending = null;
   };
-  batching ? scheduled.add(next) : next();
+  next();
 }
-
-/**
- * Batch multiple effects in a single tick
- * 
- * @since 0.4.0
- * @param {*} fn 
- */
-export const batch = fn => {
-  if (batching) return fn();
-  batching = true;
-  fn();
-  scheduled.forEach(effect => effect());
-  scheduled.clear();
-  batching = false;
-};
 
 /* === Default export === */
 
@@ -229,9 +187,12 @@ export default class extends HTMLElement {
    * @param {any} value - initial or new value; may be a function (gets old value as parameter) to be evaluated when value is retrieved
    */
   set(key, value) {
-    this.has(key)
-      ? maybeCall(this.#state.get(key).set, [this, value]) // update state value
-      : this.#state.set(key, cause(value)); // create state
+    if (this.has(key)) {
+      maybeCall(this.#state.get(key).set, [this, value]) // update state value
+    } else {
+      const state = isFunction(value) ? compute(value) : cause(value);
+      this.#state.set(key, state); // create state
+    }
   }
 
   /**

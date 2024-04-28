@@ -8,7 +8,7 @@
   <script type="module">
     import { runTests } from '@web/test-runner-mocha';
     import { assert } from '@esm-bundle/chai';
-    import { cause, compute, effect, batch } from '../index.js';
+    import { cause, compute, effect } from '../index.js';
 
     const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
     const paint = () => new Promise(resolve => requestAnimationFrame(resolve));
@@ -223,7 +223,7 @@
 
         });
 
-        describe('Batch', function () {
+        /* describe('Batch', function () {
 
           it('should be triggered only once after repeated state change', function() {
             const state = cause(0);
@@ -244,7 +244,7 @@
             // assert.equal(count, 1);
           });
 
-        });
+        }); */
 
       });
 
