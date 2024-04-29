@@ -35,7 +35,7 @@ npm install @efflore/ui-element
 In JavaScript:
 
 ```js
-import UIElement, { effect } from '@efflore/ui-element';
+import UIElement from '@efflore/ui-element';
 
 customElements.define('my-counter', class extends UIElement {
   static observedAttributes = ['value'];
@@ -80,7 +80,7 @@ Important: Make sure you either bundle JavaScript on the server side or referenc
 So, for example, for server side:
 
 ```js
-import UIElement, { effect } from '@efflore/ui-element';
+import UIElement from '@efflore/ui-element';
 
 customElements.define('my-counter', class extends UIElement {
   ...
