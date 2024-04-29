@@ -44,7 +44,7 @@ const getTargets = state => {
 };
 
 /**
- * Define a state and return an object duck-typing Signal.State
+ * Define a state and return an object duck-typing Signal.State instances
  * 
  * @since 0.1.0
  * @param {any} value - initial value of the state; may be a function to be called on first access
@@ -67,11 +67,11 @@ const cause = value => {
 };
 
 /**
- * Define a derived state and return an object duck-typing Signal.Computed
+ * Define a derived state and return an object duck-typing Signal.Computed instances
  * 
  * @since 0.4.0
  * @param {() => any} fn - computation function to be called
- * @returns {import("./types").State<any>} state object with `get` method
+ * @returns {import("./types").Computed<any>} state object with `get` method
  * @see https://github.com/tc39/proposal-signals/
  */
 const derive = fn => {

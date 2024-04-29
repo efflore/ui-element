@@ -1,10 +1,15 @@
-export type State<T> = {
+interface Signal<T> {
   get(): T;
-  set?(v: T): void;
+}
+export interface State<T> extends Signal<T> {
+  get(): T;
+  set(v: T): void;
+}
+export interface Computed<T> extends Signal<T> {
+  get(): T;
 }
 declare function cause(value: any): State<any>
-declare function derive(fn: () => any): State<any>
-export { cause, derive }
+declare function derive(fn: () => any): Computed<any>
 
 export type ParserTypeString = 'boolean' | 'integer' | 'number' | 'string';
 export type AttributeParser = ParserTypeString | ((v: string | undefined) => any) | undefined;
