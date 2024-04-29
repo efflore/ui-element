@@ -8,7 +8,7 @@
   <script type="module">
     import { runTests } from '@web/test-runner-mocha';
     import { assert } from '@esm-bundle/chai';
-    import { cause, compute, effect } from '../index.js';
+    import { cause, derive, effect } from '../lib/cause-effect.js';
 
     const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
     const paint = () => new Promise(resolve => requestAnimationFrame(resolve));
@@ -152,101 +152,104 @@
 
         });
 
-        describe('Compute', function () {
+      });
 
-          it('should compute static function', function() {
-            const a = 1;
-            const b = 2;
-            const computed = compute(() => a + b);
-            assert.equal(computed.get(), 3);
-          });
+      describe('Derive', function () {
 
-          it('should compute function dependent on a signal', function() {
-            const a = 1;
-            const state = cause(42);
-            const computed = compute(() => a + state.get());
-            assert.equal(computed.get(), 43);
-          });
-
-          it('should compute function dependent on an updated signal', function() {
-            const a = 1;
-            const state = cause(42);
-            const computed = compute(() => a + state.get());
-            state.set(24);
-            assert.equal(computed.get(), 25);
-          });
-
-          it('should compute function dependent on a chain of computed states dependent on a signal', function() {
-            const a = 1;
-            const state = cause(42);
-            const computed1 = compute(() => a + state.get());
-            const computed2 = compute(() => computed1.get() * 2);
-            const computed3 = compute(() => computed2.get() + 1);
-            assert.equal(computed3.get(), 87);
-          });
-
-          it('should compute function dependent on a chain of computed states dependent on an updated signal', function() {
-            const a = 1;
-            const state = cause(42);
-            const computed1 = compute(() => a + state.get());
-            const computed2 = compute(() => computed1.get() * 2);
-            const computed3 = compute(() => computed2.get() + 1);
-            state.set(24);
-            assert.equal(computed3.get(), 51);
-          });
+        it('should compute a function', function() {
+          const a = 1;
+          const b = 2;
+          const computed = derive(() => a + b);
+          assert.equal(computed.get(), 3);
         });
 
-        describe('Effect', function () {
-
-          it('should be triggered after a state change', function() {
-            const state = cause('foo');
-            let effectDidRun = false;
-            effect(() => {
-              state.get();
-              effectDidRun = true;
-            });
-            state.set('bar');
-            assert.isTrue(effectDidRun);
-          });
-
-          it('should be triggered repeatedly after repeated state change', function() {
-            const state = cause(0);
-            let result = 0;
-            effect(() => {
-              result = state.get();
-            });
-            for (let i = 1; i <= 10; i++) {
-              state.set(i);
-              assert.equal(result, i);
-            }
-          });
-
+        it('should compute function dependent on a signal', function() {
+          const a = 1;
+          const state = cause(42);
+          const computed = derive(() => a + state.get());
+          assert.equal(computed.get(), 43);
         });
 
-        /* describe('Batch', function () {
+        it('should compute function dependent on an updated signal', function() {
+          const a = 1;
+          const state = cause(42);
+          const computed = derive(() => a + state.get());
+          state.set(24);
+          assert.equal(computed.get(), 25);
+        });
 
-          it('should be triggered only once after repeated state change', function() {
-            const state = cause(0);
-            let result = 0;
-            let count = 0;
-            effect(() => {
-              result = state.get();
-              count++;
-            });
-            batch(() => {
-              for (let i = 1; i <= 10; i++) {
-                state.set(i);
-              }
-            });
-            assert.equal(result, 10);
-            // next assert fails, apparently the effect callback function is executed even 11 times
-            // but this does not seem to have an adverse effect on performance maybe because of internal optimizations of the JS runtime engine
-            // assert.equal(count, 1);
-          });
+        it('should compute function dependent on a chain of computed states dependent on a signal', function() {
+          const a = 1;
+          const state = cause(42);
+          const computed1 = derive(() => a + state.get());
+          const computed2 = derive(() => computed1.get() * 2);
+          const computed3 = derive(() => computed2.get() + 1);
+          assert.equal(computed3.get(), 87);
+        });
 
-        }); */
+        it('should compute function dependent on a chain of computed states dependent on an updated signal', function() {
+          const a = 1;
+          const state = cause(42);
+          const computed1 = derive(() => a + state.get());
+          const computed2 = derive(() => computed1.get() * 2);
+          const computed3 = derive(() => computed2.get() + 1);
+          state.set(24);
+          assert.equal(computed3.get(), 51);
+        });
 
       });
+
+      describe('Effect', function () {
+
+        it('should be triggered after a state change', function() {
+          const state = cause('foo');
+          let effectDidRun = false;
+          effect(() => {
+            state.get();
+            effectDidRun = true;
+            return;
+          });
+          state.set('bar');
+          assert.isTrue(effectDidRun);
+        });
+
+        it('should be triggered repeatedly after repeated state change', function() {
+          const state = cause(0);
+          let count = 0;
+          effect(() => {
+            state.get();
+            count++;
+          });
+          for (let i = 0; i < 10; i++) {
+            state.set(i);
+            assert.equal(count, i + 1);
+          }
+        });
+
+      });
+
+      /* describe('Batch', function () {
+
+        it('should be triggered only once after repeated state change', function() {
+          const state = cause(0);
+          let result = 0;
+          let count = 0;
+          effect(() => {
+            result = state.get();
+            count++;
+          });
+          batch(() => {
+            for (let i = 1; i <= 10; i++) {
+              state.set(i);
+            }
+          });
+          assert.equal(result, 10);
+          // next assert fails, apparently the effect callback function is executed even 11 times
+          // but this does not seem to have an adverse effect on performance maybe because of internal optimizations of the JS runtime engine
+          // assert.equal(count, 1);
+        });
+
+      }); */
 
     });
   </script>

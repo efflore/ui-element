@@ -65,7 +65,7 @@
     import { runTests } from '@web/test-runner-mocha';
     import { assert } from '@esm-bundle/chai';
     import define from '../lib/define.js';
-    import UIElement, { effect } from '../index.js';
+    import UIElement from '../index.js';
 
     const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
     const paint = () => new Promise(resolve => requestAnimationFrame(resolve));
@@ -79,7 +79,7 @@
         this.querySelector('.decrement').onclick = () => this.set('value', v => v - 1);
         this.querySelector('.increment').onclick = () => this.set('value', v => v + 1);
 
-        effect(() => this.querySelector('span').textContent = this.get('value'));
+        this.effect(() => this.querySelector('span').textContent = this.get('value'));
       }
     });
 
@@ -91,7 +91,7 @@
       connectedCallback() {
         this.set('heading', 'Hello from Internal Cause');
 
-        effect(() => this.querySelector('h1').textContent = this.get('heading'));
+        this.effect(() => this.querySelector('h1').textContent = this.get('heading'));
       }
 
     });
@@ -114,23 +114,23 @@
         const badge = this.querySelector('span');
         const input = this.querySelector('input');
 
-        effect(() => {
+        this.effect(() => {
           this.has('title') && (heading.textContent = this.get('title'));
         });
 
-        effect(() => {
+        this.effect(() => {
           this.has('count') && (badge.textContent = this.get('count'));
         });
 
-        effect(() => {
+        this.effect(() => {
           this.has('step') && input.setAttribute('step', this.get('step'));
         });
 
-        effect(() => {
+        this.effect(() => {
           this.has('value') && input.setAttribute('value', this.get('value'));
         });
 
-        effect(() => {
+        this.effect(() => {
           const className = 'selected';
           this.get(className) ? heading.classList.add(className) : heading.classList.remove(className);
         });
@@ -216,7 +216,7 @@
           it('should trigger dependent effects', async function () {
             const voidComponent = document.getElementById('void');
             let effectDidRun = false;
-            effect(() => {
+            voidComponent.effect(() => {
               voidComponent.get('foo');
               effectDidRun = true;
             });
@@ -229,7 +229,7 @@
           it('repeated set() should trigger dependent effect only once', async function () {
             const voidComponent = document.getElementById('void');
             let result = 0;
-            effect(() => {
+            voidComponent.effect(() => {
               result++;
               voidComponent.get('bar');
             });

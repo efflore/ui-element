@@ -27,79 +27,64 @@ const isFunction = fn => typeof fn === 'function';
 const maybeCall = (fn, args = [], fallback = fn) => isFunction(fn) ? fn.call(...args) : fallback;
 
 // hold the currently active effect
-let pending;
+let computing;
 
 // set up an empty WeakMap to hold the reactivity map
 const reactivityMap = new WeakMap();
 
 /**
- * Get the set of effects dependent on a state from the reactivity map
+ * Get the set of targets dependent on a state from the reactivity map
  * 
  * @param {import("./types").State<any>} state - state object as key for the lookup
- * @returns {Set} set of effects associated with the state
+ * @returns {Set} set of targets associated with the state
  */
-const getEffects = state => {
+const getTargets = state => {
   !reactivityMap.has(state) && reactivityMap.set(state, new Set());
   return reactivityMap.get(state);
 };
 
-/* === Public API === */
-
 /**
  * Define a state and return an object duck-typing Signal.State
  * 
- * @since 0.3.0
+ * @since 0.1.0
  * @param {any} value - initial value of the state; may be a function to be called on first access
  * @returns {import("./types").State<any>} state object with `get` and `set` methods
  * @see https://github.com/tc39/proposal-signals/
  */
-export const cause = value => {
-  const state = {
+const cause = value => {
+  const s = {
     get: () => {
-      pending && getEffects(state).add(pending);
+      computing && getTargets(s).add(computing);
       return value;
     },
     set: (/** @type {any} */ updater) => {
       const old = value;
-      value = maybeCall(updater, [state, old]);
-      !Object.is(value, old) && getEffects(state).forEach(effect => effect());
+      value = maybeCall(updater, [s, old], updater);
+      !Object.is(value, old) && getTargets(s).forEach(t => t.get());
     }
   };
-  return state;
+  return s;
 };
 
 /**
- * Define a computed state and return an object duck-typing Signal.Computed
+ * Define a derived state and return an object duck-typing Signal.Computed
  * 
  * @since 0.4.0
  * @param {() => any} fn - computation function to be called
  * @returns {import("./types").State<any>} state object with `get` method
  * @see https://github.com/tc39/proposal-signals/
  */
-export const compute = fn => ({
-  get: () => {
-    const prev = pending;
-    pending = null;
-    const value = fn();
-    pending = prev;
-    return value;
-  }
-});
-
-/**
- * Define what happens when a reactive state changes; function may return a cleanup function to be executed on next tick
- * 
- * @since 0.3.0
- * @param {() => (() => void) | undefined} fn - callback function to be executed when a state changes
- */
-export const effect = fn => {
-  const next = () => {
-    pending = next;
-    const cleanup = fn();
-    isFunction(cleanup) && setTimeout(cleanup);
-    pending = null;
+const derive = fn => {
+  const d = {
+    get: () => {
+      const prev = computing;
+      computing = d;
+      const value = fn();
+      computing = prev;
+      return value;
+    }
   };
-  next();
+  return d;
 };
 
 /* === Default export === */
@@ -166,7 +151,7 @@ export default class extends HTMLElement {
 
   /**
    * Get the current value of a state
-   * 
+   *
    * @since 0.2.0
    * @param {any} key - state to get value from
    * @returns {any} current value of state; undefined if state does not exist
@@ -185,7 +170,7 @@ export default class extends HTMLElement {
   set(key, value) {
     this.has(key)
       ? maybeCall(this.#state.get(key).set, [this, value]) // update state value
-      : this.#state.set(key, isFunction(value) ? compute(value) : cause(value)); // create state
+      : this.#state.set(key, isFunction(value) ? derive(value) : cause(value)); // create state
   }
 
   /**
@@ -202,10 +187,14 @@ export default class extends HTMLElement {
    * Define what happens when a reactive state changes; function may return a cleanup function to be executed on next tick
    * 
    * @since 0.1.0
-   * @param {() => (() => void) | undefined} fn - callback function to be executed when a state changes
+   * @param {() => (() => void) | void} fn - callback function to be executed when a state changes
    */
   effect(fn) {
-    isFunction(fn) && requestAnimationFrame(() => effect(fn)); // wait for the next animation frame to bundle DOM updates
+    const next = derive(fn);
+    requestAnimationFrame(() => {  // wait for the next animation frame to bundle DOM updates
+      const cleanup = next.get();
+      isFunction(cleanup) && cleanup();
+    });
   }
 
 }

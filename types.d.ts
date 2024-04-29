@@ -3,9 +3,8 @@ export type State<T> = {
   set?(v: T): void;
 }
 declare function cause(value: any): State<any>
-declare function compute(fn: () => any): State<any>
-declare function effect(fn: () => void | (() => void)): () => void
-export { cause, compute, effect }
+declare function derive(fn: () => any): State<any>
+export { cause, derive }
 
 export type ParserTypeString = 'boolean' | 'integer' | 'number' | 'string';
 export type AttributeParser = ParserTypeString | ((v: string | undefined) => any) | undefined;
