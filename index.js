@@ -184,17 +184,13 @@ export default class extends HTMLElement {
   }
 
   /**
-   * Define what happens when a reactive state changes; function may return a cleanup function to be executed on next tick
+   * Define what happens when a reactive state changes
    * 
    * @since 0.1.0
    * @param {() => (() => void) | void} fn - callback function to be executed when a state changes
    */
   effect(fn) {
-    const next = derive(fn);
-    requestAnimationFrame(() => {  // wait for the next animation frame to bundle DOM updates
-      const cleanup = next.get();
-      isFunction(cleanup) && cleanup();
-    });
+    requestAnimationFrame(() => derive(fn).get());  // wait for the next animation frame to bundle DOM updates
   }
 
 }
