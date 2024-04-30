@@ -157,7 +157,7 @@ export default class extends HTMLElement {
    * @returns {any} current value of state; undefined if state does not exist
    */
   get(key) {
-    return this.has(key) && maybeCall(this.#state.get(key).get());
+    return this.has(key) && this.#state.get(key).get();
   }
 
   /**
