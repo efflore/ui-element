@@ -65,7 +65,7 @@
     import { runTests } from '@web/test-runner-mocha';
     import { assert } from '@esm-bundle/chai';
     import define from '../lib/define.js';
-    import UIElement, { effect } from '../index.min.js';
+    import UIElement from '../index.js';
 
     const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
     const paint = () => new Promise(resolve => requestAnimationFrame(resolve));
@@ -79,7 +79,7 @@
         this.querySelector('.decrement').onclick = () => this.set('value', v => v - 1);
         this.querySelector('.increment').onclick = () => this.set('value', v => v + 1);
 
-        effect(() => this.querySelector('span').textContent = this.get('value'));
+        this.effect(() => this.querySelector('span').textContent = this.get('value'));
       }
     });
 
@@ -91,7 +91,7 @@
       connectedCallback() {
         this.set('heading', 'Hello from Internal Cause');
 
-        effect(() => this.querySelector('h1').textContent = this.get('heading'));
+        this.effect(() => this.querySelector('h1').textContent = this.get('heading'));
       }
 
     });
@@ -114,23 +114,23 @@
         const badge = this.querySelector('span');
         const input = this.querySelector('input');
 
-        effect(() => {
+        this.effect(() => {
           this.has('title') && (heading.textContent = this.get('title'));
         });
 
-        effect(() => {
+        this.effect(() => {
           this.has('count') && (badge.textContent = this.get('count'));
         });
 
-        effect(() => {
+        this.effect(() => {
           this.has('step') && input.setAttribute('step', this.get('step'));
         });
 
-        effect(() => {
+        this.effect(() => {
           this.has('value') && input.setAttribute('value', this.get('value'));
         });
 
-        effect(() => {
+        this.effect(() => {
           const className = 'selected';
           this.get(className) ? heading.classList.add(className) : heading.classList.remove(className);
         });
@@ -145,9 +145,9 @@
       connectedCallback() {
         const child = this.querySelector('child-component');
 
-        effect(() => {
-          child.set('heading', () => this.get('heading'));
-          child.set('text', () => this.get('heading').toUpperCase());
+        this.effect(() => {
+          child.set('heading', this.get('heading'));
+          child.set('text', this.get('heading').toUpperCase());
         });
       }
     });
@@ -157,11 +157,11 @@
 
       connectedCallback() {
 
-        effect(() => {
+        this.effect(() => {
           this.has('heading') && (this.querySelector('h1').textContent = this.get('heading'));
         });
 
-        effect(() => {
+        this.effect(() => {
           this.has('text') && (this.querySelector('p').textContent = this.get('text'));
         });
       }
@@ -187,10 +187,21 @@
             });
           });
 
+          it('should return false with has() for unset state', async function () {
+            const voidComponent = document.getElementById('void');
+            assert.equal(voidComponent.has('test'), false);
+          });
+
           it('should create a new state with set', async function () {
             const voidComponent = document.getElementById('void');
             voidComponent.set('test', 'test');
             assert.equal(voidComponent.get('test'), 'test');
+          });
+
+          it('should return true with has() for set state', async function () {
+            const voidComponent = document.getElementById('void');
+            voidComponent.set('test', 'test');
+            assert.equal(voidComponent.has('test'), true);
           });
 
           it('should update an existing state with set', async function () {
@@ -204,21 +215,21 @@
 
           it('should trigger dependent effects', async function () {
             const voidComponent = document.getElementById('void');
-            let result = 0;
-            effect(() => {
+            let effectDidRun = false;
+            voidComponent.effect(() => {
               voidComponent.get('foo');
-              result = 42;
+              effectDidRun = true;
             });
             voidComponent.set('foo', 'test');
             await paint().then(() => {
-              assert.equal(result, 42);
+              assert.isTrue(effectDidRun);
             });
           });
 
           it('repeated set() should trigger dependent effect only once', async function () {
             const voidComponent = document.getElementById('void');
             let result = 0;
-            effect(() => {
+            voidComponent.effect(() => {
               result++;
               voidComponent.get('bar');
             });
@@ -228,6 +239,13 @@
             await paint().then(() => {
               assert.equal(result, 1);
             });
+          });
+
+          it('should return false with has() for deleted state', async function () {
+            const voidComponent = document.getElementById('void');
+            voidComponent.set('test', 'test');
+            voidComponent.delete('test');
+            assert.equal(voidComponent.has('test'), false);
           });
         });
 
