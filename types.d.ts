@@ -16,11 +16,11 @@ export type AttributeParser = ParserTypeString | ((v: string | undefined) => any
 export type MappedAttributeParser = [string, AttributeParser];
 
 export default class extends HTMLElement {
-  attributeMapping: Record<string, AttributeParser | MappedAttributeParser>;
+  attributeMap: Map<string, AttributeParser | MappedAttributeParser>;
   attributeChangedCallback(name: string, old: string | undefined, value: string | undefined): void;
   has(key: any): boolean;
   get(key: any): any;
-  set(key: any, value: any): void;
-  delete(key: any): void;
+  set(key: any, value: any, update: boolean): any;
+  delete(key: any): boolean;
   effect(fn: () => void | (() => void)): () => void;
 }

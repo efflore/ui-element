@@ -72,12 +72,11 @@
 
     define('my-counter', class extends UIElement {
       static observedAttributes = ['value'];
-
-      attributeMapping = { value: 'integer' };
+      attributeMap = new Map([['value', 'integer']]);
 
       connectedCallback() {
-        this.querySelector('.decrement').onclick = () => this.set('value', v => v - 1);
-        this.querySelector('.increment').onclick = () => this.set('value', v => v + 1);
+        this.querySelector('.decrement').onclick = () => this.set('value', v => v--);
+        this.querySelector('.increment').onclick = () => this.set('value', v => v++);
 
         this.effect(() => this.querySelector('span').textContent = this.get('value'));
       }
@@ -98,16 +97,15 @@
 
     define('updating-component', class extends UIElement {
       static observedAttributes = ['heading', 'count', 'step', 'value', 'selected'];
-      
-      attributeMapping = {
-        heading: ['title'],
-        count: 'integer',
-        step: 'number',
-        value: (v, o) => Number.isInteger(this.get('step')) ? parseInt(v, 10) : parseFloat(v), 
-        selected: 'boolean',
-      };
+      attributeMap = new Map([
+        ['heading', ['title']],
+        ['count', 'integer'],
+        ['step', 'number'],
+        ['value', (v, o) => Number.isInteger(this.get('step'))? parseInt(v, 10) : parseFloat(v)],
+        ['selected', 'boolean'],
+      ]);
 
-      // debug = (this.id === 'updating-with-number-attribute'); // true;
+      // debug = (this.id === 'updating-with-boolean-attribute'); // true;
 
       connectedCallback() {
         const heading = this.querySelector('h1');

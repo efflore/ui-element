@@ -1,9 +1,6 @@
 /**
  * @name UIElement
- * @version 0.4.0
- * @license
- * Copyright 2024 Esther Brunner
- * SPDX-License-Identifier: BSD-3-Clause
+ * @version 0.5.0
  */
 
 /* === Internal variables and functions to the module === */
@@ -98,20 +95,10 @@ const derive = fn => {
 export default class extends HTMLElement {
 
   /**
-   * Hold [name, type] or just type mapping to be used on attributeChangedCallback
-   *
-   * @since 0.2.0
-   * @property {Record<string, import("./types").AttributeParser | import("./types").MappedAttributeParser>} attributeMapping - mapping of attribute names to state keys and types or parser functions
-   * @example
-   * attributeMapping = {
-   *   heading: ['title'],  // attribute mapped to a property with a different name; type 'string' is optional (default)
-   *   count: 'integer',    // will be parsed with v => parseInt(v, 10)
-   *   step: 'number',      // will be parsed with v => parseFloat(v)
-   *   value: (v, o) => Number.isInteger(this.get('step')) ? parseInt(v, 10) : parseFloat(v), // custom parser function
-   *   selected: 'boolean', // boolean attribute will be parsed with v => typeof v === 'string' ? true : false
-   * };
+   * @property
+   * @type {Map<string, import("./types").AttributeParser|import("./types").MappedAttributeParser>}
    */
-  attributeMapping = {};
+  attributeMap;
 
   // @private hold states – use `has()`, `get()`, `set()` and `delete()` to access and modify
   #state = new Map();
@@ -126,15 +113,14 @@ export default class extends HTMLElement {
    */
   attributeChangedCallback(name, old, value) {
     if (value !== old) {
-      const input = this.attributeMapping[name];
+      const input = this.attributeMap?.get(name);
       const [key, type] = Array.isArray(input) ? input : [name, input];
       const parser = {
         boolean: (/** @type {string|undefined} */ v) => typeof v === 'string' ? true : false,
         integer: (/** @type {string} */ v) => parseInt(v, 10),
         number: (/** @type {string} */ v) => parseFloat(v),
       };
-      const parsed = maybeCall(type, [this, value, old], parser[type] ? parser[type](value) : value);
-      this.set(key, parsed);
+      this.set(key, maybeCall(isFunction(type) ? type : parser[type], [this, value, old], value));
     }
   }
 
@@ -157,7 +143,7 @@ export default class extends HTMLElement {
    * @returns {any} current value of state; undefined if state does not exist
    */
   get(key) {
-    return this.has(key) && this.#state.get(key).get();
+    return this.#state.get(key)?.get();
   }
 
   /**
@@ -166,10 +152,12 @@ export default class extends HTMLElement {
    * @since 0.2.0
    * @param {any} key - state to set value to
    * @param {any} value - initial or new value; may be a function (gets old value as parameter) to be evaluated when value is retrieved
+   * @param {boolean} [update=true] - if `true` (default), the state is updated; if `false`, just return existing value
+   * @returns {any} current value of state; undefined if state does not exist
    */
-  set(key, value) {
-    this.has(key)
-      ? maybeCall(this.#state.get(key).set, [this, value]) // update state value
+  set(key, value, update = true) {
+    return this.#state.has(key)
+      ? update ? maybeCall(this.#state.get(key).set, [this, value]) : this.#state.get(key) // update state value
       : this.#state.set(key, isFunction(value) ? derive(value) : cause(value)); // create state
   }
 
@@ -178,9 +166,10 @@ export default class extends HTMLElement {
    * 
    * @since 0.4.0
    * @param {any} key - state to be deleted
+   * @returns {boolean} `true` if the state existed and was deleted; `false` if the state if ignored
    */
   delete(key) {
-    this.has(key) && this.#state.delete(key);
+    return this.#state.delete(key);
   }
 
   /**
