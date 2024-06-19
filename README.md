@@ -4,7 +4,7 @@ UIElement - the "look ma, no JS framework!" library bringing signals-based react
 
 ## What is UIElement?
 
-`UIElement` is a base class for your reactive Web Components. It extends the native `HTMLElement` class and adds 1 public property and 4 methods that allow you to implement inter- and intra-component reactivity with ease.
+`UIElement` is a base class for your reactive Web Components. It extends the native `HTMLElement` class and adds 1 static function, 1 public property and 5 methods that allow you to implement inter- and intra-component reactivity with ease. You extend the base class `UIElement` and call the static `define()` function on it to register a tag name in the `CustomElementsRegistry`.
 
 It will parse attributes in `attributeChangedCallback()` and assign the values to reactive properties according to the mapping to key and primitive type in the `attributeMap` property of your component. By declaratively setting `static observedAttributes` and `attributeMap` you will almost never have to override `attributeChangedCallback()`. Your reactive states will be automatically setup with initial values from attributes.
 
@@ -37,17 +37,17 @@ In JavaScript:
 ```js
 import UIElement from '@efflore/ui-element';
 
-customElements.define('my-counter', class extends UIElement {
+(class extends UIElement {
   static observedAttributes = ['value'];
   attributeMap = new Map([['value', 'integer']]);
 
   connectedCallback() {
-    this.querySelector('.decrement').onclick = () => this.set('value', v => v - 1);
-    this.querySelector('.increment').onclick = () => this.set('value', v => v + 1);
+    this.querySelector('.decrement').onclick = () => this.set('value', v => v--);
+    this.querySelector('.increment').onclick = () => this.set('value', v => v++);
 
     this.effect(() => this.querySelector('span').textContent = this.get('value'));
   }
-});
+}).define('my-counter');
 ```
 
 In HTML:
@@ -81,17 +81,17 @@ So, for example, for server side:
 ```js
 import UIElement from '@efflore/ui-element';
 
-customElements.define('my-counter', class extends UIElement {
+(class extends UIElement {
   ...
-});
+}).define('my-counter');
 
-customElements.define('my-input', class extends UIElement {
+(class extends UIElement {
   ...
-});
+}).define('my-input');
 
-customElements.define('my-slider', class extends UIElement {
+(class extends UIElement {
   ...
-});
+}).define('my-slider');
 ```
 
 Or from client side:

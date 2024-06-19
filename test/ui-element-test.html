@@ -143,8 +143,9 @@
         const child = this.querySelector('child-component');
 
         this.effect(() => {
-          child.set('heading', this.get('heading'));
-          child.set('text', this.get('heading').toUpperCase());
+          const heading = this.get('heading');
+          child.set('heading', heading);
+          child.set('text', heading.toUpperCase());
         });
       }
     }).define('parent-component');
@@ -426,7 +427,7 @@
 
           it('should receive derived property from attribute of parent component', async function () {
             const childComponent = document.getElementById('child');
-            await paint().then(() => {
+            await customElements.whenDefined('child-component').then(() => {
               const textContent = childComponent.querySelector('p').textContent;
               assert.equal(textContent, 'Hello from Attribute'.toUpperCase(), 'Should have initial text derived from attribute of parent component');
             });
@@ -436,7 +437,7 @@
             const parentComponent = document.getElementById('parent');
             const childComponent = document.getElementById('child');
             parentComponent.setAttribute('heading', 'Hello from Changed Attribute');
-            await paint().then(() => {
+            await customElements.whenDefined('child-component').then(() => {
               const headingContent = childComponent.querySelector('h1').textContent;
               const textContent = childComponent.querySelector('p').textContent;
               assert.equal(headingContent, 'Hello from Changed Attribute', 'Should have changed heading from attribute of parent component');
@@ -447,10 +448,12 @@
           it('should change heading if inherited state is set', async function () {
             const parentComponent = document.getElementById('parent');
             const childComponent = document.getElementById('child');
-            childComponent.set('heading', 'Hello from Property on Child');
-            await paint().then(() => {
-              const headingContent = childComponent.querySelector('h1').textContent;
-              assert.equal(headingContent, 'Hello from Property on Child', 'Should have changed heading from state of child component');
+            await customElements.whenDefined('child-component').then(async () => {
+              childComponent.set('heading', 'Hello from Property on Child');
+              await paint().then(() => {
+                const headingContent = childComponent.querySelector('h1').textContent;
+                assert.equal(headingContent, 'Hello from Property on Child', 'Should have changed heading from state of child component');
+              });
             });
           });
 
