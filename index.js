@@ -103,6 +103,7 @@ export default class extends HTMLElement {
   }
 
   /**
+   * @since 0.5.0
    * @property
    * @type {Map<string, import("./types").AttributeParser|import("./types").MappedAttributeParser>}
    */
@@ -136,7 +137,7 @@ export default class extends HTMLElement {
    * Check whether a state is set
    * 
    * @since 0.2.0
-   * @param {any} key - state to be checked
+   * @param {PropertyKey} key - state to be checked
    * @returns {boolean} `true` if this element has state with the passed key; `false` otherwise
    */
   has(key) {
@@ -147,7 +148,7 @@ export default class extends HTMLElement {
    * Get the current value of a state
    *
    * @since 0.2.0
-   * @param {any} key - state to get value from
+   * @param {PropertyKey} key - state to get value from
    * @returns {any} current value of state; undefined if state does not exist
    */
   get(key) {
@@ -155,28 +156,41 @@ export default class extends HTMLElement {
   }
 
   /**
-   * Create a state or update its value
+   * Create a state or update its value and return its current value
    * 
    * @since 0.2.0
-   * @param {any} key - state to set value to
+   * @param {PropertyKey} key - state to set value to
    * @param {any} value - initial or new value; may be a function (gets old value as parameter) to be evaluated when value is retrieved
    * @param {boolean} [update=true] - if `true` (default), the state is updated; if `false`, just return existing value
-   * @returns {any} current value of state; undefined if state does not exist
+   * @returns {any} current value of state
    */
   set(key, value, update = true) {
-    return this.#state.has(key)
-      ? update ? maybeCall(this.#state.get(key).set, [this, value]) : this.#state.get(key) // update state value
-      : this.#state.set(key, isFunction(value) ? derive(value) : cause(value)); // create state
+    const state = this.#state.get(key);
+    const create = () => {
+      this.#state.set(key, isFunction(value) ? derive(value) : cause(value));
+      !Object.prototype.hasOwnProperty.call(this, key) && Object.defineProperty(this, key, {
+        get: () => this.#state.get(key)?.get(),
+        set: (/** @type {any} */ value) => {
+          const state = this.#state.get(key);
+          maybeCall(state.set, [state, value]);
+        },
+        configurable: true,
+        enumerable: true,
+      });
+    }
+    this.#state.has(key) ? update && maybeCall(state.set, [state, value]) : create();
+    return state?.get();
   }
 
   /**
    * Delete a state, also removing all effects dependent on the state
    * 
    * @since 0.4.0
-   * @param {any} key - state to be deleted
+   * @param {PropertyKey} key - state to be deleted
    * @returns {boolean} `true` if the state existed and was deleted; `false` if the state if ignored
    */
   delete(key) {
+    delete this[key];
     return this.#state.delete(key);
   }
 
