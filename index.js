@@ -17,8 +17,8 @@ const isFunction = fn => typeof fn === 'function';
  * Call a function if it is a function; otherwise return the fallback value
  * 
  * @param {any} fn - variable to check if it is a function
- * @param {Array} args - arguments to pass to `fn.call()`; defaults to empty array (called with null `this` without arguments)
- * @param {any} fallback - value to return if the supplied function is not a function; defaults to the not-a-function first parameter
+ * @param {Array} [args=[]] - arguments to pass to `fn.call()`; defaults to empty array (called with null `this` without arguments)
+ * @param {any} [fallback=fn] - value to return if the supplied function is not a function; defaults to the not-a-function first parameter
  * @returns {any} value returned by the supplied function if it is a function; otherwise returns the fallback value
  */
 const maybeCall = (fn, args = [], fallback = fn) => isFunction(fn) ? fn.call(...args) : fallback;
@@ -26,19 +26,8 @@ const maybeCall = (fn, args = [], fallback = fn) => isFunction(fn) ? fn.call(...
 // hold the currently active effect
 let computing;
 
-// set up an empty WeakMap to hold the reactivity map
-const reactivityMap = new WeakMap();
-
-/**
- * Get the set of targets dependent on a state from the reactivity map
- * 
- * @param {import("./types").State<any>} state - state object as key for the lookup
- * @returns {Set} set of targets associated with the state
- */
-const getTargets = state => {
-  !reactivityMap.has(state) && reactivityMap.set(state, new Set());
-  return reactivityMap.get(state);
-};
+// set up an empty WeakMap to hold the watched states mapped to their targets
+const watcher = new WeakMap();
 
 /**
  * Define a state and return an object duck-typing Signal.State instances
@@ -49,18 +38,22 @@ const getTargets = state => {
  * @see https://github.com/tc39/proposal-signals/
  */
 const cause = value => {
-  const s = {
+  const getPending = (/** @type {import("./types").State<any>} */ state) => {
+    !watcher.has(state) && watcher.set(state, new Set());
+    return watcher.get(state);
+  };
+  const state = {
     get: () => {
-      computing && getTargets(s).add(computing);
+      computing && getPending(state).add(computing);
       return value;
     },
     set: (/** @type {any} */ updater) => {
       const old = value;
-      value = maybeCall(updater, [s, old], updater);
-      !Object.is(value, old) && getTargets(s).forEach(t => t.get());
+      value = maybeCall(updater, [state, old], updater);
+      !Object.is(value, old) && getPending(state).forEach((/** @type {import("./types").Computed<any>} */ computed) => computed.get());
     }
   };
-  return s;
+  return state;
 };
 
 /**
@@ -72,16 +65,16 @@ const cause = value => {
  * @see https://github.com/tc39/proposal-signals/
  */
 const derive = fn => {
-  const d = {
+  const computed = {
     get: () => {
       const prev = computing;
-      computing = d;
+      computing = computed;
       const value = fn();
       computing = prev;
       return value;
     }
   };
-  return d;
+  return computed;
 };
 
 /* === Default export === */
@@ -93,6 +86,21 @@ const derive = fn => {
  * @extends HTMLElement
  */
 export default class extends HTMLElement {
+
+  /**
+   * Define a custom element in the custom element registry
+   * 
+   * @since 0.5.0
+   * @param {string} tag - name of the custom element
+   * @param {CustomElementRegistry} [registry=customElements] - custom element registry to be used; defaults to `customElements`
+   */
+  static define(tag, registry = customElements) {
+    try {
+      registry.get(tag) || registry.define(tag, this);
+    } catch (err) {
+      console.error(err);
+    }
+  }
 
   /**
    * @property

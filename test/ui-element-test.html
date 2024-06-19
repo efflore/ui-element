@@ -64,13 +64,12 @@
   <script type="module">
     import { runTests } from '@web/test-runner-mocha';
     import { assert } from '@esm-bundle/chai';
-    import define from '../lib/define.js';
     import UIElement from '../index.js';
 
     const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
     const paint = () => new Promise(resolve => requestAnimationFrame(resolve));
 
-    define('my-counter', class extends UIElement {
+    (class extends UIElement {
       static observedAttributes = ['value'];
       attributeMap = new Map([['value', 'integer']]);
 
@@ -80,11 +79,11 @@
 
         this.effect(() => this.querySelector('span').textContent = this.get('value'));
       }
-    });
+    }).define('my-counter');
 
-    define('void-component', class extends UIElement {});
+    (class extends UIElement {}).define('void-component');
 
-    define('causal-component', class extends UIElement {
+    (class extends UIElement {
       // debug = true;
 
       connectedCallback() {
@@ -93,9 +92,9 @@
         this.effect(() => this.querySelector('h1').textContent = this.get('heading'));
       }
 
-    });
+    }).define('causal-component');
 
-    define('updating-component', class extends UIElement {
+    (class extends UIElement {
       static observedAttributes = ['heading', 'count', 'step', 'value', 'selected'];
       attributeMap = new Map([
         ['heading', ['title']],
@@ -133,9 +132,9 @@
           this.get(className) ? heading.classList.add(className) : heading.classList.remove(className);
         });
       }
-    });
+    }).define('updating-component');
 
-    define('parent-component', class extends UIElement {
+    (class extends UIElement {
       static observedAttributes = ['heading'];
 
       // debug = true;
@@ -148,9 +147,9 @@
           child.set('text', this.get('heading').toUpperCase());
         });
       }
-    });
+    }).define('parent-component');
 
-    define('child-component', class extends UIElement {
+    (class extends UIElement {
       // debug = true;
 
       connectedCallback() {
@@ -163,7 +162,7 @@
           this.has('text') && (this.querySelector('p').textContent = this.get('text'));
         });
       }
-    });
+    }).define('child-component');
 
     runTests(() => {
 
