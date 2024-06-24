@@ -13,21 +13,8 @@
  */
 const isFunction = fn => typeof fn === 'function';
 
-/**
- * Call a function if it is a function; otherwise return the fallback value
- * 
- * @param {any} fn - variable to check if it is a function
- * @param {Array} [args=[]] - arguments to pass to `fn.call()`; defaults to empty array (called with null `this` without arguments)
- * @param {any} [fallback=fn] - value to return if the supplied function is not a function; defaults to the not-a-function first parameter
- * @returns {any} value returned by the supplied function if it is a function; otherwise returns the fallback value
- */
-const maybeCall = (fn, args = [], fallback = fn) => isFunction(fn) ? fn.call(...args) : fallback;
-
 // hold the currently active effect
 let computing;
-
-// set up an empty WeakMap to hold the watched states mapped to their targets
-const watcher = new WeakMap();
 
 /**
  * Define a state and return an object duck-typing Signal.State instances
@@ -38,19 +25,22 @@ const watcher = new WeakMap();
  * @see https://github.com/tc39/proposal-signals/
  */
 const cause = value => {
-  const getPending = (/** @type {import("./types").State<any>} */ state) => {
-    !watcher.has(state) && watcher.set(state, new Set());
-    return watcher.get(state);
+  const reactivityMap = new WeakMap();
+  const getTargets = (/** @type {import("./types").Signal<any>} */ signal) => {
+    !reactivityMap.has(signal) && reactivityMap.set(signal, new Set());
+    return reactivityMap.get(signal);
   };
   const state = {
     get: () => {
-      computing && getPending(state).add(computing);
+      computing && getTargets(state).add(computing);
       return value;
     },
     set: (/** @type {any} */ updater) => {
       const old = value;
-      value = maybeCall(updater, [state, old], updater);
-      !Object.is(value, old) && getPending(state).forEach((/** @type {import("./types").Computed<any>} */ computed) => computed.get());
+      value = isFunction(updater) ? updater(old) : updater;
+      if (!Object.is(value, old)) {
+        for (const target of getTargets(state)) target.get();
+      }
     }
   };
   return state;
@@ -129,7 +119,8 @@ export default class extends HTMLElement {
         integer: (/** @type {string} */ v) => parseInt(v, 10),
         number: (/** @type {string} */ v) => parseFloat(v),
       };
-      this.set(key, maybeCall(isFunction(type) ? type : parser[type], [this, value, old], value));
+      const fn = isFunction(type) ? type : parser[type];
+      this.set(key, fn ? fn(value, old) : value);
     }
   }
 
@@ -162,24 +153,17 @@ export default class extends HTMLElement {
    * @param {PropertyKey} key - state to set value to
    * @param {any} value - initial or new value; may be a function (gets old value as parameter) to be evaluated when value is retrieved
    * @param {boolean} [update=true] - if `true` (default), the state is updated; if `false`, just return existing value
-   * @returns {any} current value of state
    */
   set(key, value, update = true) {
-    const state = this.#state.get(key);
-    const create = () => {
-      this.#state.set(key, isFunction(value) ? derive(value) : cause(value));
-      !Object.prototype.hasOwnProperty.call(this, key) && Object.defineProperty(this, key, {
-        get: () => this.#state.get(key)?.get(),
-        set: (/** @type {any} */ value) => {
-          const state = this.#state.get(key);
-          maybeCall(state.set, [state, value]);
-        },
-        configurable: true,
-        enumerable: true,
-      });
+    if (this.#state.has(key)) {
+      const state = this.#state.get(key);
+      update && isFunction(state.set) && state.set(value);
+    } else {
+      const state = typeof value === 'object' && isFunction(value.get)
+        ? value
+        : isFunction(value) ? derive(value) : cause(value);
+      this.#state.set(key, state);
     }
-    this.#state.has(key) ? update && maybeCall(state.set, [state, value]) : create();
-    return state?.get();
   }
 
   /**
@@ -187,11 +171,27 @@ export default class extends HTMLElement {
    * 
    * @since 0.4.0
    * @param {PropertyKey} key - state to be deleted
-   * @returns {boolean} `true` if the state existed and was deleted; `false` if the state if ignored
+   * @returns {boolean} `true` if the state existed and was deleted; `false` if ignored
    */
   delete(key) {
-    delete this[key];
     return this.#state.delete(key);
+  }
+
+  /**
+   * Pass states to a child element
+   * 
+   * @since 0.5.0
+   * @param {import("./types").UIElement} element - child element to pass the states to
+   * @param {Map<PropertyKey, PropertyKey | (() => any)>} [states] - set of states to be passed
+   * @param {CustomElementRegistry} [registry=customElements] - custom element registry to be used; defaults to `customElements`
+   */
+  pass(element, states, registry = customElements) {
+    (async () => {
+      await registry.whenDefined(element.localName);
+      for (const [key, source] of states) {
+        element.set(key, isFunction(source) ? { get: source } : this.#state.get(source));
+      }
+    })();
   }
 
   /**
@@ -201,7 +201,78 @@ export default class extends HTMLElement {
    * @param {() => (() => void) | void} fn - callback function to be executed when a state changes
    */
   effect(fn) {
-    requestAnimationFrame(() => derive(fn).get());  // wait for the next animation frame to bundle DOM updates
+    requestAnimationFrame(() => derive(fn).get()); // wait for the next animation frame to bundle DOM updates
+  }
+
+  /**
+   * Update text content of an element
+   * 
+   * @since 0.5.0
+   * @param {HTMLElement} element - element to be updated
+   * @param {string|null} content - new text content; `null` for opt-out of update
+   */
+  updateText(element, content) {
+    if ((content !== null) && (content !== element.textContent)) {
+      // preserve comments unlike element.textContent assignment
+      Array.from(element.childNodes).filter(node => node.nodeType !== Node.COMMENT_NODE).forEach(node => node.remove());
+      element.append(document.createTextNode(content));
+    }
+  }
+
+  /**
+   * Update property of an element
+   * 
+   * @since 0.5.0
+   * @param {HTMLElement} element - element to be updated
+   * @param {PropertyKey} key - key of property to be updated
+   * @param {any} value - new property value; `''` for boolean attribute; `null` for opt-out of update; `undefined` will delete existing property
+   */
+  updateProperty(element, key, value) {
+    if ((value !== null) && (value !== element[key])) {
+      (typeof value === 'undefined') ? delete element[key] : (element[key] = value);
+    }
+  }
+
+  /**
+   * Update attribute of an element
+   * 
+   * @since 0.5.0
+   * @param {HTMLElement} element - element to be updated
+   * @param {string} name - name of attribute to be updated
+   * @param {string|null} value - new attribute value; `null` for opt-out of update; `undefined` will remove existing attribute
+   */
+  updateAttribute(element, name, value) {
+    if ((value !== null) && (value !== element.getAttribute(name))) {
+      (typeof value === 'undefined') ? element.removeAttribute(name) : element.setAttribute(name, value);
+    }
+  }
+
+  /**
+   * Toggle class on an element
+   * 
+   * @since 0.5.0
+   * @param {HTMLElement} element - element to be toggled
+   * @param {string} token - name of class to be toggled
+   * @param {boolean|null|undefined} force - force toggle condition `true` or `false`; `null` for opt-out of update; `undefined` will toggle existing class
+   */
+  toggleClass(element, token, force) {
+    if ((force !== null) && (force !== element.classList.contains(token))) {
+      element.classList.toggle(token, force);
+    }
+  }
+
+  /**
+   * Update style property of an element
+   * 
+   * @since 0.5.0
+   * @param {HTMLElement} element - element to be updated
+   * @param {string} property - name of style property to be updated
+   * @param {string|null|undefined} value - new style property value; `null` for opt-out of update; `undefined` will remove existing style property
+   */
+  updateStyle(element, property, value) {
+    if (value !== null) {
+      (typeof value === 'undefined') ? element.style.removeProperty(property) : element.style.setProperty(property, value);
+    }
   }
 
 }

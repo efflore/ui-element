@@ -6,6 +6,7 @@
   "types": "types.d.ts",
   "scripts": {
     "build": "terser index.js -c -m -o index.min.js --module",
+    "build-context": "terser context-controller.js -c -m -o context-controller.min.js --module",
     "lint": "npx eslint index.js",
     "test": "run-s test:setup test:ci",
     "test:setup": "npx playwright install-deps",
