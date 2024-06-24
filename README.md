@@ -130,7 +130,7 @@ If you however want to use side-effects or expensive work in computed function o
 
 That said, we plan to offer a `UIElement` version with the Signals Proposal Polyfill instead of Cause & Effect in future versions as a drop-in replacement with the same API. As the Signals Proposal is still in early stage and they explicitely warn not to use the polyfill in production, we decided to do that not yet.
 
-Source: [./lib/cause-effect.js]
+[Source](./lib/cause-effect.js)
 
 ### DOM Update
 
@@ -144,7 +144,7 @@ A few utility functions for surgical DOM updates in effects that streamline the 
 
 These utility function try to minimize DOM updates to the necessary. But of course, you can also use regular DOM API methods, as you interact with real DOM elements, not an abstraction thereof. If you know for sure, the target element exists, the passed value is valid and the DOM needs to be updated every time the source state changes, you may bypass the additional checks by these utility functions and use native DOM APIs instead.
 
-Source: [./lib/dom-update.js]
+[Source](./lib/dom-update.js)
 
 ### Context Controller
 
@@ -154,10 +154,10 @@ Context Controller implements the [Context Community Protocol](https://github.co
 - `ContextProvider` expose consumable contexts through a static `providedContexts` array of context keys
 - `ContextConsumer` request consumable contexts set in a static `observedContexts` array of context keys
 
-Source: [./lib/context-controller.js]
+[Source](./lib/context-controller.js)
 
 ### Visibility Oberserver
 
 Visibility Observer is a showcase how you can add composable functionality to `UIElement` components. It implements a simple `IntersectionObserver` to set a `visible` state as the element becomes visible or hidden. You might use this pattern to postpone expensive rendering or data fetching.
 
-Source: [./lib/visibility-observer.js]
+[Source](./lib/visibility-observer.js)
