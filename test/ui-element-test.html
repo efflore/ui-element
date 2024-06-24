@@ -70,6 +70,7 @@
     import { runTests } from '@web/test-runner-mocha';
     import { assert } from '@esm-bundle/chai';
     import UIElement from '../index.js';
+    import { updateText, updateAttribute, toggleClass } from '../lib/dom-update.js';
 
     const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
     const paint = () => new Promise(resolve => requestAnimationFrame(resolve));
@@ -81,7 +82,7 @@
 
       connectedCallback() {
         this.set('heading', 'Hello from Internal State');
-        this.effect(() => this.updateText(this.querySelector('h1'), this.get('heading')));
+        this.effect(() => updateText(this.querySelector('h1'), this.get('heading')));
       }
 
     }
@@ -104,11 +105,11 @@
         const badge = this.querySelector('span');
         const input = this.querySelector('input');
 
-        this.effect(() => this.has('title') && this.updateText(heading, this.get('title')));
-        this.effect(() => this.has('count') && this.updateText(badge, this.get('count')));
-        this.effect(() => this.has('step') && this.updateAttribute(input, 'step', this.get('step')));
-        this.effect(() => this.has('value') && this.updateAttribute(input, 'value', this.get('value')));
-        this.effect(() => this.has('selected') && this.toggleClass(heading, 'selected', this.get('selected')));
+        this.effect(() => this.has('title') && updateText(heading, this.get('title')));
+        this.effect(() => this.has('count') && updateText(badge, this.get('count')));
+        this.effect(() => this.has('step') && updateAttribute(input, 'step', this.get('step')));
+        this.effect(() => this.has('value') && updateAttribute(input, 'value', this.get('value')));
+        this.effect(() => this.has('selected') && toggleClass(heading, 'selected', this.get('selected')));
       }
     }
     UpdatingComponent.define('updating-component');
@@ -131,8 +132,8 @@
       // debug = true;
 
       connectedCallback() {
-        this.effect(() => this.updateText(this.querySelector('h1'), this.get('heading') || null));
-        this.effect(() => this.updateText(this.querySelector('p'), this.get('text') || null));
+        this.effect(() => updateText(this.querySelector('h1'), this.get('heading') || null));
+        this.effect(() => updateText(this.querySelector('p'), this.get('text') || null));
       }
     }
     ChildComponent.define('child-component');
@@ -145,9 +146,9 @@
         this.querySelector('.decrement').onclick = () => this.set('value', v => --v);
         this.querySelector('.increment').onclick = () => this.set('value', v => ++v);
 
-        this.effect(() => this.updateText(this.querySelector('.value'), this.get('value')));
-        this.effect(() => this.updateText(this.querySelector('.parity'), this.get('value') % 2 ? false : true));
-        this.effect(() => this.updateText(this.querySelector('.double'), this.get('value') * 2));
+        this.effect(() => updateText(this.querySelector('.value'), this.get('value')));
+        this.effect(() => updateText(this.querySelector('.parity'), this.get('value') % 2 ? false : true));
+        this.effect(() => updateText(this.querySelector('.double'), this.get('value') * 2));
       }
     }
     MyCounter.define('my-counter');

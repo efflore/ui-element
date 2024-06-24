@@ -4,17 +4,17 @@ UIElement - the "look ma, no JS framework!" library bringing signals-based react
 
 ## What is UIElement?
 
-`UIElement` is a base class for your reactive Web Components. It extends the native `HTMLElement` class and adds 1 static function, 1 public property and 5 methods that allow you to implement inter- and intra-component reactivity with ease. You extend the base class `UIElement` and call the static `define()` function on it to register a tag name in the `CustomElementsRegistry`.
+`UIElement` is a base class for your reactive Web Components. It extends the native `HTMLElement` class and adds a public property and a few methods that allow you to implement inter- and intra-component reactivity with ease. You extend the base class `UIElement` and call the static `define()` method on it to register a tag name in the `CustomElementsRegistry`.
 
 `UIElement` will parse attributes in the `attributeChangedCallback()` and assign the values to reactive states according to the mapping to key and primitive type in the `attributeMap` property of your component. By declaratively setting `static observedAttributes` and `attributeMap` you will almost never have to override `attributeChangedCallback()`. Your reactive states will be automatically setup with initial values from attributes.
 
-`UIElement` implements a `Map`-like interface on top of `HTMLElement` to access and modify reactive states. After the reactive state has been created via an observed attribute or `this.set()`, you may use property accessors as a shorthand. We don't auto-convert from kebab-case to camelCase and vice versa, though. The method names `this.has()`, `this.get()`, `this.set()` and `this.delete()` and the property accessors feel familar to JavaScript developers and mirror what you already know.
+`UIElement` implements a `Map`-like interface on top of `HTMLElement` to access and modify reactive states. The method names `this.has()`, `this.get()`, `this.set()` and `this.delete()` feel familar to JavaScript developers and mirror what you already know.
 
-In the `connectedCallback()` you setup references to inner elements, add event listeners and pass reactive states to sub-components. Additionally, for every independent reactive state you define what happens when it changes in ther callback of `this.effect()`. `UIElement` will automatically trigger these effects and bundle the surgical DOM updates when the browser refreshes the view on the next animation frame.
+In the `connectedCallback()` you setup references to inner elements, add event listeners and pass reactive states to sub-components (`this.pass()`). Additionally, for every independent reactive state you define what happens when it changes in the callback of `this.effect()`. `UIElement` will automatically trigger these effects and bundle the surgical DOM updates when the browser refreshes the view on the next animation frame.
 
 `UIElement` is fast. In fact, faster than any JavaScript framework. Only direct surgical DOM updates in vanilla JavaScript can beat its performance. But then, you have no loose coupling of components and need to parse attributes and track changes yourself. This tends to get tedious and messy rather quickly. `UIElement` provides a structured way to keep your components simple, consistent and self-contained.
 
-`UIElement` is tiny. 644 bytes gzipped over the wire. And it has zero dependiences. If you want to understand how it works, you have to study the source code of [one single file](./index.js).
+`UIElement` is tiny. 847 bytes gzipped over the wire. And it has zero dependiences. If you want to understand how it works, you have to study the source code of [one single file](./index.js).
 
 That's all.
 
@@ -108,3 +108,26 @@ Or from client side:
 <script defer src="js/my-input.js"></script>
 <script defer src="js/my-slider.js"></script>
 ```
+
+## Complementary Utilities
+
+As of version 0.5.0 we include three additional 
+
+### DOM Update
+
+`UIElement` also provides a few utility methods for surgical DOM updates in effects that streamline the interface and save tedious existance and change checks:
+
+- `this.updateText()` preserves comment nodes in contrast to `element.textContent` assignments
+- `this.updateProperty()` sets or deletes a property on an element
+- `this.updateAttribute()` sets or removes an attribute on an element
+- `this.toggleClass()` adds or removes a class on an element
+- `this.updateStyle()` sets or removes a style property on an element
+
+These utility methods try to minimize DOM updates to the necessary. But of course, you can also use regular DOM API methods, as you interact with real DOM elements, not an abstraction thereof. 
+
+### Context Controller
+
+
+
+### Visibility Oberserver
+
