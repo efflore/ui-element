@@ -43,17 +43,18 @@ In JavaScript:
 ```js
 import UIElement from '@efflore/ui-element';
 
-(class extends UIElement {
+class MyCounter extends UIElement {
   static observedAttributes = ['value'];
   attributeMap = new Map([['value', 'integer']]);
 
   connectedCallback() {
-    this.querySelector('.decrement').onclick = () => this.value = v => --v;
-    this.querySelector('.increment').onclick = () => this.value = v => ++v;
-
-    this.effect(() => this.querySelector('span').textContent = this.value);
+    this.querySelector('.decrement').onclick = () => this.set('value', v => --v);
+    this.querySelector('.increment').onclick = () => this.set('value', v => ++v);
+    this.effect(() => this.querySelector('span').textContent = this.get('value'));
   }
-}).define('my-counter');
+}
+
+MyCounter.define('my-counter');
 ```
 
 In HTML:
