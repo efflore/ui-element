@@ -14,7 +14,7 @@ In the `connectedCallback()` you setup references to inner elements, add event l
 
 `UIElement` is fast. In fact, faster than any JavaScript framework. Only direct surgical DOM updates in vanilla JavaScript can beat its performance. But then, you have no loose coupling of components and need to parse attributes and track changes yourself. This tends to get tedious and messy rather quickly. `UIElement` provides a structured way to keep your components simple, consistent and self-contained.
 
-`UIElement` is tiny. 847 bytes gzipped over the wire. And it has zero dependiences. If you want to understand how it works, you have to study the source code of [one single file](./index.js).
+`UIElement` is tiny. 616 bytes gzipped over the wire. And it has zero dependiences. If you want to understand how it works, you have to study the source code of [one single file](./index.js).
 
 That's all.
 
@@ -111,23 +111,52 @@ Or from client side:
 
 ## Complementary Utilities
 
-As of version 0.5.0 we include three additional 
+As of version 0.5.0 we include some additional scripts to complement `UIElement`.
+
+**Caution**: These scripts (besides Cause & Effect) are not well tested and are considered work-in-progress. Its API and implementation details might change at any time. We deliberatly don't provide them as installable packages yet, rather as a source of inspiration for you. Feel free to copy and adapt to your needs, at your own risk.
+
+### Cause & Effect
+
+Cause & Effect is the core reactivity engine of `UIElement`. It consists of three functions:
+
+- `cause()` creates an object with `.get()` and `.set()` methods, duck-typing `Signal.State` objects
+- `derive()` creates an object with a `.get()` method, duck-typing `Signal.Computed` objects
+- `effect()` accepts a callback function to be exectuted when used signals change
+
+Unlike the [TC39 Signals Proposal](https://github.com/tc39/proposal-signals), Cause & Effect uses a much simpler push-based approach, effectively just decorator functions around signal getters and setters. All work till DOM updates is done synchronously and eagerly. As long as your computed functions are pure and DOM side effects are kept to a minimum, this should pose no issues and is even faster than doing all the checks, memoization and scheduling in the more sophisticated push-then-pull approach of the Signals Proposal.
+
+If you however want to use side-effects or expensive work in computed function or updating / rendering in the DOM in effects takes longer than an animation frame, you might encounter glitches. If that's what you are doing, you are better off with a mature, full-fledged JavaScript framework.
+
+That said, we plan to offer a `UIElement` version with the Signals Proposal Polyfill instead of Cause & Effect in future versions as a drop-in replacement with the same API. As the Signals Proposal is still in early stage and they explicitely warn not to use the polyfill in production, we decided to do that not yet.
+
+Source: [./lib/cause-effect.js]
 
 ### DOM Update
 
-`UIElement` also provides a few utility methods for surgical DOM updates in effects that streamline the interface and save tedious existance and change checks:
+A few utility functions for surgical DOM updates in effects that streamline the interface and save tedious existance and change checks:
 
-- `this.updateText()` preserves comment nodes in contrast to `element.textContent` assignments
-- `this.updateProperty()` sets or deletes a property on an element
-- `this.updateAttribute()` sets or removes an attribute on an element
-- `this.toggleClass()` adds or removes a class on an element
-- `this.updateStyle()` sets or removes a style property on an element
+- `updateText()` preserves comment nodes in contrast to `element.textContent` assignments
+- `updateProperty()` sets or deletes a property on an element
+- `updateAttribute()` sets or removes an attribute on an element
+- `toggleClass()` adds or removes a class on an element
+- `updateStyle()` sets or removes a style property on an element
 
-These utility methods try to minimize DOM updates to the necessary. But of course, you can also use regular DOM API methods, as you interact with real DOM elements, not an abstraction thereof. 
+These utility function try to minimize DOM updates to the necessary. But of course, you can also use regular DOM API methods, as you interact with real DOM elements, not an abstraction thereof. If you know for sure, the target element exists, the passed value is valid and the DOM needs to be updated every time the source state changes, you may bypass the additional checks by these utility functions and use native DOM APIs instead.
+
+Source: [./lib/dom-update.js]
 
 ### Context Controller
 
+Context Controller implements the [Context Community Protocol](https://github.com/webcomponents-cg/community-protocols/blob/main/proposals/context.md) and makes observed contexts available as reactive states. It provides three classes:
 
+- `ContextRequestEvent` are dispatched from context comsumers and listened to by context providers
+- `ContextProvider` expose consumable contexts through a static `providedContexts` array of context keys
+- `ContextConsumer` request consumable contexts set in a static `observedContexts` array of context keys
+
+Source: [./lib/context-controller.js]
 
 ### Visibility Oberserver
 
+Visibility Observer is a showcase how you can add composable functionality to `UIElement` components. It implements a simple `IntersectionObserver` to set a `visible` state as the element becomes visible or hidden. You might use this pattern to postpone expensive rendering or data fetching.
+
+Source: [./lib/visibility-observer.js]
