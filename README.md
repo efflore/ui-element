@@ -134,27 +134,11 @@ That said, we plan to offer a `UIElement` version with the Signals Proposal Poly
 
 #### Usage
 
-Stand-alone:
-
 ```js
 import { cause, derive, effect } from './lib/cause-effect';
 ```
 
 [Source](./lib/cause-effect.js)
-
-In `UIElement`:
-
-```js
-import UIElement, { cause, derive } from '@efflore/ui-element';
-```
-
-The `effect()` function is a member method of `UIElement`. Unlike the stand-alone version it defers the execution of side-effects to the next animation frame. There's no point in updating the DOM earlier or more often than it could possibly be visible to the end-user. If you really need an synchronously executed effect, you may implemenent it like this:
-
-```js
-const effect = fn => derive(fn).get();
-```
-
-[Source](./index.js)
 
 ### Debug Element
 

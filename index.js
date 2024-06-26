@@ -24,7 +24,7 @@ let active;
  * @returns {import("./types").State<any>} state object with `get` and `set` methods
  * @see https://github.com/tc39/proposal-signals/
  */
-export const cause = value => {
+const cause = value => {
   const sources = new WeakMap();
   const targets = (/** @type {import("./types").Signal<any>} */ signal) => {
     !sources.has(signal) && sources.set(signal, new Set());
@@ -54,7 +54,7 @@ export const cause = value => {
  * @returns {import("./types").Computed<any>} signal object with `get` method
  * @see https://github.com/tc39/proposal-signals/
  */
-export const derive = fn => {
+const derive = fn => {
   const computed = {
     get: () => {
       const prev = active;
