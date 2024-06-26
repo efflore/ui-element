@@ -40,4 +40,10 @@ export class UIElement extends HTMLElement {
   effect(fn: () => void | (() => void)): () => void;
 }
 
+export class DebugElement extends UIElement {
+  debug: boolean;
+  log: () => void;
+  error: () => void;
+}
+
 export default UIElement;

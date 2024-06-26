@@ -14,7 +14,7 @@
 const isFunction = fn => typeof fn === 'function';
 
 // hold the currently active effect
-let computing;
+let active;
 
 /**
  * Define a state and return an object duck-typing Signal.State instances
@@ -24,22 +24,22 @@ let computing;
  * @returns {import("./types").State<any>} state object with `get` and `set` methods
  * @see https://github.com/tc39/proposal-signals/
  */
-const cause = value => {
-  const reactivityMap = new WeakMap();
-  const getTargets = (/** @type {import("./types").Signal<any>} */ signal) => {
-    !reactivityMap.has(signal) && reactivityMap.set(signal, new Set());
-    return reactivityMap.get(signal);
+export const cause = value => {
+  const sources = new WeakMap();
+  const targets = (/** @type {import("./types").Signal<any>} */ signal) => {
+    !sources.has(signal) && sources.set(signal, new Set());
+    return sources.get(signal);
   };
   const state = {
     get: () => {
-      computing && getTargets(state).add(computing);
+      active && targets(state).add(active);
       return value;
     },
     set: (/** @type {any} */ updater) => {
       const old = value;
       value = isFunction(updater) ? updater(old) : updater;
       if (!Object.is(value, old)) {
-        for (const target of getTargets(state)) target.get();
+        for (const target of targets(state)) target.get();
       }
     }
   };
@@ -47,20 +47,20 @@ const cause = value => {
 };
 
 /**
- * Define a derived state and return an object duck-typing Signal.Computed instances
+ * Define a derived signal and return an object duck-typing Signal.Computed instances
  * 
  * @since 0.4.0
  * @param {() => any} fn - computation function to be called
- * @returns {import("./types").Computed<any>} state object with `get` method
+ * @returns {import("./types").Computed<any>} signal object with `get` method
  * @see https://github.com/tc39/proposal-signals/
  */
-const derive = fn => {
+export const derive = fn => {
   const computed = {
     get: () => {
-      const prev = computing;
-      computing = computed;
+      const prev = active;
+      active = computed;
       const value = fn();
-      computing = prev;
+      active = prev;
       return value;
     }
   };
@@ -74,6 +74,7 @@ const derive = fn => {
  * 
  * @class
  * @extends HTMLElement
+ * @type {import("./types").UIElement}
  */
 export default class extends HTMLElement {
 
@@ -201,7 +202,11 @@ export default class extends HTMLElement {
    * @param {() => (() => void) | void} fn - callback function to be executed when a state changes
    */
   effect(fn) {
-    requestAnimationFrame(() => derive(fn).get()); // wait for the next animation frame to bundle DOM updates
+    // wait for the next animation frame to bundle DOM updates
+    requestAnimationFrame(() => {
+      const cleanup = derive(fn).get();
+      isFunction(cleanup) && cleanup();
+    });
   }
 
 }

@@ -14,7 +14,7 @@ In the `connectedCallback()` you setup references to inner elements, add event l
 
 `UIElement` is fast. In fact, faster than any JavaScript framework. Only direct surgical DOM updates in vanilla JavaScript can beat its performance. But then, you have no loose coupling of components and need to parse attributes and track changes yourself. This tends to get tedious and messy rather quickly. `UIElement` provides a structured way to keep your components simple, consistent and self-contained.
 
-`UIElement` is tiny. 616 bytes gzipped over the wire. And it has zero dependiences. If you want to understand how it works, you have to study the source code of [one single file](./index.js).
+`UIElement` is tiny. 626 bytes gzipped over the wire. And it has zero dependiences. If you want to understand how it works, you have to study the source code of [one single file](./index.js).
 
 That's all.
 
@@ -28,7 +28,7 @@ Most importantly, it does not render components. We suggest, you render componen
 
 `UIElement` uses no Virtual DOM and doesn't do any dirty-checking or DOM diffing. Consider these approaches by JavaScript frameworks as technical debt, not needed anymore.
 
-A warning: `UIElement` is so fast because it does only the bare minimum. We don't care about memoization and don't guard against possible glitches introduced by side-effects in computed signals. It's your responsability to ensure your computed signals and effect callbacks are pure in the sense, that they always produce the same results, no matter how often they are called. It is also up to you to cache the result of expensive function calls before or after you pass it through the reactive signals chain.
+⚠️ **Caution**: `UIElement` is so fast because it does only the bare minimum. We don't care about memoization and don't guard against possible glitches introduced by side-effects in computed signals. It's your responsability to ensure your computed signals and effect callbacks are pure in the sense, that they always produce the same results, no matter how often they are called. It is also up to you to cache the result of expensive function calls before or after you pass it through the reactive signals chain.
 
 ## Getting Started
 
@@ -81,7 +81,7 @@ In HTML:
 <script type="module" src="index.js"></script>
 ```
 
-Important: Make sure you either bundle JavaScript on the server side or reference the same external module script for `UIElement` from the client side! Inter-component reactivity won't work because if `UIElement` is a different instance in multiple modules.
+⚠️ **Caution**: Make sure you either bundle JavaScript on the server side or reference the same external module script for `UIElement` from the client side! Inter-component reactivity won't work because if `UIElement` is a different instance in multiple modules.
 
 So, for example, for server side:
 
@@ -89,15 +89,15 @@ So, for example, for server side:
 import UIElement from '@efflore/ui-element';
 
 (class extends UIElement {
-  ...
+  /* ... */
 }).define('my-counter');
 
 (class extends UIElement {
-  ...
+  /* ... */
 }).define('my-input');
 
 (class extends UIElement {
-  ...
+  /* ... */
 }).define('my-slider');
 ```
 
@@ -114,11 +114,13 @@ Or from client side:
 
 As of version 0.5.0 we include some additional scripts to complement `UIElement`.
 
-**Caution**: These scripts (besides Cause & Effect) are not well tested and are considered work-in-progress. Its API and implementation details might change at any time. We deliberatly don't provide them as installable packages yet, rather as a source of inspiration for you. Feel free to copy and adapt to your needs, at your own risk.
+⚠️ **Caution**: These scripts (besides Cause & Effect) are not well tested and are considered work-in-progress. Its API and implementation details might change at any time. We deliberatly don't provide them as installable packages yet, rather as a source of inspiration for you. Feel free to copy and adapt to your needs, at your own risk.
 
 ### Cause & Effect
 
-Cause & Effect is the core reactivity engine of `UIElement`. It consists of three functions:
+Cause & Effect is the core reactivity engine of `UIElement`. You may also use it stand-alone, indepenent of `UIElement`.
+
+It consists of three functions:
 
 - `cause()` creates an object with `.get()` and `.set()` methods, duck-typing `Signal.State` objects
 - `derive()` creates an object with a `.get()` method, duck-typing `Signal.Computed` objects
@@ -132,11 +134,50 @@ That said, we plan to offer a `UIElement` version with the Signals Proposal Poly
 
 #### Usage
 
+Stand-alone:
+
 ```js
 import { cause, derive, effect } from './lib/cause-effect';
 ```
 
 [Source](./lib/cause-effect.js)
+
+In `UIElement`:
+
+```js
+import UIElement, { cause, derive } from '@efflore/ui-element';
+```
+
+The `effect()` function is a member method of `UIElement`. Unlike the stand-alone version it defers the execution of side-effects to the next animation frame. There's no point in updating the DOM earlier or more often than it could possibly be visible to the end-user. If you really need an synchronously executed effect, you may implemenent it like this:
+
+```js
+const effect = fn => derive(fn).get();
+```
+
+[Source](./index.js)
+
+### Debug Element
+
+`DebugElement` is a base class that extends `UIElement`. It wraps `attributeChangeCallback`, `get()`, `set()` to log changes to attributes, signal reads and writes to the console, if you set the `debug` property of your custom element to `true`.
+
+#### Usage
+
+```js
+import DebugElement from './lib/debug-element.js';
+
+class MyElement extends DebugElement {
+  debug = true;
+  /* ... */
+}
+```
+
+Make sure the import of `UIElement` on the first line points to your installed package:
+
+```js
+import UIElement from '@efflore/ui-element';
+```
+
+[Source](./lib/debug-element.js)
 
 ### DOM Update
 

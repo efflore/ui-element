@@ -65,17 +65,32 @@
       <button class="increment">+</button>
     </div>
   </my-counter>
+  <greeting-configurator>
+    <input-field class="first">
+      <input type="text" name="first" value="Jane" />
+    </input-field>
+    <input-field class="last">
+      <input type="text" name="last" value="Doe" />
+    </input-field>
+    <input-checkbox>
+      <input type="checkbox" name="fullname" />
+    </input-checkbox>
+    <hello-world>
+      <p><span class="greeting">Hello</span> <span class="name">World</span></p>
+    </hello-world>
+  </greeting-configurator>
 
   <script type="module">
     import { runTests } from '@web/test-runner-mocha';
     import { assert } from '@esm-bundle/chai';
     import UIElement from '../index.js';
+    // import DebugElement from '../lib/debug-element.js';
     import { updateText, updateAttribute, toggleClass } from '../lib/dom-update.js';
 
     const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
     const paint = () => new Promise(resolve => requestAnimationFrame(resolve));
 
-    (class extends UIElement {}).define('void-component');
+    (class extends UIElement { /* debug = true */ }).define('void-component');
 
     class CausalComponent extends UIElement {
       // debug = true;
@@ -97,7 +112,6 @@
         ['value', (v, o) => Number.isInteger(this.get('step')) ? parseInt(v, 10) : parseFloat(v)],
         ['selected', 'boolean'],
       ]);
-
       // debug = (this.id === 'updating-with-boolean-attribute'); // true;
 
       connectedCallback() {
@@ -116,7 +130,6 @@
 
     class ParentComponent extends UIElement {
       static observedAttributes = ['heading'];
-
       // debug = true;
 
       connectedCallback() {
@@ -146,12 +159,61 @@
         this.querySelector('.decrement').onclick = () => this.set('value', v => --v);
         this.querySelector('.increment').onclick = () => this.set('value', v => ++v);
 
-        this.effect(() => updateText(this.querySelector('.value'), this.get('value')));
-        this.effect(() => updateText(this.querySelector('.parity'), this.get('value') % 2 ? false : true));
-        this.effect(() => updateText(this.querySelector('.double'), this.get('value') * 2));
+        this.effect(() => {
+          const value = this.get('value');
+          updateText(this.querySelector('.value'), value);
+          updateText(this.querySelector('.parity'), value % 2 ? false : true);
+          updateText(this.querySelector('.double'), value * 2);
+        });
       }
     }
     MyCounter.define('my-counter');
+
+    class GreetingConfigurator extends UIElement {
+      connectedCallback() {
+        const first = this.querySelector('.first');
+        const last = this.querySelector('.last');
+        const useFullname = this.querySelector('input-checkbox');
+        const helloWorld = this.querySelector('hello-world');
+        this.pass(helloWorld, new Map([
+          ['name', () => useFullname.get('checked') ? `${first.get('value')} ${last.get('value')}` : first.get('value')]
+        ]));
+      }
+    }
+    GreetingConfigurator.define('greeting-configurator');
+
+    class HelloWorld extends UIElement {
+      static observedAttributes = ['greeting'];
+
+      connectedCallback() {
+        const greeting = this.querySelector('.greeting');
+        const name = this.querySelector('.name');
+        this.set('greeting', 'Hello', false);
+        this.effect(() => updateText(greeting, this.get('greeting')));
+        this.effect(() => updateText(name, this.get('name') || 'World'));
+      }
+    }
+    HelloWorld.define('hello-world');
+
+    class InputField extends UIElement {
+
+      connectedCallback() {
+        const input = this.querySelector('input');
+        this.set('value', input.value);
+        input.onchange = () => this.set('value', input.value);
+      }
+    }
+    InputField.define('input-field');
+
+    class InputCheckbox extends UIElement {
+
+      connectedCallback() {
+        const input = this.querySelector('input');
+        this.set('checked', input.checked);
+        input.onchange = () => this.set('checked', input.checked);
+      }
+    }
+    InputCheckbox.define('input-checkbox');
 
     runTests(() => {
 
@@ -457,6 +519,60 @@
             await paint();
             assert.equal(parity.textContent, 'false', 'Should have decremented derived parity textContent');
             assert.equal(double.textContent, '82', 'Should have decremented derived double textContent');
+          });
+
+        });
+
+        describe('Greeting Configurator', function () {
+
+          it('should display greeting', async function () {
+            const configurator = document.querySelector('greeting-configurator');
+            const helloWorld = configurator.querySelector('hello-world');
+            const greeting = helloWorld.querySelector('p');
+            assert.equal(greeting.textContent, 'Hello Jane', 'Should have initial greeting');
+            helloWorld.set('greeting', 'Hi');
+            await paint();
+            assert.equal(greeting.textContent, 'Hi Jane', 'Should have updated greeting from state');
+          });
+
+          it('should update name if first name changes', async function () {
+            const configurator = document.querySelector('greeting-configurator');
+            const first = configurator.querySelector('.first');
+            const input = first.querySelector('input');
+            const helloWorld = configurator.querySelector('hello-world');
+            const greeting = helloWorld.querySelector('p');
+            input.value = 'Esther';
+            input.dispatchEvent(new Event('change'));
+            await paint();
+            assert.equal(greeting.textContent, 'Hi Esther', 'Should update if first name changes');
+          });
+
+          it('should not update name if last name changes', async function () {
+            const configurator = document.querySelector('greeting-configurator');
+            const last = configurator.querySelector('.last');
+            const input = last.querySelector('input');
+            const helloWorld = configurator.querySelector('hello-world');
+            const greeting = helloWorld.querySelector('p');
+            input.value = 'Brunner';
+            input.dispatchEvent(new Event('change'));
+            await paint();
+            assert.equal(greeting.textContent, 'Hi Esther', 'Should not update if last name changes');
+          });
+
+          it('should update greeting if use fullname is checked or unchecked', async function () {
+            const configurator = document.querySelector('greeting-configurator');
+            const fullname = configurator.querySelector('input-checkbox');
+            const input = fullname.querySelector('input');
+            const helloWorld = configurator.querySelector('hello-world');
+            const greeting = helloWorld.querySelector('p');
+            input.checked = true;
+            input.dispatchEvent(new Event('change'));
+            await paint();
+            assert.equal(greeting.textContent, 'Hi Esther Brunner', 'Should update if use fullname is checked');
+            input.checked = false;
+            input.dispatchEvent(new Event('change'));
+            await paint();
+            assert.equal(greeting.textContent, 'Hi Esther', 'Should update if use fullname is unchecked');
           });
 
         });
