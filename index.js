@@ -160,7 +160,7 @@ export default class extends HTMLElement {
       const state = this.#state.get(key);
       update && isFunction(state.set) && state.set(value);
     } else {
-      const state = typeof value === 'object' && isFunction(value.get)
+      const state = (typeof value === 'object') && isFunction(value?.get)
         ? value
         : isFunction(value) ? derive(value) : cause(value);
       this.#state.set(key, state);

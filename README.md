@@ -14,7 +14,7 @@ In the `connectedCallback()` you setup references to inner elements, add event l
 
 `UIElement` is fast. In fact, faster than any JavaScript framework. Only direct surgical DOM updates in vanilla JavaScript can beat its performance. But then, you have no loose coupling of components and need to parse attributes and track changes yourself. This tends to get tedious and messy rather quickly. `UIElement` provides a structured way to keep your components simple, consistent and self-contained.
 
-`UIElement` is tiny. 626 bytes gzipped over the wire. And it has zero dependiences. If you want to understand how it works, you have to study the source code of [one single file](./index.js).
+`UIElement` is tiny. 627 bytes gzipped over the wire. And it has zero dependiences. If you want to understand how it works, you have to study the source code of [one single file](./index.js).
 
 That's all.
 
