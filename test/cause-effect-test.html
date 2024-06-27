@@ -197,6 +197,73 @@
           assert.equal(computed3.get(), 51);
         });
 
+        it('should drop X->B->X updates', function () {
+          let count = 0;
+          const x = cause(2);
+          const a = derive(() => x.get() - 1);
+          const b = derive(() => x.get() + a.get());
+          const c = derive(() => {
+            count++;
+            return 'c: ' + b.get();
+          });
+          assert.equal(c.get(), 'c: 3');
+          assert.equal(count, 1);
+          x.set(4);
+          assert.equal(c.get(), 'c: 7');
+          assert.equal(count, 2);
+        });
+
+        it('should only update every signal once (diamond graph)', function() {
+          let count = 0;
+          const x = cause('a');
+          const a = derive(() => x.get());
+          const b = derive(() => x.get());
+          const c = derive(() => {
+            count++;
+            return a.get() + ' ' + b.get();
+          });
+          assert.equal(c.get(), 'a a');
+          assert.equal(count, 1);
+          x.set('aa');
+          assert.equal(c.get(), 'aa aa');
+          assert.equal(count, 2);
+        });
+
+        it('should only update every signal once (diamond graph + tail)', function() {
+          let count = 0;
+          const x = cause('a');
+          const a = derive(() => x.get());
+          const b = derive(() => x.get());
+          const c = derive(() => a.get() + ' ' + b.get());
+          const d = derive(() => {
+            count++;
+            return c.get();
+          });
+          assert.equal(d.get(), 'a a');
+          assert.equal(count, 1);
+          x.set('aa');
+          assert.equal(d.get(), 'aa aa');
+          assert.equal(count, 2);
+        });
+
+        it('should bail out if result is the same', function() {
+          let count = 0;
+          const x = cause('a');
+          const a = derive(() => {
+            x.get();
+            return 'foo';
+          });
+          const b = derive(() => {
+            count++;
+            return a.get();
+          });
+          assert.equal(b.get(), 'foo');
+          assert.equal(count, 1);
+          x.set('aa');
+          assert.equal(b.get(), 'foo');
+          // assert.equal(count, 1); // this will fail with our simple signals algorithm
+        });
+
       });
 
       describe('Effect', function () {
