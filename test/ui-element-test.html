@@ -24,45 +24,45 @@
     <h1>Hello from Server</h1>
   </void-component>
   <causal-component id="causal">
-    <h1>Hello from Server</h1>
+    <h1 ui-text="heading">Hello from Server</h1>
   </causal-component>
   <causal-component id="causal-with-ignored-attribute" heading="Hello from Attribute">
-    <h1>Hello from Server</h1>
+    <h1 ui-text="heading">Hello from Server</h1>
   </causal-component>
   <updating-component id="updating">
-    <h1>Hello from Server</h1>
-    <p>Number of unread messages: <span></span></p>
+    <h1 ui-text="title">Hello from Server</h1>
+    <p>Number of unread messages: <span ui-text="count"></span></p>
   </updating-component>
   <updating-component id="updating-with-string-attribute" heading="Hello from Attribute">
-    <h1>Hello from Server</h1>
-    <p>Number of unread messages: <span></span></p>
+    <h1 ui-text="title">Hello from Server</h1>
+    <p>Number of unread messages: <span ui-text="count"></span></p>
   </updating-component>
   <updating-component id="updating-with-number-attribute" count="42" step="0.1" value="3.14">
-    <h1>Hello from Server</h1>
-    <p>Number of unread messages: <span></span></p>
-    <input type="number" />
+    <h1 ui-text="title">Hello from Server</h1>
+    <p>Number of unread messages: <span ui-text="count"></span></p>
+    <input type="number" ui-attr="step; value" />
   </updating-component>
   <updating-component id="updating-with-boolean-attribute" selected>
-    <h1>Hello from Server</h1>
-    <p>Number of unread messages: <span></span></p>
+    <h1 ui-text="title" ui-class="selected">Hello from Server</h1>
+    <p>Number of unread messages: <span ui-text="count"></span></p>
   </updating-component>
   <child-component id="orphan">
-    <h1>Hello from Server</h1>
-    <p>Text from Server</p>
+    <h1 ui-text="heading">Hello from Server</h1>
+    <p ui-text="text">Text from Server</p>
   </child-component>
   <parent-component id="parent" heading="Hello from Attribute">
     <child-component id="child">
-      <h1>Hello from Server</h1>
-      <p>Text from Server</p>
+      <h1 ui-text="heading">Hello from Server</h1>
+      <p ui-text="text">Text from Server</p>
     </child-component>
   </parent-component>
   <my-counter value="42">
-    <p>Count: <span class="value">42</span></p>
-    <p>Is even: <span class="parity">true</span></p>
-    <p>Double: <span class="double">84</span></p>
+    <p>Count: <span class="value" ui-text="value">42</span></p>
+    <p>Parity: <span class="parity" ui-text="parity">even</span></p>
+    <p>Double: <span class="double" ui-text="double">84</span></p>
     <div>
-      <button class="decrement">–</button>
-      <button class="increment">+</button>
+      <button class="decrement" onclick="this.closest('my-counter').set('value', v => --v)">–</button>
+      <button class="increment" onclick="this.closest('my-counter').set('value', v => ++v)">+</button>
     </div>
   </my-counter>
   <greeting-configurator>
@@ -76,7 +76,7 @@
       <input type="checkbox" name="fullname" />
     </input-checkbox>
     <hello-world>
-      <p><span class="greeting">Hello</span> <span class="name">World</span></p>
+      <p><span class="greeting" ui-text="greeting">Hello</span> <span class="name" ui-text="name">World</span></p>
     </hello-world>
   </greeting-configurator>
 
@@ -84,8 +84,8 @@
     import { runTests } from '@web/test-runner-mocha';
     import { assert } from '@esm-bundle/chai';
     import UIElement from '../index.js';
-    // import DebugElement from '../lib/debug-element.js';
-    import { updateText, updateAttribute, toggleClass } from '../lib/dom-update.js';
+    import DebugElement from '../lib/debug-element.js';
+    import { setText, setAttr, setClass, autoEffects } from '../lib/dom-utils.js';
 
     const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
     const paint = () => new Promise(resolve => requestAnimationFrame(resolve));
@@ -97,7 +97,9 @@
 
       connectedCallback() {
         this.set('heading', 'Hello from Internal State');
-        this.effect(() => updateText(this.querySelector('h1'), this.get('heading')));
+        autoEffects(this);
+        // this.effect(() => setText(this.querySelector('h1'), this.get('heading')));
+        // this.effect(() => setText(this.querySelector('h1'), this.state.heading));
       }
 
     }
@@ -105,25 +107,26 @@
 
     class UpdatingComponent extends UIElement {
       static observedAttributes = ['heading', 'count', 'step', 'value', 'selected'];
-      attributeMap = new Map([
-        ['heading', ['title']],
-        ['count', 'integer'],
-        ['step', 'number'],
-        ['value', (v, o) => Number.isInteger(this.get('step')) ? parseInt(v, 10) : parseFloat(v)],
-        ['selected', 'boolean'],
-      ]);
-      // debug = (this.id === 'updating-with-boolean-attribute'); // true;
+      attributeMap = {
+        heading: ['title'],
+        count: 'integer',
+        step: 'number',
+        value: (v, o) => Number.isInteger(this.get('step')) ? parseInt(v, 10) : parseFloat(v),
+        selected: 'boolean',
+      };
+      // debug = true; // (this.id === 'updating-with-boolean-attribute'); // true;
 
       connectedCallback() {
-        const heading = this.querySelector('h1');
+        autoEffects(this);
+        /* const heading = this.querySelector('h1');
         const badge = this.querySelector('span');
         const input = this.querySelector('input');
 
-        this.effect(() => this.has('title') && updateText(heading, this.get('title')));
-        this.effect(() => this.has('count') && updateText(badge, this.get('count')));
-        this.effect(() => this.has('step') && updateAttribute(input, 'step', this.get('step')));
-        this.effect(() => this.has('value') && updateAttribute(input, 'value', this.get('value')));
-        this.effect(() => this.has('selected') && toggleClass(heading, 'selected', this.get('selected')));
+        this.effect(() => this.has('title') && setText(heading, this.get('title')));
+        this.effect(() => this.has('count') && setText(badge, this.get('count')));
+        this.effect(() => this.has('step') && setAttr(input, 'step', this.get('step')));
+        this.effect(() => this.has('value') && setAttr(input, 'value', this.get('value')));
+        this.effect(() => this.has('selected') && setClass(heading, 'selected', this.get('selected'))); */
       }
     }
     UpdatingComponent.define('updating-component');
@@ -133,10 +136,10 @@
       // debug = true;
 
       connectedCallback() {
-        this.pass(this.querySelector('child-component'), new Map([
-          ['heading', 'heading'],
-          ['text', () => this.get('heading').toUpperCase()],
-        ]));
+        this.pass(this.querySelector('child-component'), {
+          heading: 'heading',
+          text: () => this.get('heading').toUpperCase(),
+        });
       }
     }
     ParentComponent.define('parent-component');
@@ -145,26 +148,36 @@
       // debug = true;
 
       connectedCallback() {
-        this.effect(() => updateText(this.querySelector('h1'), this.get('heading') || null));
-        this.effect(() => updateText(this.querySelector('p'), this.get('text') || null));
+        autoEffects(this);
+        // this.effect(() => setText(this.querySelector('h1'), this.get('heading') || null));
+        // this.effect(() => setText(this.querySelector('p'), this.get('text') || null));
       }
     }
     ChildComponent.define('child-component');
 
     class MyCounter extends UIElement {
       static observedAttributes = ['value'];
-      attributeMap = new Map([['value', 'integer']]);
+      attributeMap = { value: 'integer' };
+      // debug = true;
 
       connectedCallback() {
-        this.querySelector('.decrement').onclick = () => this.set('value', v => --v);
-        this.querySelector('.increment').onclick = () => this.set('value', v => ++v);
+        // this.querySelector('.decrement').onclick = () => this.set('value', v => --v);
+        // this.querySelector('.increment').onclick = () => this.set('value', v => ++v);
+
+        this.set('parity', () => this.get('value') % 2 ? 'odd' : 'even');
+        this.set('double', () => this.get('value') * 2);
+        autoEffects(this);
+
+        /* const s = this.state;
+        this.querySelector('.decrement').onclick = () => s.value--;
+        this.querySelector('.increment').onclick = () => s.value++;
 
         this.effect(() => {
-          const value = this.get('value');
-          updateText(this.querySelector('.value'), value);
-          updateText(this.querySelector('.parity'), value % 2 ? false : true);
-          updateText(this.querySelector('.double'), value * 2);
-        });
+          const value = s.value;
+          setText(this.querySelector('.value'), value);
+          setText(this.querySelector('.parity'), value % 2 ? false : true);
+          setText(this.querySelector('.double'), value * 2);
+        }); */
       }
     }
     MyCounter.define('my-counter');
@@ -175,9 +188,9 @@
         const last = this.querySelector('.last');
         const useFullname = this.querySelector('input-checkbox');
         const helloWorld = this.querySelector('hello-world');
-        this.pass(helloWorld, new Map([
-          ['name', () => useFullname.get('checked') ? `${first.get('value')} ${last.get('value')}` : first.get('value')]
-        ]));
+        this.pass(helloWorld, {
+          name: () => useFullname.get('checked') ? `${first.get('value')} ${last.get('value')}` : first.get('value'),
+        });
       }
     }
     GreetingConfigurator.define('greeting-configurator');
@@ -186,11 +199,13 @@
       static observedAttributes = ['greeting'];
 
       connectedCallback() {
-        const greeting = this.querySelector('.greeting');
-        const name = this.querySelector('.name');
-        this.set('greeting', 'Hello', false);
-        this.effect(() => updateText(greeting, this.get('greeting')));
-        this.effect(() => updateText(name, this.get('name') || 'World'));
+        // const greeting = this.querySelector('.greeting');
+        // const name = this.querySelector('.name');
+        // const defaultName = name.textContent;
+        this.set('greeting', this.querySelector('.greeting').textContent, false);
+        autoEffects(this);
+        // this.effect(() => setText(greeting, this.get('greeting')));
+        // this.effect(() => setText(name, this.get('name') || defaultName));
       }
     }
     HelloWorld.define('hello-world');
@@ -469,7 +484,7 @@
             const parentComponent = document.getElementById('parent');
             const childComponent = document.getElementById('child');
             parentComponent.setAttribute('heading', 'Hello from Changed Attribute');
-            await customElements.whenDefined(childComponent.localName);
+            await paint();
             const headingContent = childComponent.querySelector('h1').textContent;
             const textContent = childComponent.querySelector('p').textContent;
             assert.equal(headingContent, 'Hello from Changed Attribute', 'Should have changed heading from attribute of parent component');
@@ -513,11 +528,11 @@
             const increment = counter.querySelector('.increment');
             const parity = counter.querySelector('.parity');
             const double = counter.querySelector('.double');
-            assert.equal(parity.textContent, 'true', 'Should have derived parity textContent from attribute');
+            assert.equal(parity.textContent, 'even', 'Should have derived parity textContent from attribute');
             assert.equal(double.textContent, '84', 'Should have derived double textContent from attribute');
             decrement.click();
             await paint();
-            assert.equal(parity.textContent, 'false', 'Should have decremented derived parity textContent');
+            assert.equal(parity.textContent, 'odd', 'Should have changed derived parity textContent');
             assert.equal(double.textContent, '82', 'Should have decremented derived double textContent');
           });
 

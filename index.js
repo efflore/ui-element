@@ -1,6 +1,6 @@
 /**
  * @name UIElement
- * @version 0.5.0
+ * @version 0.6.0
  */
 
 /* === Internal variables and functions to the module === */
@@ -21,50 +21,23 @@ let active;
  * 
  * @since 0.1.0
  * @param {any} value - initial value of the state; may be a function to be called on first access
- * @returns {import("./types").State<any>} state object with `get` and `set` methods
+ * @returns {() => () => any} getter function for the current value with a `set` method to update the value
  * @see https://github.com/tc39/proposal-signals/
  */
 const cause = value => {
-  const sources = new WeakMap();
-  const targets = (/** @type {import("./types").Signal<any>} */ signal) => {
-    !sources.has(signal) && sources.set(signal, new Set());
-    return sources.get(signal);
+  const s = () => { // getter function
+    active && s.e.add(active);
+    return value;
   };
-  const state = {
-    get: () => {
-      active && targets(state).add(active);
-      return value;
-    },
-    set: (/** @type {any} */ updater) => {
-      const old = value;
-      value = isFunction(updater) ? updater(old) : updater;
-      if (!Object.is(value, old)) {
-        for (const target of targets(state)) target.get();
-      }
+  s.e = new Set(); // set of listeners
+  s.set = (/** @type {any} */ updater) => { // setter function
+    const old = value;
+    value = isFunction(updater) && !isFunction(value.set) ? updater(old) : updater;
+    if (!Object.is(value, old)) {
+      for (const e of s.e) e();
     }
   };
-  return state;
-};
-
-/**
- * Define a derived signal and return an object duck-typing Signal.Computed instances
- * 
- * @since 0.4.0
- * @param {() => any} fn - computation function to be called
- * @returns {import("./types").Computed<any>} signal object with `get` method
- * @see https://github.com/tc39/proposal-signals/
- */
-const derive = fn => {
-  const computed = {
-    get: () => {
-      const prev = active;
-      active = computed;
-      const value = fn();
-      active = prev;
-      return value;
-    }
-  };
-  return computed;
+  return s;
 };
 
 /* === Default export === */
@@ -96,9 +69,9 @@ export default class extends HTMLElement {
   /**
    * @since 0.5.0
    * @property
-   * @type {Map<string, import("./types").AttributeParser|import("./types").MappedAttributeParser>}
+   * @type {Record<string, import("./types").AttributeParser|import("./types").MappedAttributeParser>}
    */
-  attributeMap;
+  attributeMap = {};
 
   // @private hold states – use `has()`, `get()`, `set()` and `delete()` to access and modify
   #state = new Map();
@@ -113,7 +86,7 @@ export default class extends HTMLElement {
    */
   attributeChangedCallback(name, old, value) {
     if (value !== old) {
-      const input = this.attributeMap?.get(name);
+      const input = this.attributeMap[name];
       const [key, type] = Array.isArray(input) ? input : [name, input];
       const parser = {
         boolean: (/** @type {string|undefined} */ v) => typeof v === 'string' ? true : false,
@@ -144,7 +117,8 @@ export default class extends HTMLElement {
    * @returns {any} current value of state; undefined if state does not exist
    */
   get(key) {
-    return this.#state.get(key)?.get();
+    const unwrap = (/** @type {() => any} */ value) => isFunction(value) ? unwrap(value()) : value;
+    return unwrap(this.#state.get(key));
   }
 
   /**
@@ -160,9 +134,7 @@ export default class extends HTMLElement {
       const state = this.#state.get(key);
       update && isFunction(state.set) && state.set(value);
     } else {
-      const state = (typeof value === 'object') && isFunction(value?.get)
-        ? value
-        : isFunction(value) ? derive(value) : cause(value);
+      const state = isFunction(value) && isFunction(value.set) ? value : cause(value);
       this.#state.set(key, state);
     }
   }
@@ -183,16 +155,15 @@ export default class extends HTMLElement {
    * 
    * @since 0.5.0
    * @param {import("./types").UIElement} element - child element to pass the states to
-   * @param {Map<PropertyKey, PropertyKey | (() => any)>} [states] - set of states to be passed
+   * @param {Record<PropertyKey, PropertyKey | { (): any; set?: () => any; }>} states - object of states to be passed
    * @param {CustomElementRegistry} [registry=customElements] - custom element registry to be used; defaults to `customElements`
    */
   pass(element, states, registry = customElements) {
-    (async () => {
-      await registry.whenDefined(element.localName);
-      for (const [key, source] of states) {
-        element.set(key, isFunction(source) ? { get: source } : this.#state.get(source));
+    registry.whenDefined(element.localName).then(() => {
+      for (const [key, source] of Object.entries(states)) {
+        element.set(key, cause(isFunction(source) ? source : this.#state.get(source)));
       }
-    })();
+    });
   }
 
   /**
@@ -202,11 +173,16 @@ export default class extends HTMLElement {
    * @param {() => (() => void) | void} fn - callback function to be executed when a state changes
    */
   effect(fn) {
-    // wait for the next animation frame to bundle DOM updates
-    requestAnimationFrame(() => {
-      const cleanup = derive(fn).get();
-      isFunction(cleanup) && cleanup();
-    });
+    const next = () => {
+      requestAnimationFrame(() => {
+        const prev = active;
+        active = next;
+        const cleanup = fn();
+        typeof cleanup === 'function' && cleanup();
+        active = prev;
+      });
+    }
+    next();
   }
 
 }
