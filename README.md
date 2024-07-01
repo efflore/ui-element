@@ -121,8 +121,8 @@ Cause & Effect is the core reactivity engine of `UIElement`. You may also use it
 
 It consists of three functions:
 
-- `cause()` creates an object with `.get()` and `.set()` methods, duck-typing `Signal.State` objects
-- `derive()` creates an object with a `.get()` method, duck-typing `Signal.Computed` objects
+- `cause()` return a getter function for the current value with a `.set()` method to update the value
+- `derive()` returns a getter function for the current value of the derived computation
 - `effect()` accepts a callback function to be exectuted when used signals change
 
 Unlike the [TC39 Signals Proposal](https://github.com/tc39/proposal-signals), Cause & Effect uses a much simpler push-based approach, effectively just decorator functions around signal getters and setters. All work till DOM updates is done synchronously and eagerly. As long as your computed functions are pure and DOM side effects are kept to a minimum, this should pose no issues and is even faster than doing all the checks, memoization and scheduling in the more sophisticated push-then-pull approach of the Signals Proposal.
