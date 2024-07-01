@@ -1,15 +1,6 @@
-export interface Signal<T> {
-  get(): T;
-}
-export interface State<T> extends Signal<T> {
-  set(v: T): void;
-}
-export interface Computed<T> extends Signal<T> {}
-
 /* Cause & Effect * /
-declare function isFunction(fn: any): boolean;
-declare function cause(value: any): State<any>
-declare function derive(fn: () => any): Computed<any>
+declare function cause(value: any): { (): any; set: (value: any) => any; }
+declare function derive(fn: () => any): () => void;
 declare function effect(fn: () => void | (() => void)): () => void;
 */
 
@@ -18,7 +9,7 @@ export type AttributeParser = ParserTypeString | ((v: string | undefined) => any
 export type MappedAttributeParser = [PropertyKey, AttributeParser];
 export type ContextParser = ((v: any | undefined) => any) | undefined;
 export type MappedContextParser = [PropertyKey, ContextParser];
-export type ContextRequestEventCallback = (value: Signal<any>, unsubscribe?: () => void) => void
+export type ContextRequestEventCallback = (value: { (): any; set?: (value: any) => any; }, unsubscribe?: () => void) => void
 
 export class UIElement extends HTMLElement {
   static providedContexts?: string[];
@@ -32,7 +23,7 @@ export class UIElement extends HTMLElement {
   get(key: any): any;
   set(key: any, value: any, update?: boolean): void;
   delete(key: any): boolean;
-  pass(element: UIElement, states: Record<PropertyKey, PropertyKey | (() => any)>, registry?: CustomElementRegistry): void;
+  pass(element: UIElement, states: Record<PropertyKey, PropertyKey | { (): any; set?: (value: any) => any; }>, registry?: CustomElementRegistry): void;
   effect(fn: () => void | (() => void)): () => void;
 }
 

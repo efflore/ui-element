@@ -21,8 +21,7 @@ let active;
  * 
  * @since 0.1.0
  * @param {any} value - initial value of the state; may be a function to be called on first access
- * @returns {() => () => any} getter function for the current value with a `set` method to update the value
- * @see https://github.com/tc39/proposal-signals/
+ * @returns {{ (): any; set: (value: any) => any; }} getter function for the current value with a `set` method to update the value
  */
 const cause = value => {
   const s = () => { // getter function
@@ -155,7 +154,7 @@ export default class extends HTMLElement {
    * 
    * @since 0.5.0
    * @param {import("./types").UIElement} element - child element to pass the states to
-   * @param {Record<PropertyKey, PropertyKey | { (): any; set?: () => any; }>} states - object of states to be passed
+   * @param {Record<PropertyKey, PropertyKey | { (): any; set?: (value: any) => any; }>} states - object of states to be passed
    * @param {CustomElementRegistry} [registry=customElements] - custom element registry to be used; defaults to `customElements`
    */
   pass(element, states, registry = customElements) {
