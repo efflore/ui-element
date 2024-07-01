@@ -21,7 +21,7 @@
 
           it('should be undefined by default', function () {
             const state = cause();
-            assert.isUndefined(state.get(), 'no initial value for state defined');
+            assert.isUndefined(state(), 'no initial value for state defined');
           });
 
         });
@@ -30,29 +30,29 @@
 
           it('should be boolean', function () {
             const state = cause(false);
-            assert.isBoolean(state.get(), 'should be boolean with initial value false');
+            assert.isBoolean(state(), 'should be boolean with initial value false');
           });
 
           it('should set initial value to false', function () {
             const state = cause(false);
-            assert.isFalse(state.get(), 'should be false with initial value false');
+            assert.isFalse(state(), 'should be false with initial value false');
           });
 
           it('should set initial value to true', function () {
             const state = cause(true);
-            assert.isTrue(state.get(), 'should be true with initial value true');
+            assert.isTrue(state(), 'should be true with initial value true');
           });
 
           it('should set new value with .set(true)', function () {
             const state = cause(false);
             state.set(true);
-            assert.isTrue(state.get(), 'should be true with any initial value');
+            assert.isTrue(state(), 'should be true with any initial value');
           });
 
           it('should toggle initial value with .set(v => !v)', function () {
             const state = cause(false);
             state.set(v => !v);
-            assert.isTrue(state.get(), 'should be true with initial value false');
+            assert.isTrue(state(), 'should be true with initial value false');
           });
 
         });
@@ -61,24 +61,24 @@
 
           it('should be number', function () {
             const state = cause(0);
-            assert.isNumber(state.get(), 'should be number with initial value 0');
+            assert.isNumber(state(), 'should be number with initial value 0');
           });
 
           it('should set initial value to 0', function () {
             const state = cause(0);
-            assert.equal(state.get(), 0, 'should be 0 with initial value 0');
+            assert.equal(state(), 0, 'should be 0 with initial value 0');
           });
 
           it('should set new value with .set(42)', function () {
             const state = cause(0);
             state.set(42);
-            assert.equal(state.get(), 42, 'should be 42 with any initial value');
+            assert.equal(state(), 42, 'should be 42 with any initial value');
           });
 
           it('should increment value with .set(v => ++v)', function () {
             const state = cause(0);
             state.set(v => ++v);
-            assert.equal(state.get(), 1, 'should be 1 with initial value 0');
+            assert.equal(state(), 1, 'should be 1 with initial value 0');
           });
 
         });
@@ -87,24 +87,24 @@
 
           it('should be string', function () {
             const state = cause('foo');
-            assert.isString(state.get(), 'should be string with initial value "foo"');
+            assert.isString(state(), 'should be string with initial value "foo"');
           });
 
           it('should set initial value to "foo"', function () {
             const state = cause('foo');
-            assert.equal(state.get(), 'foo', 'should be "foo" with initial value "foo"');
+            assert.equal(state(), 'foo', 'should be "foo" with initial value "foo"');
           });
 
           it('should set new value with .set("bar")', function () {
             const state = cause('foo');
             state.set('bar');
-            assert.equal(state.get(), 'bar', 'should be "bar" with any initial value');
+            assert.equal(state(), 'bar', 'should be "bar" with any initial value');
           });
 
           it('should upper case value with .set(v => v.toUpperCase())', function () {
             const state = cause('foo');
             state.set(v => v.toUpperCase());
-            assert.equal(state.get(), "FOO", 'should be "FOO" with initial value "foo"');
+            assert.equal(state(), "FOO", 'should be "FOO" with initial value "foo"');
           });
 
         });
@@ -114,40 +114,40 @@
           it('should be a function', function () {
             const x = 42;
             const state = cause(() => x * 2);
-            assert.isFunction(state.get(), 'should be function with initial value () => x * 2');
+            assert.isFunction(state(), 'should be function with initial value () => x * 2');
           });
 
           it('should be result of function', function () {
             const x = 42;
             const state = cause(() => x * 2);
-            assert.equal(state.get().call(), 84, 'should be 84 with initial value () => x * 2 and x = 42');
+            assert.equal(state().call(), 84, 'should be 84 with initial value () => x * 2 and x = 42');
           });
 
           it('should be result of function dependent on another signal', function () {
             const x = cause(42);
-            const state = cause(() => x.get() * 2);
-            assert.equal(state.get().call(), 84, 'should be 84 with initial value () => x * 2 and x.get() = 42');
+            const state = cause(() => x() * 2);
+            assert.equal(state().call(), 84, 'should be 84 with initial value () => x * 2 and x() = 42');
           });
 
           it('should be result of function dependent on a signal changed after declaration', function () {
             const x = cause(42);
-            const state = cause(() => x.get() * 2);
+            const state = cause(() => x() * 2);
             x.set(24);
-            assert.equal(state.get().call(), 48, 'should be 48 with initial value () => x * 2 and x.get() = 24');
+            assert.equal(state().call(), 48, 'should be 48 with initial value () => x * 2 and x() = 24');
           });
 
           it('should set new value with .set(() => x / 2)', function () {
             const x = 42;
             const state = cause(() => x * 2);
             state.set(() => () => x / 2);
-            assert.equal(state.get().call(), 21, 'should be 21 with any initial value and x = 21');
+            assert.equal(state().call(), 21, 'should be 21 with any initial value and x = 21');
           });
 
           it('should upper case value with v => v.toUpperCase()', function () {
             const x = 'foo';
             const state = cause(() => x + 'bar');
             state.set(v => () => v().toUpperCase());
-            assert.equal(state.get().call(), 'FOOBAR', 'should be "FOOBAR" with initial value () => x + "bar" and x = "foo"');
+            assert.equal(state().call(), 'FOOBAR', 'should be "FOOBAR" with initial value () => x + "bar" and x = "foo"');
           });
 
         });
@@ -160,89 +160,89 @@
           const a = 1;
           const b = 2;
           const computed = derive(() => a + b);
-          assert.equal(computed.get(), 3);
+          assert.equal(computed(), 3);
         });
 
         it('should compute function dependent on a signal', function() {
           const a = 1;
           const state = cause(42);
-          const computed = derive(() => a + state.get());
-          assert.equal(computed.get(), 43);
+          const computed = derive(() => a + state());
+          assert.equal(computed(), 43);
         });
 
         it('should compute function dependent on an updated signal', function() {
           const a = 1;
           const state = cause(42);
-          const computed = derive(() => a + state.get());
+          const computed = derive(() => a + state());
           state.set(24);
-          assert.equal(computed.get(), 25);
+          assert.equal(computed(), 25);
         });
 
         it('should compute function dependent on a chain of computed states dependent on a signal', function() {
           const a = 1;
           const state = cause(42);
-          const computed1 = derive(() => a + state.get());
-          const computed2 = derive(() => computed1.get() * 2);
-          const computed3 = derive(() => computed2.get() + 1);
-          assert.equal(computed3.get(), 87);
+          const computed1 = derive(() => a + state());
+          const computed2 = derive(() => computed1() * 2);
+          const computed3 = derive(() => computed2() + 1);
+          assert.equal(computed3(), 87);
         });
 
         it('should compute function dependent on a chain of computed states dependent on an updated signal', function() {
           const a = 1;
           const state = cause(42);
-          const computed1 = derive(() => a + state.get());
-          const computed2 = derive(() => computed1.get() * 2);
-          const computed3 = derive(() => computed2.get() + 1);
+          const computed1 = derive(() => a + state());
+          const computed2 = derive(() => computed1() * 2);
+          const computed3 = derive(() => computed2() + 1);
           state.set(24);
-          assert.equal(computed3.get(), 51);
+          assert.equal(computed3(), 51);
         });
 
         it('should drop X->B->X updates', function () {
           let count = 0;
           const x = cause(2);
-          const a = derive(() => x.get() - 1);
-          const b = derive(() => x.get() + a.get());
+          const a = derive(() => x() - 1);
+          const b = derive(() => x() + a());
           const c = derive(() => {
             count++;
-            return 'c: ' + b.get();
+            return 'c: ' + b();
           });
-          assert.equal(c.get(), 'c: 3');
+          assert.equal(c(), 'c: 3');
           assert.equal(count, 1);
           x.set(4);
-          assert.equal(c.get(), 'c: 7');
+          assert.equal(c(), 'c: 7');
           assert.equal(count, 2);
         });
 
         it('should only update every signal once (diamond graph)', function() {
           let count = 0;
           const x = cause('a');
-          const a = derive(() => x.get());
-          const b = derive(() => x.get());
+          const a = derive(() => x());
+          const b = derive(() => x());
           const c = derive(() => {
             count++;
-            return a.get() + ' ' + b.get();
+            return a() + ' ' + b();
           });
-          assert.equal(c.get(), 'a a');
+          assert.equal(c(), 'a a');
           assert.equal(count, 1);
           x.set('aa');
-          assert.equal(c.get(), 'aa aa');
+          assert.equal(c(), 'aa aa');
           assert.equal(count, 2);
         });
 
         it('should only update every signal once (diamond graph + tail)', function() {
           let count = 0;
           const x = cause('a');
-          const a = derive(() => x.get());
-          const b = derive(() => x.get());
-          const c = derive(() => a.get() + ' ' + b.get());
+          const a = derive(() => x());
+          const b = derive(() => x());
+          const c = derive(() => a() + ' ' + b());
           const d = derive(() => {
             count++;
-            return c.get();
+            return c();
           });
-          assert.equal(d.get(), 'a a');
+          assert.equal(d(), 'a a');
           assert.equal(count, 1);
           x.set('aa');
-          assert.equal(d.get(), 'aa aa');
+          assert.equal(d(), 'aa aa');
           assert.equal(count, 2);
         });
 
@@ -250,17 +250,17 @@
           let count = 0;
           const x = cause('a');
           const a = derive(() => {
-            x.get();
+            x();
             return 'foo';
           });
           const b = derive(() => {
             count++;
-            return a.get();
+            return a();
           });
-          assert.equal(b.get(), 'foo');
+          assert.equal(b(), 'foo');
           assert.equal(count, 1);
           x.set('aa');
-          assert.equal(b.get(), 'foo');
+          assert.equal(b(), 'foo');
           // assert.equal(count, 1); // this will fail with our simple signals algorithm
         });
 
@@ -272,7 +272,7 @@
           const state = cause('foo');
           let effectDidRun = false;
           effect(() => {
-            state.get();
+            state();
             effectDidRun = true;
             return;
           });
@@ -284,7 +284,7 @@
           const state = cause(0);
           let count = 0;
           effect(() => {
-            state.get();
+            state();
             count++;
           });
           for (let i = 0; i < 10; i++) {
@@ -302,7 +302,7 @@
           let result = 0;
           let count = 0;
           effect(() => {
-            result = state.get();
+            result = state();
             count++;
           });
           batch(() => {

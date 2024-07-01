@@ -1,12 +1,12 @@
 {
   "compileOnSave": false,
   "compilerOptions": {
-      "noEmit": true,
-      "allowJs": true,
-      "checkJs": true,
-      "target": "es6",
-      "resolveJsonModule": true,
-      "moduleResolution": "node"
+    "noEmit": true,
+    "allowJs": true,
+    "checkJs": true,
+    "target": "esnext",
+    "resolveJsonModule": true,
+    "moduleResolution": "node"
   },
   "include": ["./"]
 }
