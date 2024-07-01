@@ -24,13 +24,13 @@
       signal: initialValue => {
         const s = cause(initialValue);
         return {
-          write: (v) => (s.set(v)),
-          read: () => s.get(),
+          write: v => s.set(v),
+          read: () => s(),
         };
       },
       computed: fn => {
         const c = derive(fn);
-        return { read: () => c.get() };
+        return { read: () => c() };
       },
       effect: fn => effect(fn),
       withBatch: fn => fn(),
