@@ -4,12 +4,16 @@ declare function derive(fn: () => any): () => void;
 declare function effect(fn: () => void | (() => void)): () => void;
 */
 
+export type DOMEffects = (element: Element, domFn: (...args: any[]) => any) => Set<any[]>;
+export type EffectTargetMap = Map<Element, undefined | Map<(...args: any[]) => any, Set<any[]>>>;
+export type MaybeCleanup = void | (() => void);
+export type EffectCallback = { (scheduled: DOMEffects): MaybeCleanup; targets?: EffectTargetMap; };
 export type ParserTypeString = 'boolean' | 'integer' | 'number';
 export type AttributeParser = ParserTypeString | ((v: string | undefined) => any) | undefined;
 export type MappedAttributeParser = [PropertyKey, AttributeParser];
 export type ContextParser = ((v: any | undefined) => any) | undefined;
 export type MappedContextParser = [PropertyKey, ContextParser];
-export type ContextRequestEventCallback = (value: { (): any; set?: (value: any) => any; }, unsubscribe?: () => void) => void
+export type ContextRequestEventCallback = (value: { (): any; set?: (value: any) => any; }, unsubscribe?: () => void) => void;
 
 export class UIElement extends HTMLElement {
   static providedContexts?: string[];
@@ -24,7 +28,7 @@ export class UIElement extends HTMLElement {
   set(key: any, value: any, update?: boolean): void;
   delete(key: any): boolean;
   pass(element: UIElement, states: Record<PropertyKey, PropertyKey | { (): any; set?: (value: any) => any; }>, registry?: CustomElementRegistry): void;
-  effect(fn: () => void | (() => void)): () => void;
+  effect(fn: EffectCallback): () => void;
 }
 
 /* DOM Utils * /

@@ -169,16 +169,29 @@ export default class extends HTMLElement {
    * Define what happens when a reactive state changes
    * 
    * @since 0.1.0
-   * @param {() => (() => void) | void} fn - callback function to be executed when a state changes
+   * @param {import("./types").EffectCallback} fn - callback function to be executed when a state changes
    */
   effect(fn) {
+    fn.targets = new Map();
+    const scheduled = (/** @type {Element} */ element, /** @type {(...args: any []) => any} */ domFn) => {
+      !fn.targets.has(element) && fn.targets.set(element, new Map());
+      const domFns = fn.targets.get(element);
+      !domFns.has(domFn) && domFns.set(domFn, new Set());
+      return domFns.get(domFn);
+    };
     const next = () => {
-      requestAnimationFrame(() => {
+      queueMicrotask(() => {
         const prev = active;
         active = next;
-        const cleanup = fn();
-        typeof cleanup === 'function' && cleanup();
+        const cleanup = fn(scheduled);
         active = prev;
+        for (const [el, domFns] of fn.targets.entries()) {
+          for (const [domFn, argsSet] of domFns.entries()) {
+            for (const args of argsSet.keys()) domFn(el, ...args);
+          }
+        }
+        // @ts-ignore
+        isFunction(cleanup) && cleanup();
       });
     }
     next();
