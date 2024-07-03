@@ -178,17 +178,18 @@ export default class extends HTMLElement {
      * @since 0.6.1
      * 
      * @param {Element} element 
-     * @param {(element: Element, ...args: any[]) => any} domFn 
-     * @param  {...any} args 
-     * @returns {Set<any[]>}
+     * @param {import("./types").DOMUpdater} domFn 
+     * @param  {any} key
+     * @param  {any} value
+     * @returns {Map<any, any>}
      */
-    const queue = (element, domFn, ...args) => {
+    const queue = (element, domFn, key, value) => {
       !fn.targets.has(element) && fn.targets.set(element, new Map());
       const domFns = fn.targets.get(element);
-      !domFns.has(domFn) && domFns.set(domFn, new Set());
-      const argsSet = domFns.get(domFn);
-      args && argsSet.add(args);
-      return argsSet;
+      !domFns.has(domFn) && domFns.set(domFn, new Map());
+      const argsMap = domFns.get(domFn);
+      key && argsMap.set(key, value);
+      return argsMap;
     };
 
     // effect callback function
@@ -201,8 +202,8 @@ export default class extends HTMLElement {
 
         // flush all queued effects
         for (const [el, domFns] of fn.targets.entries()) {
-          for (const [domFn, argsSet] of domFns.entries()) {
-            for (const args of argsSet.keys()) domFn(el, ...args);
+          for (const [domFn, argsMap] of domFns.entries()) {
+            for (const [key, value] of argsMap.entries()) domFn(el, key, value);
           }
         }
         // @ts-ignore
