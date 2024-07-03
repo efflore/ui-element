@@ -173,18 +173,33 @@ export default class extends HTMLElement {
    */
   effect(fn) {
     fn.targets = new Map();
-    const scheduled = (/** @type {Element} */ element, /** @type {(...args: any []) => any} */ domFn) => {
+
+    /**
+     * @since 0.6.1
+     * 
+     * @param {Element} element 
+     * @param {(element: Element, ...args: any[]) => any} domFn 
+     * @param  {...any} args 
+     * @returns {Set<any[]>}
+     */
+    const queue = (element, domFn, ...args) => {
       !fn.targets.has(element) && fn.targets.set(element, new Map());
       const domFns = fn.targets.get(element);
       !domFns.has(domFn) && domFns.set(domFn, new Set());
-      return domFns.get(domFn);
+      const argsSet = domFns.get(domFn);
+      args && argsSet.add(args);
+      return argsSet;
     };
+
+    // effect callback function
     const next = () => {
       queueMicrotask(() => {
         const prev = active;
         active = next;
-        const cleanup = fn(scheduled);
+        const cleanup = fn(queue);
         active = prev;
+
+        // flush all queued effects
         for (const [el, domFns] of fn.targets.entries()) {
           for (const [domFn, argsSet] of domFns.entries()) {
             for (const args of argsSet.keys()) domFn(el, ...args);
