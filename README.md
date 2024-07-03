@@ -2,6 +2,8 @@
 
 UIElement - the "look ma, no JS framework!" library bringing signals-based reactivity to vanilla Web Components
 
+Version 0.6.2
+
 ## What is UIElement?
 
 `UIElement` is a base class for your reactive Web Components. It extends the native `HTMLElement` class and adds a public property and a few methods that allow you to implement inter- and intra-component reactivity with ease. You extend the base class `UIElement` and call the static `define()` method on it to register a tag name in the `CustomElementsRegistry`.
@@ -10,11 +12,11 @@ UIElement - the "look ma, no JS framework!" library bringing signals-based react
 
 `UIElement` implements a `Map`-like interface on top of `HTMLElement` to access and modify reactive states. The method names `this.has()`, `this.get()`, `this.set()` and `this.delete()` feel familar to JavaScript developers and mirror what you already know.
 
-In the `connectedCallback()` you setup references to inner elements, add event listeners and pass reactive states to sub-components (`this.pass()`). Additionally, for every independent reactive state you define what happens when it changes in the callback of `this.effect()`. `UIElement` will automatically trigger these effects and bundle the surgical DOM updates when the browser refreshes the view on the next animation frame.
+In the `connectedCallback()` you setup references to inner elements, add event listeners and pass reactive states to sub-components (`this.pass()`). Additionally, for every independent reactive state you define what happens when it changes in the callback of `this.effect()`. `UIElement` will automatically trigger these effects and bundle the fine-grained DOM updates when the browser refreshes the view on the next animation frame.
 
-`UIElement` is fast. In fact, faster than any JavaScript framework. Only direct surgical DOM updates in vanilla JavaScript can beat its performance. But then, you have no loose coupling of components and need to parse attributes and track changes yourself. This tends to get tedious and messy rather quickly. `UIElement` provides a structured way to keep your components simple, consistent and self-contained.
+`UIElement` is fast. In fact, faster than any JavaScript framework. Only direct fine-grained DOM updates in vanilla JavaScript can beat its performance. But then, you have no loose coupling of components and need to parse attributes and track changes yourself. This tends to get tedious and messy rather quickly. `UIElement` provides a structured way to keep your components simple, consistent and self-contained.
 
-`UIElement` is tiny. 681 bytes gzipped over the wire. And it has zero dependiences. If you want to understand how it works, you have to study the source code of [one single file](./index.js).
+`UIElement` is tiny. 685 bytes gzipped over the wire. And it has zero dependiences. If you want to understand how it works, you have to study the source code of [one single file](./index.js).
 
 That's all.
 
@@ -22,7 +24,7 @@ That's all.
 
 `UIElement` does not do many of the things JavaScript frameworks do.
 
-Most importantly, it does not render components. We suggest, you render components (eighter Light DOM children or Declarative Shadow DOM) on the server side. There are existing solutions like [WebC](https://github.com/11ty/webc) or [Enhance](https://github.com/enhance-dev/enhance) that allow you to declare and render Web Components on the server side with (almost) pure HTML, CSS and JavaScript. `UIElement` is proven to work with either WebC or Enhance. But you could use any tech stack able to render HTML. There is no magic involved besides the building blocks of any website: HTML, CSS and JavaScript. `UIElement` does not make any assumptions about the structure of the inner HTML. In fact, it is up to you to reference inner elements and do surgical DOM updates in effects. This also means, there is no new language or format to learn. HTML, CSS and modern JavaScript (ES6) is all you need to know to develop your own web components with `UIElement`.
+Most importantly, it does not render components. We suggest, you render components (eighter Light DOM children or Declarative Shadow DOM) on the server side. There are existing solutions like [WebC](https://github.com/11ty/webc) or [Enhance](https://github.com/enhance-dev/enhance) that allow you to declare and render Web Components on the server side with (almost) pure HTML, CSS and JavaScript. `UIElement` is proven to work with either WebC or Enhance. But you could use any tech stack able to render HTML. There is no magic involved besides the building blocks of any website: HTML, CSS and JavaScript. `UIElement` does not make any assumptions about the structure of the inner HTML. In fact, it is up to you to reference inner elements and do fine-grained DOM updates in effects. This also means, there is no new language or format to learn. HTML, CSS and modern JavaScript (ES6) is all you need to know to develop your own web components with `UIElement`.
 
 `UIElement` does no routing. It is strictly for single-page applications or reactive islands. But of course, you can reuse the same components on many different pages, effectively creating tailored single-page applications for every page you want to enhance with rich interactivity. We believe, this is the most efficient way to build rich multi-page applications, as only the scripts for the elements used on the current page are loaded, not a huge bundle for the whole app.
 
@@ -160,11 +162,31 @@ Make sure the import of `UIElement` on the first line points to your installed p
 import UIElement from '@efflore/ui-element';
 ```
 
+If you use Debug Element as your base class for custom elements, you may call `super.connectedCallback();` (and the other lifecycle callbacks) to log when your element connects to the DOM.
+
+To log when some DOM features of child elements are updated in effects, you need to enqueue all fine-grained DOM updated like this:
+
+```js
+// in connectedCallback()
+this.effect(queue => queue(this.querySelector('span'), (el, text) => (el.textContent = text), this.get('value')));
+```
+
+Otherwise Debug Element only knows which effect runs in which component, but not the exact elements targeted by your effect.
+
+Enqueueing fine-grained DOM updates is always possible. It's a bit more verbose, but it ensures all updates of your effect happen at the same time. `autoEffects()` from DOM Utils (see next section) does this by default. All DOM utility functions receive the target element as first parameter, making it possible to use this shorter notation:
+
+```js
+import { setText } from './lib/dom-utils';
+
+// in connectedCallback()
+this.effect(queue => queue(this.querySelector('span'), setText, this.get('value')));
+```
+
 [Source](./lib/debug-element.js)
 
 ### DOM Utils
 
-A few utility functions for surgical DOM updates in `effect()`s that streamline the interface and save tedious existance and change checks:
+A few utility functions for fine-grained DOM updates in `effect()`s that streamline the interface and save tedious existance and change checks:
 
 - `setText()` preserves comment nodes in contrast to `element.textContent` assignments
 - `setProp()` sets or deletes a property on an element
@@ -184,7 +206,7 @@ With all key/value pair attributes, you can provide several separated by `;`. Ea
 
 Auto-Effects will be be applied to the Shadow DOM, if your component uses it; otherwise to the Light DOM sub-tree. The `ui-*` attributes will be removed from the DOM once your component is connected and the effects are set up. If you load a partial from the server containing these attributes, you will have to call `autoEffects()` again to have the effects auto-applied to the newly loaded partial as well.
 
- By using these declarative attributes you can considerably reduce the amount of simple effects in your component's JavaScript. Almost all surgical DOM updates can be done this way. You gain Locality of Behavior (LoB) in your markup and can decide per case where effects shall be applied. On the other hand, you lose Separation of Concerns (SoC) - if you care about it. It's the same trade-off as with JSX, but in pure HTML.
+ By using these declarative attributes you can considerably reduce the amount of simple effects in your component's JavaScript. Almost all fine-grained DOM updates can be done this way. You gain Locality of Behavior (LoB) in your markup and can decide per case where effects shall be applied. On the other hand, you lose Separation of Concerns (SoC) - if you care about it. It's the same trade-off as with JSX, but in pure HTML.
 
 As not all users like the sort of magic of Auto-Effects, it's an optional opt-in and not part of the core `UIElement` library. Copy the source code and adapt it to your needs, if you like it.
 
@@ -237,7 +259,7 @@ Where has the JavaScript gone? – It almost disappeared. To explain the magic:
 6. `UIElement` **auto-runs** the effect you did not even write again with a new `'value'` value
 7. `autoEffects()` knows which element's `textContent` to **auto-update**
 
-By always following this pattern of data-flow, that is close to an optimal implementation in vanilla JavaScript, we can drastrically reduce need JavaScrpt both on the library side (`UIElement` + `dom-utils` ca. 1.3 kB gzipped) and on userland side.
+By always following this pattern of data-flow, that is close to an optimal implementation in vanilla JavaScript, we can drastrically reduce need JavaScrpt both on the library side (`UIElement` + `dom-utils` ca. 1.4 kB gzipped) and on userland side.
 
 [Source](./lib/dom-utils.js)
 
