@@ -4,10 +4,11 @@ declare function derive(fn: () => any): () => void;
 declare function effect(fn: () => void | (() => void)): () => void;
 */
 
-export type DOMEffects = (element: Element, domFn: (...args: any[]) => any) => Set<any[]>;
-export type EffectTargetMap = Map<Element, undefined | Map<(...args: any[]) => any, Set<any[]>>>;
+export type DOMUpdater = (element: Element, key: any, value: any) => any;
+export type DOMEffects = (element: Element, domFn: DOMUpdater, key: any, value: any) => Map<any, any>;
+export type EffectTargetMap = Map<Element, undefined | Map<DOMUpdater, Map<any, any>>>;
 export type MaybeCleanup = void | (() => void);
-export type EffectCallback = { (scheduled: DOMEffects): MaybeCleanup; targets?: EffectTargetMap; };
+export type EffectCallback = { (queue: DOMEffects): MaybeCleanup; targets?: EffectTargetMap; };
 export type ParserTypeString = 'boolean' | 'integer' | 'number';
 export type AttributeParser = ParserTypeString | ((v: string | undefined) => any) | undefined;
 export type MappedAttributeParser = [PropertyKey, AttributeParser];

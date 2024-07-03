@@ -173,21 +173,37 @@ export default class extends HTMLElement {
    */
   effect(fn) {
     fn.targets = new Map();
-    const scheduled = (/** @type {Element} */ element, /** @type {(...args: any []) => any} */ domFn) => {
+
+    /**
+     * @since 0.6.1
+     * 
+     * @param {Element} element 
+     * @param {import("./types").DOMUpdater} domFn 
+     * @param  {any} key
+     * @param  {any} value
+     * @returns {Map<any, any>}
+     */
+    const queue = (element, domFn, key, value) => {
       !fn.targets.has(element) && fn.targets.set(element, new Map());
       const domFns = fn.targets.get(element);
-      !domFns.has(domFn) && domFns.set(domFn, new Set());
-      return domFns.get(domFn);
+      !domFns.has(domFn) && domFns.set(domFn, new Map());
+      const argsMap = domFns.get(domFn);
+      key && argsMap.set(key, value);
+      return argsMap;
     };
+
+    // effect callback function
     const next = () => {
       queueMicrotask(() => {
         const prev = active;
         active = next;
-        const cleanup = fn(scheduled);
+        const cleanup = fn(queue);
         active = prev;
+
+        // flush all queued effects
         for (const [el, domFns] of fn.targets.entries()) {
-          for (const [domFn, argsSet] of domFns.entries()) {
-            for (const args of argsSet.keys()) domFn(el, ...args);
+          for (const [domFn, argsMap] of domFns.entries()) {
+            for (const [key, value] of argsMap.entries()) domFn(el, key, value);
           }
         }
         // @ts-ignore
