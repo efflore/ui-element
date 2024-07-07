@@ -4,32 +4,95 @@ declare function derive(fn: () => any): () => void;
 declare function effect(fn: () => void | (() => void)): () => void;
 */
 
-export type DOMUpdater = (element: Element, key: any, value: any) => any;
-export type DOMEffects = (element: Element, domFn: DOMUpdater, key: any, value: any) => Map<any, any>;
-export type EffectTargetMap = Map<Element, undefined | Map<DOMUpdater, Map<any, any>>>;
-export type MaybeCleanup = void | (() => void);
-export type EffectCallback = { (queue: DOMEffects): MaybeCleanup; targets?: EffectTargetMap; };
-export type ParserTypeString = 'boolean' | 'integer' | 'number';
-export type AttributeParser = ParserTypeString | ((v: string | undefined) => any) | undefined;
-export type MappedAttributeParser = [PropertyKey, AttributeParser];
-export type ContextParser = ((v: any | undefined) => any) | undefined;
-export type MappedContextParser = [PropertyKey, ContextParser];
-export type ContextRequestEventCallback = (value: { (): any; set?: (value: any) => any; }, unsubscribe?: () => void) => void;
+
+export interface FxEffect {
+  fn: FxEffectCallback;
+  cleanup?: FxMaybeCleanup;
+}
+export interface FxState {
+  (): any;
+  e?: Set<FxEffect>;
+  set?(value: any): void;
+}
+
+export type FxDOMInstruction = (
+  element: Element,
+  key: any,
+  value?: any
+) => any;
+
+export type FxDOMInstructionMap = Map<FxDOMInstruction, Map<any, any>>;
+
+export type FxDOMInstructionQueue = (
+  element: Element,
+  domFn: FxDOMInstruction,
+  key: any,
+  value: any
+) => void;
+
+export type FxMaybeCleanup = void | (() => void);
+
+export type FxEffectCallback = (queue: FxDOMInstructionQueue) => FxMaybeCleanup;
+
+export type FxAttributeParser = ((
+  value: string | undefined,
+  element: HTMLElement,
+  old: string | undefined
+) => any) | undefined;
+
+export type FxMappedAttributeParser = [PropertyKey, FxAttributeParser];
+
+export type AttributeMap = Record<string, FxAttributeParser | FxMappedAttributeParser>;
+
+export type FxFunctionOrSignal = {
+  (): any;
+  set?: (value: any) => any;
+};
+
+export type FxStateMap = Record<PropertyKey, PropertyKey | FxFunctionOrSignal>;
+
+export type FxContextParser = ((
+  value: any | undefined,
+  element: HTMLElement
+) => any) | undefined;
+
+export type FxMappedContextParser = [PropertyKey, FxContextParser];
+
+export type ContextMap = Record<PropertyKey, FxContextParser | FxMappedContextParser>;
+
+export type ContextRequestEventCallback = (
+  value: FxFunctionOrSignal,
+  unsubscribe?: () => void
+) => void;
 
 export class UIElement extends HTMLElement {
   static providedContexts?: string[];
   static observedContexts?: string[];
-  static define(tag: string, registry?: CustomElementRegistry): void;
-  state: Record<PropertyKey, any>;
-  attributeMap?: Record<string, AttributeParser | MappedAttributeParser>;
-  contextMap?: Record<PropertyKey, ContextParser | MappedContextParser>;
-  attributeChangedCallback(name: string, old: string | undefined, value: string | undefined): void;
-  has(key: any): boolean;
-  get(key: any): any;
-  set(key: any, value: any, update?: boolean): void;
-  delete(key: any): boolean;
-  pass(element: UIElement, states: Record<PropertyKey, PropertyKey | { (): any; set?: (value: any) => any; }>, registry?: CustomElementRegistry): void;
-  effect(fn: EffectCallback): () => void;
+  static define(
+    tag: string,
+    registry?: CustomElementRegistry
+  ): void;
+  attributeMap: AttributeMap;
+  contextMap?: ContextMap;
+  attributeChangedCallback(
+    name: string,
+    old: string | undefined,
+    value: string | undefined
+  ): void;
+  has(key: PropertyKey): boolean;
+  get(key: PropertyKey): any;
+  set(
+    key: PropertyKey,
+    value: any,
+    update?: boolean
+  ): void;
+  delete(key: PropertyKey): boolean;
+  pass(
+    element: UIElement,
+    states: FxStateMap,
+    registry?: CustomElementRegistry
+  ): void;
+  targets(key: PropertyKey): Set<Element>;
 }
 
 /* DOM Utils * /
@@ -53,18 +116,18 @@ export class ContextRequestEvent {
   context: PropertyKey;
   callback: ContextRequestEventCallback;
   subscribe?: boolean;
-  constructor(context: PropertyKey, callback: ContextRequestEventCallback, subscribe?: boolean );
+  constructor(
+    context: PropertyKey,
+    callback: ContextRequestEventCallback,
+    subscribe?: boolean
+  );
 }
 export class ContextProvider {
-  host?: UIElement;
-  hostPrototype?: UIElement;
   constructor(element: UIElement);
   disconnect(): void;
 }
 
 export class ContextConsumer {
-  host?: UIElement;
-  hostPrototype?: UIElement;
   constructor(element: UIElement);
   disconnect(): void;
 }

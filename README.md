@@ -168,18 +168,24 @@ To log when some DOM features of child elements are updated in effects, you need
 
 ```js
 // in connectedCallback()
-this.effect(queue => queue(this.querySelector('span'), (el, text) => (el.textContent = text), this.get('value')));
+this.effect(queue => {
+  queue(this.querySelector('span'), (el, key, value = key) => (el.textContent = value), this.get('value'));
+  queue(this.querySelector('.card'), (el, key, value) => el.classList.toggle(key, value), 'selected', this.get('selected'));
+});
 ```
 
 Otherwise Debug Element only knows which effect runs in which component, but not the exact elements targeted by your effect.
 
-Enqueueing fine-grained DOM updates is always possible. It's a bit more verbose, but it ensures all updates of your effect happen at the same time. `autoEffects()` from DOM Utils (see next section) does this by default. All DOM utility functions receive the target element as first parameter, making it possible to use this shorter notation:
+Enqueueing fine-grained DOM updates is always possible. It's a bit more verbose, but it ensures all updates of your effect happen concurrently. `autoEffects()` from DOM Utils (see next section) does this by default. All DOM utility functions receive the target element as first parameter, making it possible to use this shorter notation:
 
 ```js
-import { setText } from './lib/dom-utils';
+import { setText, setClass } from './lib/dom-utils';
 
 // in connectedCallback()
-this.effect(queue => queue(this.querySelector('span'), setText, this.get('value')));
+this.effect(queue => {
+  queue(this.querySelector('span'), setText, this.get('value'));
+  queue(this.querySelector('.card'), setClass, 'selected', this.get('selected'));
+});
 ```
 
 [Source](./lib/debug-element.js)

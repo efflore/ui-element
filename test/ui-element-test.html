@@ -16,7 +16,13 @@
         margin-block: 0.2rem;
       }
     }
+
+    .ui-effect {
+      outline: 1px dotted red;
+      outline-offset: 2px;
+    }
   </style>
+
   <void-component id="void">
     <h1>Hello from Server</h1>
   </void-component>
@@ -24,114 +30,130 @@
     <h1>Hello from Server</h1>
   </void-component>
   <causal-component id="causal">
-    <h1 ui-text="heading">Hello from Server</h1>
+    <h1 data-causal-component-text="heading">Hello from Server</h1>
   </causal-component>
   <causal-component id="causal-with-ignored-attribute" heading="Hello from Attribute">
-    <h1 ui-text="heading">Hello from Server</h1>
+    <h1 data-causal-component-text="heading">Hello from Server</h1>
   </causal-component>
   <updating-component id="updating">
-    <h1 ui-text="title">Hello from Server</h1>
-    <p>Number of unread messages: <span ui-text="count"></span></p>
+    <h1 data-updating-component-text="title">Hello from Server</h1>
+    <p>Number of unread messages: <span data-updating-component-text="count"></span></p>
   </updating-component>
   <updating-component id="updating-with-string-attribute" heading="Hello from Attribute">
-    <h1 ui-text="title">Hello from Server</h1>
-    <p>Number of unread messages: <span ui-text="count"></span></p>
+    <h1 data-updating-component-text="title">Hello from Server</h1>
+    <p>Number of unread messages: <span data-updating-component-text="count"></span></p>
   </updating-component>
   <updating-component id="updating-with-number-attribute" count="42" step="0.1" value="3.14">
-    <h1 ui-text="title">Hello from Server</h1>
-    <p>Number of unread messages: <span ui-text="count"></span></p>
-    <input type="number" ui-attr="step; value" />
+    <h1 data-updating-component-text="title">Hello from Server</h1>
+    <p>Number of unread messages: <span data-updating-component-text="count"></span></p>
+    <input type="number" data-updating-component-attr="step; value" />
   </updating-component>
   <updating-component id="updating-with-boolean-attribute" selected>
-    <h1 ui-text="title" ui-class="selected">Hello from Server</h1>
-    <p>Number of unread messages: <span ui-text="count"></span></p>
+    <h1 data-updating-component-text="title" data-updating-component-class="selected">Hello from Server</h1>
+    <p>Number of unread messages: <span data-updating-component-text="count"></span></p>
   </updating-component>
   <child-component id="orphan">
-    <h1 ui-text="heading">Hello from Server</h1>
-    <p ui-text="text">Text from Server</p>
+    <h1 data-child-component-text="heading">Hello from Server</h1>
+    <p data-child-component-text="text">Text from Server</p>
   </child-component>
   <parent-component id="parent" heading="Hello from Attribute">
     <child-component id="child">
-      <h1 ui-text="heading">Hello from Server</h1>
-      <p ui-text="text">Text from Server</p>
+      <h1 data-child-component-text="heading">Hello from Server</h1>
+      <p data-child-component-text="text">Text from Server</p>
     </child-component>
   </parent-component>
-  <my-counter value="42">
-    <p>Count: <span class="value" ui-text="value">42</span></p>
-    <p>Parity: <span class="parity" ui-text="parity">even</span></p>
-    <p>Double: <span class="double" ui-text="double">84</span></p>
+  <my-counter value="42" debug>
+    <p>Count: <span class="value" data-my-counter-text="value">42</span></p>
+    <p>Parity: <span class="parity" data-my-counter-text="parity">even</span></p>
+    <p>Double: <span class="double" data-my-counter-text="double">84</span></p>
     <div>
-      <button class="decrement" onclick="this.closest('my-counter').set('value', v => --v)">–</button>
-      <button class="increment" onclick="this.closest('my-counter').set('value', v => ++v)">+</button>
+      <button class="decrement" data-my-counter-hover="value">–</button>
+      <button class="increment" data-my-counter-hover="value">+</button>
     </div>
   </my-counter>
   <greeting-configurator>
-    <input-field class="first">
-      <input type="text" name="first" value="Jane" />
+    <input-field class="first" debug>
+      <input type="text" name="first" value="Jane" data-input-field-focus="value" />
     </input-field>
-    <input-field class="last">
-      <input type="text" name="last" value="Doe" />
+    <input-field class="last" debug>
+      <input type="text" name="last" value="Doe" data-input-field-focus="value" />
     </input-field>
-    <input-checkbox>
-      <input type="checkbox" name="fullname" />
+    <input-checkbox debug>
+      <input type="checkbox" name="fullname" data-input-checkbox-hover="checked" />
     </input-checkbox>
     <hello-world>
-      <p><span class="greeting" ui-text="greeting">Hello</span> <span class="name" ui-text="name">World</span></p>
+      <p>
+        <span class="greeting" data-hello-world-text="greeting">Hello</span>
+        <span class="name" data-hello-world-text="name">World</span>
+      </p>
     </hello-world>
   </greeting-configurator>
 
   <script type="module">
     import { runTests } from '@web/test-runner-mocha';
     import { assert } from '@esm-bundle/chai';
-    import UIElement from '../index.js';
-    import DebugElement from '../lib/debug-element.js';
-    import { setText, setAttr, setClass, autoEffects } from '../lib/dom-utils.js';
+    import { effect, asBoolean, asInteger, asNumber, asString } from '../index.js';
+    import { component } from '../lib/dom-utils.js';
 
     const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
     const paint = () => new Promise(resolve => requestAnimationFrame(resolve));
+    const normalizeText = text => text.replace(/\s+/g, ' ').trim();
 
-    (class extends UIElement { /* debug = true */ }).define('void-component');
+    // (class extends UIElement { /* debug = true */ }).define('void-component');
+    component('void-component');
 
-    class CausalComponent extends UIElement {
+    /* class CausalComponent extends UIElement {
       // debug = true;
 
       connectedCallback() {
         this.set('heading', 'Hello from Internal State');
-        autoEffects(this);
-        // this.effect(() => setText(this.querySelector('h1'), this.get('heading')));
-        // this.effect(() => setText(this.querySelector('h1'), this.state.heading));
+        this.autoEffects();
+        // effect(() => setText(this.querySelector('h1'), this.get('heading')));
+        // effect(() => setText(this.querySelector('h1'), this.state.heading));
       }
 
     }
-    CausalComponent.define('causal-component');
+    CausalComponent.define('causal-component'); */
 
-    class UpdatingComponent extends UIElement {
+    component('causal-component', {}, el => {
+      el.set('heading', 'Hello from Internal State');
+    });
+
+    /* class UpdatingComponent extends DebugElement {
       static observedAttributes = ['heading', 'count', 'step', 'value', 'selected'];
       attributeMap = {
         heading: ['title'],
-        count: 'integer',
-        step: 'number',
-        value: (v, o) => Number.isInteger(this.get('step')) ? parseInt(v, 10) : parseFloat(v),
-        selected: 'boolean',
+        count: asInteger,
+        step: asNumber,
+        value: (v, el) => Number.isInteger(el.get('step')) ? parseInt(v, 10) : parseFloat(v),
+        selected: asBoolean,
       };
-      // debug = true; // (this.id === 'updating-with-boolean-attribute'); // true;
+      debug = (this.id === 'updating-with-number-attribute'); // true;
 
       connectedCallback() {
-        autoEffects(this);
-        /* const heading = this.querySelector('h1');
+        this.autoEffects();
+        / * const heading = this.querySelector('h1');
         const badge = this.querySelector('span');
         const input = this.querySelector('input');
 
-        this.effect(() => this.has('title') && setText(heading, this.get('title')));
-        this.effect(() => this.has('count') && setText(badge, this.get('count')));
-        this.effect(() => this.has('step') && setAttr(input, 'step', this.get('step')));
-        this.effect(() => this.has('value') && setAttr(input, 'value', this.get('value')));
-        this.effect(() => this.has('selected') && setClass(heading, 'selected', this.get('selected'))); */
+        effect(() => this.has('title') && setText(heading, this.get('title')));
+        effect(() => this.has('count') && setText(badge, this.get('count')));
+        effect(() => this.has('step') && setAttr(input, 'step', this.get('step')));
+        effect(() => this.has('value') && setAttr(input, 'value', this.get('value')));
+        effect(() => this.has('selected') && setClass(heading, 'selected', this.get('selected'))); * /
       }
     }
-    UpdatingComponent.define('updating-component');
+    UpdatingComponent.define('updating-component'); */
 
-    class ParentComponent extends UIElement {
+    component('updating-component', {
+      heading: ['title'],
+      count: asInteger,
+      step: asNumber,
+      value: (v, el) => Number.isInteger(el.get('step')) ? parseInt(v, 10) : parseFloat(v),
+      selected: asBoolean,
+    });
+
+    /* class ParentComponent extends UIElement {
       static observedAttributes = ['heading'];
       // debug = true;
 
@@ -142,49 +164,64 @@
         });
       }
     }
-    ParentComponent.define('parent-component');
+    ParentComponent.define('parent-component'); */
 
-    class ChildComponent extends UIElement {
+    component('parent-component', { heading: asString }, el => {
+      el.pass(el.querySelector('child-component'), {
+        heading: 'heading',
+        text: () => el.get('heading').toUpperCase(),
+      });
+    });
+
+    /* class ChildComponent extends UIElement {
       // debug = true;
 
       connectedCallback() {
-        autoEffects(this);
-        // this.effect(() => setText(this.querySelector('h1'), this.get('heading') || null));
-        // this.effect(() => setText(this.querySelector('p'), this.get('text') || null));
+        this.autoEffects();
+        // effect(() => setText(this.querySelector('h1'), this.get('heading') || null));
+        // effect(() => setText(this.querySelector('p'), this.get('text') || null));
       }
     }
-    ChildComponent.define('child-component');
+    ChildComponent.define('child-component'); */
 
-    class MyCounter extends UIElement {
+    component('child-component');
+
+    /* class MyCounter extends DebugElement {
       static observedAttributes = ['value'];
-      attributeMap = { value: 'integer' };
+      static attributeMap = { value: asInteger };
       // debug = true;
 
       connectedCallback() {
-        // super.connectedCallback(); // enable for debugging
-
         // this.querySelector('.decrement').onclick = () => this.set('value', v => --v);
         // this.querySelector('.increment').onclick = () => this.set('value', v => ++v);
 
         this.set('parity', () => this.get('value') % 2 ? 'odd' : 'even');
         this.set('double', () => this.get('value') * 2);
-        autoEffects(this);
+        this.autoEffects();
 
-        /* const s = this.state;
+        / * const s = this.state;
         this.querySelector('.decrement').onclick = () => s.value--;
         this.querySelector('.increment').onclick = () => s.value++;
 
-        this.effect(() => {
+        effect(() => {
           const value = s.value;
           setText(this.querySelector('.value'), value);
           setText(this.querySelector('.parity'), value % 2 ? false : true);
           setText(this.querySelector('.double'), value * 2);
-        }); */
+        }); * /
+        super.connectedCallback(); // enable for debugging
       }
     }
-    MyCounter.define('my-counter');
+    MyCounter.define('my-counter'); */
 
-    class GreetingConfigurator extends UIElement {
+    component('my-counter', { value: asInteger }, el => {
+      el.set('parity', () => el.get('value') % 2 ? 'odd' : 'even');
+      el.set('double', () => el.get('value') * 2);
+      el.querySelector('.decrement').onclick = () => el.set('value', v => --v);
+      el.querySelector('.increment').onclick = () => el.set('value', v => ++v);
+    });
+
+    /* class GreetingConfigurator extends UIElement {
       connectedCallback() {
         const first = this.querySelector('.first');
         const last = this.querySelector('.last');
@@ -195,9 +232,18 @@
         });
       }
     }
-    GreetingConfigurator.define('greeting-configurator');
+    GreetingConfigurator.define('greeting-configurator'); */
 
-    class HelloWorld extends UIElement {
+    component('greeting-configurator', {}, el => {
+      const first = el.querySelector('.first');
+      const last = el.querySelector('.last');
+      const useFullname = el.querySelector('input-checkbox');
+      el.pass(el.querySelector('hello-world'), {
+        name: () => useFullname.get('checked') ? `${first.get('value')} ${last.get('value')}` : first.get('value'),
+      });
+    });
+
+    /* class HelloWorld extends UIElement {
       static observedAttributes = ['greeting'];
 
       connectedCallback() {
@@ -205,14 +251,18 @@
         // const name = this.querySelector('.name');
         // const defaultName = name.textContent;
         this.set('greeting', this.querySelector('.greeting').textContent, false);
-        autoEffects(this);
-        // this.effect(() => setText(greeting, this.get('greeting')));
-        // this.effect(() => setText(name, this.get('name') || defaultName));
+        this.autoEffects();
+        // effect(() => setText(greeting, this.get('greeting')));
+        // effect(() => setText(name, this.get('name') || defaultName));
       }
     }
-    HelloWorld.define('hello-world');
+    HelloWorld.define('hello-world'); */
 
-    class InputField extends UIElement {
+    component('hello-world', { greeting: asString }, el => {
+      el.set('greeting', el.querySelector('.greeting').textContent, false);
+    });
+
+    /* class InputField extends UIElement {
 
       connectedCallback() {
         const input = this.querySelector('input');
@@ -220,9 +270,15 @@
         input.onchange = () => this.set('value', input.value);
       }
     }
-    InputField.define('input-field');
+    InputField.define('input-field'); */
 
-    class InputCheckbox extends UIElement {
+    component('input-field', {}, el => {
+      const input = el.querySelector('input');
+      el.set('value', input.value);
+      input.onchange = () => el.set('value', input.value);
+    });
+
+    /* class InputCheckbox extends UIElement {
 
       connectedCallback() {
         const input = this.querySelector('input');
@@ -230,7 +286,13 @@
         input.onchange = () => this.set('checked', input.checked);
       }
     }
-    InputCheckbox.define('input-checkbox');
+    InputCheckbox.define('input-checkbox'); */
+
+    component('input-checkbox', {}, el => {
+      const input = el.querySelector('input');
+      el.set('checked', input.checked);
+      input.onchange = () => el.set('checked', input.checked);
+    });
 
     runTests(() => {
 
@@ -247,7 +309,7 @@
           it('should do nothing at all', async function () {
             const voidComponent = document.getElementById('void');
             await paint();
-            const textContent = voidComponent.querySelector('h1').textContent;
+            const textContent = normalizeText(voidComponent.querySelector('h1').textContent);
             assert.equal(textContent, 'Hello from Server', 'Should not change server-side rendered heading');
           });
 
@@ -281,7 +343,7 @@
             const voidComponent = document.getElementById('void2');
             voidComponent.set('foo', 'test', false);
             let effectDidRun = false;
-            voidComponent.effect(() => {
+            effect(() => {
               voidComponent.get('foo');
               effectDidRun = true;
             });
@@ -297,7 +359,7 @@
             const voidComponent = document.getElementById('void2');
             voidComponent.set('bar', 0);
             let result = 0;
-            voidComponent.effect(() => {
+            effect(() => {
               result++;
               voidComponent.get('bar');
             });
@@ -320,7 +382,7 @@
           it('should update according to internal state', async function () {
             const causalComponent = document.getElementById('causal');
             await paint();
-            const textContent = causalComponent.querySelector('h1').textContent;
+            const textContent = normalizeText(causalComponent.querySelector('h1').textContent);
             assert.equal(textContent, 'Hello from Internal State', 'Should have initial heading from internal state');
           });
 
@@ -328,7 +390,7 @@
             const causalComponent = document.getElementById('causal');
             causalComponent.set('heading', 'Hello from State');
             await paint();
-            const textContent = causalComponent.querySelector('h1').textContent;
+            const textContent = normalizeText(causalComponent.querySelector('h1').textContent);
             assert.equal(textContent, 'Hello from State', 'Should update text content from setting heading state');
           });
 
@@ -338,14 +400,14 @@
             await wait(delay);
             causalComponent.set('heading', 'Hello from Delayed State');
             await paint();
-            const textContent = causalComponent.querySelector('h1').textContent;
+            const textContent = normalizeText(causalComponent.querySelector('h1').textContent);
             assert.equal(textContent, 'Hello from Delayed State', 'Should update text content from setting heading state after a delay');
           });
 
           it('should ignore non-observed attributes', async function () {
             const causalComponent = document.getElementById('causal-with-ignored-attribute');
             await paint();
-            const textContent = causalComponent.querySelector('h1').textContent;
+            const textContent = normalizeText(causalComponent.querySelector('h1').textContent);
             assert.equal(textContent, 'Hello from Internal State', 'Should have initial heading from internal state');
           });
 
@@ -353,7 +415,7 @@
             const causalComponent = document.getElementById('causal');
             if (causalComponent.debug) {
               try {
-                const fn = async () => await causalComponent.effect(42);
+                const fn = async () => await effect(42);
                 assert.throws(await fn(), TypeError);
               } catch (error) {
                 // console.log(error);
@@ -366,21 +428,21 @@
           it('should do nothing if attribute is not set', async function () {
             const updatingComponent = document.getElementById('updating');
             await paint();
-            const textContent = updatingComponent.querySelector('h1').textContent;
+            const textContent = normalizeText(updatingComponent.querySelector('h1').textContent);
             assert.equal(textContent, 'Hello from Server', 'Should not change server-side rendered heading');
           });
 
           it('should update from initial string attribute', async function () {
             const updatingComponent = document.getElementById('updating-with-string-attribute');
             await paint();
-            const textContent = updatingComponent.querySelector('h1').textContent;
+            const textContent = normalizeText(updatingComponent.querySelector('h1').textContent);
             assert.equal(textContent, 'Hello from Attribute', 'Should have initial heading from string attribute');
           });
 
           it('should update from initial integer number attribute', async function () {
             const updatingComponent = document.getElementById('updating-with-number-attribute');
             await paint();
-            const textContent = updatingComponent.querySelector('span').textContent;
+            const textContent = normalizeText(updatingComponent.querySelector('span').textContent);
             assert.equal(textContent, '42', 'Should have initial count from numeric attribute');
           });
 
@@ -409,7 +471,7 @@
             const updatingComponent = document.getElementById('updating-with-string-attribute');
             updatingComponent.setAttribute('heading', 'Hello from Changed Attribute');
             await paint();
-            const textContent = updatingComponent.querySelector('h1').textContent;
+            const textContent = normalizeText(updatingComponent.querySelector('h1').textContent);
             assert.equal(textContent, 'Hello from Changed Attribute', 'Should update text content from setting heading attribute');
           });
 
@@ -417,7 +479,7 @@
             const updatingComponent = document.getElementById('updating-with-number-attribute');
             updatingComponent.setAttribute('count', '0');
             await paint();
-            const textContent = updatingComponent.querySelector('span').textContent;
+            const textContent = normalizeText(updatingComponent.querySelector('span').textContent);
             assert.equal(textContent, '0', 'Should update text content from setting count attribute');
           });
 
@@ -449,7 +511,7 @@
             const updatingComponent = document.getElementById('updating-with-string-attribute');
             updatingComponent.set('title', 'Hello from State');
             await paint();
-            const textContent = updatingComponent.querySelector('h1').textContent;
+            const textContent = normalizeText(updatingComponent.querySelector('h1').textContent);
             assert.equal(textContent, 'Hello from State', 'Should update text content from setting title state');
           });
         });
@@ -459,8 +521,8 @@
           it('should do nothing at all', async function () {
             const orphanComponent = document.getElementById('orphan');
             await paint();
-            const headingContent = orphanComponent.querySelector('h1').textContent;
-            const textContent = orphanComponent.querySelector('p').textContent;
+            const headingContent = normalizeText(orphanComponent.querySelector('h1').textContent);
+            const textContent = normalizeText(orphanComponent.querySelector('p').textContent);
             assert.equal(headingContent, 'Hello from Server', 'Should not change server-side rendered heading');
             assert.equal(textContent, 'Text from Server', 'Should not change server-side rendered text');
           });
@@ -478,7 +540,7 @@
           it('should receive derived state from attribute of parent component', async function () {
             const childComponent = document.getElementById('child');
             await customElements.whenDefined(childComponent.localName);
-            const textContent = childComponent.querySelector('p').textContent;
+            const textContent = normalizeText(childComponent.querySelector('p').textContent);
             assert.equal(textContent, 'Hello from Attribute'.toUpperCase(), 'Should have initial text derived from attribute of parent component');
           });
 
@@ -487,8 +549,8 @@
             const childComponent = document.getElementById('child');
             parentComponent.setAttribute('heading', 'Hello from Changed Attribute');
             await paint();
-            const headingContent = childComponent.querySelector('h1').textContent;
-            const textContent = childComponent.querySelector('p').textContent;
+            const headingContent = normalizeText(childComponent.querySelector('h1').textContent);
+            const textContent = normalizeText(childComponent.querySelector('p').textContent);
             assert.equal(headingContent, 'Hello from Changed Attribute', 'Should have changed heading from attribute of parent component');
             assert.equal(textContent, 'Hello from Changed Attribute'.toUpperCase(), 'Should have changed text derived from attribute of parent component');
           });
@@ -513,15 +575,15 @@
             const increment = counter.querySelector('.increment');
             const value = counter.querySelector('.value');
             assert.equal(counter.get('value'), 42, 'Should have initial value from attribute');
-            assert.equal(value.textContent, '42', 'Should have initial textContent from attribute');
+            assert.equal(normalizeText(value.textContent), '42', 'Should have initial textContent from attribute');
             decrement.click();
             assert.equal(counter.get('value'), 41, 'Should decrement value');
             await paint();
-            assert.equal(value.textContent, '41', 'Should have updated textContent from decrement');
+            assert.equal(normalizeText(value.textContent), '41', 'Should have updated textContent from decrement');
             increment.click();
             assert.equal(counter.get('value'), 42, 'Should increment value');
             await paint();
-            assert.equal(value.textContent, '42', 'Should have updated textContent from increment');
+            assert.equal(normalizeText(value.textContent), '42', 'Should have updated textContent from increment');
           });
 
           it('should update derived values', async function () {
@@ -530,12 +592,12 @@
             const increment = counter.querySelector('.increment');
             const parity = counter.querySelector('.parity');
             const double = counter.querySelector('.double');
-            assert.equal(parity.textContent, 'even', 'Should have derived parity textContent from attribute');
-            assert.equal(double.textContent, '84', 'Should have derived double textContent from attribute');
+            assert.equal(normalizeText(parity.textContent), 'even', 'Should have derived parity textContent from attribute');
+            assert.equal(normalizeText(double.textContent), '84', 'Should have derived double textContent from attribute');
             decrement.click();
             await paint();
-            assert.equal(parity.textContent, 'odd', 'Should have changed derived parity textContent');
-            assert.equal(double.textContent, '82', 'Should have decremented derived double textContent');
+            assert.equal(normalizeText(parity.textContent), 'odd', 'Should have changed derived parity textContent');
+            assert.equal(normalizeText(double.textContent), '82', 'Should have decremented derived double textContent');
           });
 
         });
@@ -546,10 +608,10 @@
             const configurator = document.querySelector('greeting-configurator');
             const helloWorld = configurator.querySelector('hello-world');
             const greeting = helloWorld.querySelector('p');
-            assert.equal(greeting.textContent, 'Hello Jane', 'Should have initial greeting');
+            assert.equal(normalizeText(greeting.textContent), 'Hello Jane', 'Should have initial greeting');
             helloWorld.set('greeting', 'Hi');
             await paint();
-            assert.equal(greeting.textContent, 'Hi Jane', 'Should have updated greeting from state');
+            assert.equal(normalizeText(greeting.textContent), 'Hi Jane', 'Should have updated greeting from state');
           });
 
           it('should update name if first name changes', async function () {
@@ -561,7 +623,7 @@
             input.value = 'Esther';
             input.dispatchEvent(new Event('change'));
             await paint();
-            assert.equal(greeting.textContent, 'Hi Esther', 'Should update if first name changes');
+            assert.equal(normalizeText(greeting.textContent), 'Hi Esther', 'Should update if first name changes');
           });
 
           it('should not update name if last name changes', async function () {
@@ -573,7 +635,7 @@
             input.value = 'Brunner';
             input.dispatchEvent(new Event('change'));
             await paint();
-            assert.equal(greeting.textContent, 'Hi Esther', 'Should not update if last name changes');
+            assert.equal(normalizeText(greeting.textContent), 'Hi Esther', 'Should not update if last name changes');
           });
 
           it('should update greeting if use fullname is checked or unchecked', async function () {
@@ -585,11 +647,11 @@
             input.checked = true;
             input.dispatchEvent(new Event('change'));
             await paint();
-            assert.equal(greeting.textContent, 'Hi Esther Brunner', 'Should update if use fullname is checked');
+            assert.equal(normalizeText(greeting.textContent), 'Hi Esther Brunner', 'Should update if use fullname is checked');
             input.checked = false;
             input.dispatchEvent(new Event('change'));
             await paint();
-            assert.equal(greeting.textContent, 'Hi Esther', 'Should update if use fullname is unchecked');
+            assert.equal(normalizeText(greeting.textContent), 'Hi Esther', 'Should update if use fullname is unchecked');
           });
 
         });

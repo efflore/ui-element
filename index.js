@@ -1,6 +1,6 @@
 /**
  * @name UIElement
- * @version 0.6.0
+ * @version 0.7.0
  */
 
 /* === Internal variables and functions to the module === */
@@ -14,18 +14,18 @@
 const isFunction = fn => typeof fn === 'function';
 
 // hold the currently active effect
-let active;
+let activeEffect;
 
 /**
- * Define a state and return an object duck-typing Signal.State instances
+ * Define a reactive state
  * 
  * @since 0.1.0
- * @param {any} value - initial value of the state; may be a function to be called on first access
- * @returns {{ (): any; set: (value: any) => any; }} getter function for the current value with a `set` method to update the value
+ * @param {any} value - initial value of the state; may be a function for derived state
+ * @returns {import('./types').FxState} getter function for the current value with a `set` method to update the value
  */
 const cause = value => {
   const s = () => { // getter function
-    active && s.e.add(active);
+    activeEffect && s.e.add(activeEffect);
     return value;
   };
   s.e = new Set(); // set of listeners
@@ -39,16 +39,102 @@ const cause = value => {
   return s;
 };
 
+/* === Exported functions === */
+
+/**
+ * Recursivlely unwrap a given variable if it is a function
+ * 
+ * @param {any} value
+ * @returns {any} unwrapped variable
+ */
+const unwrap = value => isFunction(value) ? unwrap(value()) : value;
+
+/**
+ * Define what happens when a reactive state changes
+ * 
+ * @since 0.1.0
+ * @param {import('./types').FxEffectCallback} fn - callback function to be executed when a state changes
+ */
+const effect = fn => {
+  const targets = new Map();
+
+  /**
+   * @since 0.6.1
+   * 
+   * @param {Element} element - target element
+   * @param {import('./types').FxDOMInstruction} domFn 
+   * @param  {any} key
+   * @param  {any} value
+   */
+  const enqueue = (element, domFn, key, value) => {
+    !targets.has(element) && targets.set(element, new Map());
+    const instructions = targets.get(element);
+    !instructions.has(domFn) && instructions.set(domFn, new Map());
+    const argsMap = instructions.get(domFn);
+    key && argsMap.set(key, value);
+  };
+  
+  // effect callback function
+  const next = () => queueMicrotask(() => { 
+    const prev = activeEffect;
+    activeEffect = next;
+    const cleanup = fn(enqueue);
+    activeEffect = prev;
+    // flush all queued instructions
+    for (const [element, instructions] of targets.entries()) {
+      for (const [domFn, argsMap] of instructions.entries()) {
+        for (const [key, value] of argsMap.entries()) domFn(element, key, value);
+      }
+    }
+    // @ts-ignore
+    isFunction(cleanup) && cleanup();
+  });
+  next.targets = targets;
+  next();
+}
+
+/**
+ * Parse a boolean attribute to an actual boolean value
+ * 
+ * @param {string|undefined} value 
+ * @returns {boolean}
+ */
+const asBoolean = value => typeof value === 'string';
+
+/**
+ * Parse an attribute to a number forced to integer
+ * 
+ * @param {string} value 
+ * @returns {number}
+ */
+const asInteger = value => parseInt(value, 10);
+
+/**
+ * Parse an attribute to a number
+ * 
+ * @param {string} value 
+ * @returns {number}
+ */
+const asNumber = value => parseFloat(value);
+
+/**
+ * Parse an attribute to a string
+ * 
+ * @param {string} value
+ * @returns {string}
+ */
+const asString = value => value;
+
 /* === Default export === */
 
 /**
- * Base class for reactive custom elements, usually called UIElement
+ * Base class for reactive custom elements
  * 
  * @class
  * @extends HTMLElement
- * @type {import("./types").UIElement}
+ * @type {import('./types').UIElement}
  */
-export default class extends HTMLElement {
+export default class UIElement extends HTMLElement {
 
   /**
    * Define a custom element in the custom element registry
@@ -68,7 +154,7 @@ export default class extends HTMLElement {
   /**
    * @since 0.5.0
    * @property
-   * @type {Record<string, import("./types").AttributeParser|import("./types").MappedAttributeParser>}
+   * @type {import('./types').AttributeMap}
    */
   attributeMap = {};
 
@@ -86,14 +172,8 @@ export default class extends HTMLElement {
   attributeChangedCallback(name, old, value) {
     if (value !== old) {
       const input = this.attributeMap[name];
-      const [key, type] = Array.isArray(input) ? input : [name, input];
-      const parser = {
-        boolean: (/** @type {string|undefined} */ v) => typeof v === 'string' ? true : false,
-        integer: (/** @type {string} */ v) => parseInt(v, 10),
-        number: (/** @type {string} */ v) => parseFloat(v),
-      };
-      const fn = isFunction(type) ? type : parser[type];
-      this.set(key, fn ? fn(value, old) : value);
+      const [key, parser] = Array.isArray(input) ? input : [name, input];
+      this.set(key, isFunction(parser) ? parser(value, this, old) : value);
     }
   }
 
@@ -102,7 +182,7 @@ export default class extends HTMLElement {
    * 
    * @since 0.2.0
    * @param {PropertyKey} key - state to be checked
-   * @returns {boolean} `true` if this element has state with the passed key; `false` otherwise
+   * @returns {boolean} `true` if this element has state with the given key; `false` otherwise
    */
   has(key) {
     return this.#state.has(key);
@@ -116,7 +196,6 @@ export default class extends HTMLElement {
    * @returns {any} current value of state; undefined if state does not exist
    */
   get(key) {
-    const unwrap = (/** @type {() => any} */ value) => isFunction(value) ? unwrap(value()) : value;
     return unwrap(this.#state.get(key));
   }
 
@@ -153,64 +232,33 @@ export default class extends HTMLElement {
    * Pass states to a child element
    * 
    * @since 0.5.0
-   * @param {import("./types").UIElement} element - child element to pass the states to
-   * @param {Record<PropertyKey, PropertyKey | { (): any; set?: (value: any) => any; }>} states - object of states to be passed
+   * @param {import('./types').UIElement} element - child element to pass the states to
+   * @param {import('./types').FxStateMap} states - object of states to be passed
    * @param {CustomElementRegistry} [registry=customElements] - custom element registry to be used; defaults to `customElements`
    */
-  pass(element, states, registry = customElements) {
-    registry.whenDefined(element.localName).then(() => {
-      for (const [key, source] of Object.entries(states)) {
-        element.set(key, cause(isFunction(source) ? source : this.#state.get(source)));
-      }
-    });
+  async pass(element, states, registry = customElements) {
+    await registry.whenDefined(element.localName);
+    for (const [key, source] of Object.entries(states)) {
+      element.set(key, cause(isFunction(source) ? source : this.#state.get(source)));
+    }
   }
 
   /**
-   * Define what happens when a reactive state changes
+   * Return a set of elements that have effects dependent on the given state
    * 
-   * @since 0.1.0
-   * @param {import("./types").EffectCallback} fn - callback function to be executed when a state changes
+   * @since 0.7.0
+   * 
+   * @param {PropertyKey} key - state to get targets for
+   * @returns {Set<Element>} set of elements that have effects dependent on the given state
    */
-  effect(fn) {
-    fn.targets = new Map();
-
-    /**
-     * @since 0.6.1
-     * 
-     * @param {Element} element 
-     * @param {import("./types").DOMUpdater} domFn 
-     * @param  {any} key
-     * @param  {any} value
-     * @returns {Map<any, any>}
-     */
-    const queue = (element, domFn, key, value) => {
-      !fn.targets.has(element) && fn.targets.set(element, new Map());
-      const domFns = fn.targets.get(element);
-      !domFns.has(domFn) && domFns.set(domFn, new Map());
-      const argsMap = domFns.get(domFn);
-      key && argsMap.set(key, value);
-      return argsMap;
-    };
-
-    // effect callback function
-    const next = () => {
-      queueMicrotask(() => {
-        const prev = active;
-        active = next;
-        const cleanup = fn(queue);
-        active = prev;
-
-        // flush all queued effects
-        for (const [el, domFns] of fn.targets.entries()) {
-          for (const [domFn, argsMap] of domFns.entries()) {
-            for (const [key, value] of argsMap.entries()) domFn(el, key, value);
-          }
-        }
-        // @ts-ignore
-        isFunction(cleanup) && cleanup();
-      });
+  targets(key) {
+    const targets = new Set();
+    for (const effect of this.#state.get(key).e) {
+      for (const target of effect.targets.keys()) targets.add(target);
     }
-    next();
+    return targets;
   }
 
 }
+
+export { effect, asBoolean, asInteger, asNumber, asString, unwrap };
