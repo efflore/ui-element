@@ -8,7 +8,6 @@
     "build": "terser index.js -c -m -o index.min.js --module",
     "build-cause-effect": "terser lib/cause-effect.js -c -m -o lib/cause-effect.min.js --module",
     "build-context-controller": "terser lib/context-controller.js -c -m -o lib/context-controller.min.js --module",
-    "build-debug-element": "terser lib/debug-element.js -c -m -o lib/debug-element.min.js --module",
     "build-dom-utils": "terser lib/dom-utils.js -c -m -o lib/dom-utils.min.js --module",
     "build-visibility-observer": "terser lib/visibility-observer.js -c -m -o lib/visibility-observer.min.js --module",
     "lint": "npx eslint index.js",

@@ -13,8 +13,35 @@
  */
 const isFunction = fn => typeof fn === 'function';
 
+/**
+ * Recursively nest a map
+ * 
+ * @param {Map} map - map to nest
+ * @param {...any} args - key(s) to nest the map under
+ * @returns {Map} nested map
+ */
+const nestMap = (map, ...args) => {
+  const key = args.shift();
+  !map.has(key) && map.set(key, new Map());
+  return args.length ? nestMap(map.get(key), ...args) : map.get(key);
+}
+
+/**
+ * Recursively unnest a map
+ * 
+ * @param {Map} map - map to unnest
+ * @returns {any[]} unnested array
+ */
+const unnestMap = map => {
+  const result = [];
+  for (const [key, value] of map) {
+    (value instanceof Map) ? result.push(key, ...unnestMap(value)) : result.push(key, value);
+  }
+  return result;
+}
+
 // hold the currently active effect
-let activeEffect;
+let active;
 
 /**
  * Define a reactive state
@@ -24,30 +51,22 @@ let activeEffect;
  * @returns {import('./types').FxState} getter function for the current value with a `set` method to update the value
  */
 const cause = value => {
-  const s = () => { // getter function
-    activeEffect && s.e.add(activeEffect);
+  const state = () => { // getter function
+    active && state.effects.add(active);
     return value;
   };
-  s.e = new Set(); // set of listeners
-  s.set = (/** @type {any} */ updater) => { // setter function
+  state.effects = new Set(); // set of listeners
+  state.set = (/** @type {any} */ updater) => { // setter function
     const old = value;
     value = isFunction(updater) && !isFunction(value.set) ? updater(old) : updater;
     if (!Object.is(value, old)) {
-      for (const e of s.e) e();
+      for (const effect of state.effects) effect();
     }
   };
-  return s;
+  return state;
 };
 
 /* === Exported functions === */
-
-/**
- * Recursivlely unwrap a given variable if it is a function
- * 
- * @param {any} value
- * @returns {any} unwrapped variable
- */
-const unwrap = value => isFunction(value) ? unwrap(value()) : value;
 
 /**
  * Define what happens when a reactive state changes
@@ -60,32 +79,22 @@ const effect = fn => {
 
   /**
    * @since 0.6.1
-   * 
    * @param {Element} element - target element
    * @param {import('./types').FxDOMInstruction} domFn 
-   * @param  {any} key
-   * @param  {any} value
+   * @param {any} key
+   * @param {any} value
    */
-  const enqueue = (element, domFn, key, value) => {
-    !targets.has(element) && targets.set(element, new Map());
-    const instructions = targets.get(element);
-    !instructions.has(domFn) && instructions.set(domFn, new Map());
-    const argsMap = instructions.get(domFn);
-    key && argsMap.set(key, value);
-  };
+  const enqueue = (element, domFn, key, value) => nestMap(targets, element, domFn).set(key, value);
   
   // effect callback function
   const next = () => queueMicrotask(() => { 
-    const prev = activeEffect;
-    activeEffect = next;
+    const prev = active;
+    active = next;
     const cleanup = fn(enqueue);
-    activeEffect = prev;
+    active = prev;
     // flush all queued instructions
-    for (const [element, instructions] of targets.entries()) {
-      for (const [domFn, argsMap] of instructions.entries()) {
-        for (const [key, value] of argsMap.entries()) domFn(element, key, value);
-      }
-    }
+    const [element, domFn, key, value] = unnestMap(targets);
+    isFunction(domFn) && domFn(element, key, value);
     // @ts-ignore
     isFunction(cleanup) && cleanup();
   });
@@ -94,8 +103,18 @@ const effect = fn => {
 }
 
 /**
+ * Recursivlely unwrap a given variable if it is a function
+ * 
+ * @since 0.7.0
+ * @param {any} value
+ * @returns {any} unwrapped variable
+ */
+const unwrap = value => isFunction(value) ? unwrap(value()) : value;
+
+/**
  * Parse a boolean attribute to an actual boolean value
  * 
+ * @since 0.7.0
  * @param {string|undefined} value 
  * @returns {boolean}
  */
@@ -104,6 +123,7 @@ const asBoolean = value => typeof value === 'string';
 /**
  * Parse an attribute to a number forced to integer
  * 
+ * @since 0.7.0
  * @param {string} value 
  * @returns {number}
  */
@@ -112,6 +132,7 @@ const asInteger = value => parseInt(value, 10);
 /**
  * Parse an attribute to a number
  * 
+ * @since 0.7.0
  * @param {string} value 
  * @returns {number}
  */
@@ -120,6 +141,7 @@ const asNumber = value => parseFloat(value);
 /**
  * Parse an attribute to a string
  * 
+ * @since 0.7.0
  * @param {string} value
  * @returns {string}
  */
@@ -229,7 +251,7 @@ export default class UIElement extends HTMLElement {
   }
 
   /**
-   * Pass states to a child element
+   * Passes states from the current UIElement to another UIElement
    * 
    * @since 0.5.0
    * @param {import('./types').UIElement} element - child element to pass the states to
@@ -244,16 +266,15 @@ export default class UIElement extends HTMLElement {
   }
 
   /**
-   * Return a set of elements that have effects dependent on the given state
+   * Return a Set of elements that have effects dependent on the given state
    * 
    * @since 0.7.0
-   * 
    * @param {PropertyKey} key - state to get targets for
    * @returns {Set<Element>} set of elements that have effects dependent on the given state
    */
   targets(key) {
     const targets = new Set();
-    for (const effect of this.#state.get(key).e) {
+    for (const effect of this.#state.get(key).effects) {
       for (const target of effect.targets.keys()) targets.add(target);
     }
     return targets;

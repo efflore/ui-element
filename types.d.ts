@@ -4,17 +4,6 @@ declare function derive(fn: () => any): () => void;
 declare function effect(fn: () => void | (() => void)): () => void;
 */
 
-
-export interface FxEffect {
-  fn: FxEffectCallback;
-  cleanup?: FxMaybeCleanup;
-}
-export interface FxState {
-  (): any;
-  e?: Set<FxEffect>;
-  set?(value: any): void;
-}
-
 export type FxDOMInstruction = (
   element: Element,
   key: any,
@@ -22,6 +11,12 @@ export type FxDOMInstruction = (
 ) => any;
 
 export type FxDOMInstructionMap = Map<FxDOMInstruction, Map<any, any>>;
+
+export type FxState = {
+  (): any;
+  effects?: Set<{(): void; targets: Map<Element, FxDOMInstructionMap>}>;
+  set?(value: any): void;
+}
 
 export type FxDOMInstructionQueue = (
   element: Element,
@@ -106,9 +101,7 @@ declare function autoEffects(element: UIElement): void;
 
 /* Debug Element */
 export class DebugElement extends UIElement {
-  debug: boolean;
   log: () => void;
-  error: () => void;
 }
 
 /* Context Controller */
