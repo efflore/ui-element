@@ -3,6 +3,10 @@
  * @version 0.7.0
  */
 
+/* === Constants === */
+
+const CONTEXT_REQUEST = 'context-request';
+
 /* === Internal variables and functions to the module === */
 
 /**
@@ -147,12 +151,37 @@ const asNumber = value => parseFloat(value);
  */
 const asString = value => value;
 
+/**
+ * Class for context-request events
+ * 
+ * @class ContextRequestEvent
+ * @extends {Event}
+ * 
+ * @property {PropertyKey} context - context key
+ * @property {import("../types").ContextCallback<import('./types').FxState>} callback - callback function for value getter and unsubscribe function
+ * @property {boolean} [subscribe=false] - whether to subscribe to context changes
+ */
+class ContextRequestEvent extends Event {
+
+  /**
+   * @param {PropertyKey} context - context key
+   * @param {import("./types").ContextCallback<import('./types').FxState>} callback - callback for value getter and unsubscribe function
+   * @param {boolean} [subscribe=false] - whether to subscribe to context changes
+   */
+  constructor(context, callback, subscribe = false) {
+    super(CONTEXT_REQUEST, { bubbles: true, cancelable: true, composed: true });
+    this.context = context;
+    this.callback = callback;
+    this.subscribe = subscribe;
+  }
+}
+
 /* === Default export === */
 
 /**
  * Base class for reactive custom elements
  * 
- * @class
+ * @class UIElement
  * @extends HTMLElement
  * @type {import('./types').UIElement}
  */
@@ -180,8 +209,21 @@ export default class UIElement extends HTMLElement {
    */
   attributeMap = {};
 
+  /**
+   * @since 0.7.0
+   * @property
+   * @type {import('./types').ContextMap}
+   */
+  contextMap = {};
+
   // @private hold states – use `has()`, `get()`, `set()` and `delete()` to access and modify
-  #state = new Map();
+  #states = new Map();
+
+  // @private hold map of published contexts to subscribers (context consumers)
+  #publishedContexts = new Map();
+
+  // @private hold map of subscribed contexts to publishers (context providers)
+  #subscribedContexts = new Map();
 
   /**
    * Native callback function when an observed attribute of the custom element changes
@@ -199,6 +241,55 @@ export default class UIElement extends HTMLElement {
     }
   }
 
+  connectedCallback() {
+    const proto = Object.getPrototypeOf(this);
+
+    // context provider
+    const provided = proto.providedContexts || [];
+    const published = this.#publishedContexts;
+    if (provided.length) {
+
+      // listen to context request events and add subscribers
+      this.addEventListener(CONTEXT_REQUEST, (/** @type {import('./types').ContextRequestEvent} */e) => {
+        const { target, context, callback, subscribe } = e;
+        if (!provided.includes(context) || !isFunction(callback)) return;
+        e.stopPropagation();
+        const value = this.#states.get(context);
+        if (subscribe) {
+          const subscribers = nestMap(published, context);
+          !subscribers.has(target) && subscribers.set(target, callback);
+          callback(value, () => subscribers.delete(target));
+        } else {
+          callback(value);
+        }
+      });
+
+      // context change effects
+      provided.forEach(context => {
+        effect(() => {
+          const subscribers = published.get(context);
+          const value = this.#states.get(context);
+          for (const [target, callback] of subscribers) callback(value, () => subscribers.delete(target));
+        });
+      });
+    }
+
+    // context consumer
+    setTimeout(() => { // wait for all custom elements to be defined
+      proto.consumedContexts?.forEach(context => {
+        const callback = (/** @type {import('./types').FxState} */ value, /** @type {() => void} */ unsubscribe) => {
+          this.#subscribedContexts.set(context, unsubscribe);
+          const input = this.contextMap[context];
+          const [key, fn] = Array.isArray(input) ? input : [context, input];
+          // @ts-ignore
+          this.#states.set(key || context, isFunction(fn) ? fn(value) : value);
+        };
+        const event = new ContextRequestEvent(context, callback, true);
+        this.dispatchEvent(event);
+      });
+    });
+  }
+
   /**
    * Check whether a state is set
    * 
@@ -207,7 +298,7 @@ export default class UIElement extends HTMLElement {
    * @returns {boolean} `true` if this element has state with the given key; `false` otherwise
    */
   has(key) {
-    return this.#state.has(key);
+    return this.#states.has(key);
   }
 
   /**
@@ -218,7 +309,7 @@ export default class UIElement extends HTMLElement {
    * @returns {any} current value of state; undefined if state does not exist
    */
   get(key) {
-    return unwrap(this.#state.get(key));
+    return unwrap(this.#states.get(key));
   }
 
   /**
@@ -230,12 +321,12 @@ export default class UIElement extends HTMLElement {
    * @param {boolean} [update=true] - if `true` (default), the state is updated; if `false`, just return existing value
    */
   set(key, value, update = true) {
-    if (this.#state.has(key)) {
-      const state = this.#state.get(key);
+    if (this.#states.has(key)) {
+      const state = this.#states.get(key);
       update && isFunction(state.set) && state.set(value);
     } else {
       const state = isFunction(value) && isFunction(value.set) ? value : cause(value);
-      this.#state.set(key, state);
+      this.#states.set(key, state);
     }
   }
 
@@ -247,7 +338,7 @@ export default class UIElement extends HTMLElement {
    * @returns {boolean} `true` if the state existed and was deleted; `false` if ignored
    */
   delete(key) {
-    return this.#state.delete(key);
+    return this.#states.delete(key);
   }
 
   /**
@@ -261,7 +352,7 @@ export default class UIElement extends HTMLElement {
   async pass(element, states, registry = customElements) {
     await registry.whenDefined(element.localName);
     for (const [key, source] of Object.entries(states)) {
-      element.set(key, cause(isFunction(source) ? source : this.#state.get(source)));
+      element.set(key, cause(isFunction(source) ? source : this.#states.get(source)));
     }
   }
 
@@ -274,7 +365,7 @@ export default class UIElement extends HTMLElement {
    */
   targets(key) {
     const targets = new Set();
-    for (const effect of this.#state.get(key).effects) {
+    for (const effect of this.#states.get(key).effects) {
       for (const target of effect.targets.keys()) targets.add(target);
     }
     return targets;
@@ -282,4 +373,4 @@ export default class UIElement extends HTMLElement {
 
 }
 
-export { effect, asBoolean, asInteger, asNumber, asString, unwrap };
+export { effect, unwrap, asBoolean, asInteger, asNumber, asString, ContextRequestEvent };

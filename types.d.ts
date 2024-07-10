@@ -53,16 +53,40 @@ export type FxContextParser = ((
 
 export type FxMappedContextParser = [PropertyKey, FxContextParser];
 
+export type Context<KeyType, ValueType> = KeyType & {__context__: ValueType};
+
+export type UnknownContext = Context<unknown, unknown>;
+
 export type ContextMap = Record<PropertyKey, FxContextParser | FxMappedContextParser>;
 
-export type ContextRequestEventCallback = (
-  value: FxFunctionOrSignal,
+export type ContextType<T extends UnknownContext> = T extends Context<infer _, infer V> ? V : never;
+
+export type ContextCallback<ValueType> = (
+  value: ValueType,
   unsubscribe?: () => void
 ) => void;
 
+export class ContextRequestEvent<T extends UnknownContext> extends Event {
+  context: T;
+  callback: ContextCallback<ContextType<T>>;
+  subscribe?: boolean;
+  
+  public constructor(
+    context: T,
+    callback: ContextCallback<ContextType<T>>,
+    subscribe?: boolean
+  );
+}
+
+declare global {
+  interface HTMLElementEventMap {
+    'context-request': ContextRequestEvent<Context<unknown, unknown>>;
+  }
+}
+
 export class UIElement extends HTMLElement {
   static providedContexts?: string[];
-  static observedContexts?: string[];
+  static consumedContexts?: string[];
   static define(
     tag: string,
     registry?: CustomElementRegistry
@@ -105,16 +129,8 @@ export class DebugElement extends UIElement {
 }
 
 /* Context Controller */
-export class ContextRequestEvent {
-  context: PropertyKey;
-  callback: ContextRequestEventCallback;
-  subscribe?: boolean;
-  constructor(
-    context: PropertyKey,
-    callback: ContextRequestEventCallback,
-    subscribe?: boolean
-  );
-}
+
+
 export class ContextProvider {
   constructor(element: UIElement);
   disconnect(): void;
