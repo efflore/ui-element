@@ -78,12 +78,6 @@ export class ContextRequestEvent<T extends UnknownContext> extends Event {
   );
 }
 
-declare global {
-  interface HTMLElementEventMap {
-    'context-request': ContextRequestEvent<Context<unknown, unknown>>;
-  }
-}
-
 export class UIElement extends HTMLElement {
   static providedContexts?: string[];
   static consumedContexts?: string[];
