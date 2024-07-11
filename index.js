@@ -2,21 +2,6 @@
 /* === Internal === */
 // hold the currently active effect
 let active;
-/* === Exported === */
-/**
- * Check if a given variable is a function
- *
- * @param {unknown} fn - variable to check if it is a function
- * @returns {boolean} true if supplied parameter is a function
- */
-const isFunction = (fn) => typeof fn === 'function';
-/**
- * Check if a given variable is a reactive state
- *
- * @param {unknown} value - variable to check if it is a reactive state
- * @returns {boolean} true if supplied parameter is a reactive state
- */
-const isState = (value) => isFunction(value) && isFunction(value.set);
 /**
  * Recursively nest a map
  *
@@ -51,6 +36,20 @@ const queue = () => {
     return [targets, enqueue, flush];
 };
 /* === Exported functions === */
+/**
+ * Check if a given variable is a function
+ *
+ * @param {unknown} fn - variable to check if it is a function
+ * @returns {boolean} true if supplied parameter is a function
+ */
+const isFunction = (fn) => typeof fn === 'function';
+/**
+ * Check if a given variable is a reactive state
+ *
+ * @param {unknown} value - variable to check if it is a reactive state
+ * @returns {boolean} true if supplied parameter is a reactive state
+ */
+const isState = (value) => isFunction(value) && isFunction(value.set);
 /**
  * Define a reactive state
  *
@@ -203,10 +202,6 @@ class UIElement extends HTMLElement {
     contextMap = {};
     // @private hold states – use `has()`, `get()`, `set()` and `delete()` to access and modify
     #states = new Map();
-    // @private hold map of published contexts to subscribers (context consumers)
-    #publishedContexts = new Map();
-    // @private hold map of subscribed contexts to publishers (context providers)
-    #subscribedContexts = new Map();
     /**
      * Native callback function when an observed attribute of the custom element changes
      *
@@ -224,46 +219,25 @@ class UIElement extends HTMLElement {
     }
     connectedCallback() {
         const proto = Object.getPrototypeOf(this);
-        // context provider
+        // context provider: listen to context request events
         const provided = proto.providedContexts || [];
-        const published = this.#publishedContexts;
         if (provided.length) {
-            // listen to context request events and add subscribers
             this.addEventListener(CONTEXT_REQUEST, (e) => {
-                const { target, context, callback, subscribe } = e;
+                const { context, callback } = e;
                 if (!provided.includes(context) || !isFunction(callback))
                     return;
                 e.stopPropagation();
-                const value = this.#states.get(context);
-                if (subscribe) {
-                    const subscribers = nestMap(published, context);
-                    !subscribers.has(target) && subscribers.set(target, callback);
-                    callback(value, () => subscribers.delete(target));
-                }
-                else {
-                    callback(value);
-                }
-            });
-            // context change effects
-            provided.forEach((context) => {
-                effect(() => {
-                    const subscribers = published.get(context);
-                    const value = this.#states.get(context);
-                    for (const [target, callback] of subscribers)
-                        callback(value, () => subscribers.delete(target));
-                });
+                callback(this.#states.get(context));
             });
         }
         // context consumer
         setTimeout(() => {
             proto.consumedContexts?.forEach((context) => {
-                const callback = (value, unsubscribe) => {
-                    this.#subscribedContexts.set(context, unsubscribe);
+                const event = new ContextRequestEvent(context, (value) => {
                     const input = this.contextMap[context];
                     const [key, fn] = Array.isArray(input) ? input : [context, input];
                     this.#states.set(key || context, isFunction(fn) ? fn(value, this) : value);
-                };
-                const event = new ContextRequestEvent(context, callback, true);
+                });
                 this.dispatchEvent(event);
             });
         });

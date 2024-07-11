@@ -1,4 +1,4 @@
-import { type FxState, isFunction, isState, nestMap, cause, effect } from './lib/cause-effect';
+import { type FxState, isFunction, isState, cause, effect } from './lib/cause-effect';
 
 /**
  * @name UIElement
@@ -167,12 +167,6 @@ class UIElement extends HTMLElement {
   // @private hold states – use `has()`, `get()`, `set()` and `delete()` to access and modify
   #states = new Map();
 
-  // @private hold map of published contexts to subscribers (context consumers)
-  #publishedContexts = new Map();
-
-  // @private hold map of subscribed contexts to publishers (context providers)
-  #subscribedContexts = new Map();
-
   /**
    * Native callback function when an observed attribute of the custom element changes
    * 
@@ -192,46 +186,25 @@ class UIElement extends HTMLElement {
   connectedCallback() {
     const proto = Object.getPrototypeOf(this);
 
-    // context provider
+    // context provider: listen to context request events
     const provided = proto.providedContexts || [];
-    const published = this.#publishedContexts;
     if (provided.length) {
-
-      // listen to context request events and add subscribers
       this.addEventListener(CONTEXT_REQUEST, (e: ContextRequestEvent<PropertyKey, FxState>) => {
-        const { target, context, callback, subscribe } = e;
+        const { context, callback } = e;
         if (!provided.includes(context) || !isFunction(callback)) return;
         e.stopPropagation();
-        const value = this.#states.get(context);
-        if (subscribe) {
-          const subscribers = nestMap(published, context);
-          !subscribers.has(target) && subscribers.set(target, callback);
-          callback(value, () => subscribers.delete(target));
-        } else {
-          callback(value);
-        }
-      });
-
-      // context change effects
-      provided.forEach((context: PropertyKey) => {
-        effect(() => {
-          const subscribers = published.get(context);
-          const value = this.#states.get(context);
-          for (const [target, callback] of subscribers) callback(value, () => subscribers.delete(target));
-        });
+        callback(this.#states.get(context));
       });
     }
 
     // context consumer
     setTimeout(() => { // wait for all custom elements to be defined
       proto.consumedContexts?.forEach((context: PropertyKey) => {
-        const callback = (value: FxState, unsubscribe: () => void) => {
-          this.#subscribedContexts.set(context, unsubscribe);
+        const event = new ContextRequestEvent(context, (value: FxState) => {
           const input = this.contextMap[context];
           const [key, fn] = Array.isArray(input) ? input : [context, input];
           this.#states.set(key || context, isFunction(fn) ? fn(value, this) : value);
-        };
-        const event = new ContextRequestEvent(context, callback, true);
+        });
         this.dispatchEvent(event);
       });
     });

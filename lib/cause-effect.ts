@@ -26,24 +26,6 @@ type FxEffectCallback = (queue: FxDOMInstructionQueue) => FxMaybeCleanup;
 // hold the currently active effect
 let active: FxEffect | undefined;
 
-/* === Exported === */
-
-/**
- * Check if a given variable is a function
- * 
- * @param {unknown} fn - variable to check if it is a function
- * @returns {boolean} true if supplied parameter is a function
- */
-const isFunction = (fn: unknown): fn is Function => typeof fn === 'function';
-
-/**
- * Check if a given variable is a reactive state
- * 
- * @param {unknown} value - variable to check if it is a reactive state
- * @returns {boolean} true if supplied parameter is a reactive state
- */
-const isState = (value: unknown): value is FxState => isFunction(value) && isFunction((value as FxState).set);
-
 /**
  * Recursively nest a map
  * 
@@ -79,6 +61,22 @@ const queue = (): [Map<Element, FxDOMInstructionMap>, FxDOMInstructionQueue, () 
 };
 
 /* === Exported functions === */
+
+/**
+ * Check if a given variable is a function
+ * 
+ * @param {unknown} fn - variable to check if it is a function
+ * @returns {boolean} true if supplied parameter is a function
+ */
+const isFunction = (fn: unknown): fn is Function => typeof fn === 'function';
+
+/**
+ * Check if a given variable is a reactive state
+ * 
+ * @param {unknown} value - variable to check if it is a reactive state
+ * @returns {boolean} true if supplied parameter is a reactive state
+ */
+const isState = (value: unknown): value is FxState => isFunction(value) && isFunction((value as FxState).set);
 
 /**
  * Define a reactive state
@@ -134,4 +132,4 @@ const effect = (fn: FxEffectCallback) => {
   next();
 }
 
-export { type FxState, isFunction, isState, nestMap, cause, derive, effect };
+export { type FxState, isFunction, isState, cause, derive, effect };

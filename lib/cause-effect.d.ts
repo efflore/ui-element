@@ -27,14 +27,6 @@ declare const isFunction: (fn: unknown) => fn is Function;
  */
 declare const isState: (value: unknown) => value is FxState;
 /**
- * Recursively nest a map
- *
- * @param {Map<unknown, unknown>} map - map to nest
- * @param {...unknown} args - key(s) to nest the map under
- * @returns {Map<unknown, unknown>} nested map
- */
-declare const nestMap: (map: Map<unknown, unknown>, ...args: unknown[]) => Map<unknown, unknown>;
-/**
  * Define a reactive state
  *
  * @since 0.1.0
@@ -57,4 +49,4 @@ declare const derive: (fn: () => unknown) => (() => unknown);
  * @param {FxEffectCallback} fn - callback function to be executed when a state changes
  */
 declare const effect: (fn: FxEffectCallback) => void;
-export { type FxState, isFunction, isState, nestMap, cause, derive, effect };
+export { type FxState, isFunction, isState, cause, derive, effect };
