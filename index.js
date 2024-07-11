@@ -1,10 +1,8 @@
-/**
- * @name UIElement
- * @version 0.7.0
- */
-/* === Constants === */
-const CONTEXT_REQUEST = 'context-request';
-/* === Internal variables and functions to the module === */
+/* === Types === */
+/* === Internal === */
+// hold the currently active effect
+let active;
+/* === Exported === */
 /**
  * Check if a given variable is a function
  *
@@ -12,6 +10,13 @@ const CONTEXT_REQUEST = 'context-request';
  * @returns {boolean} true if supplied parameter is a function
  */
 const isFunction = (fn) => typeof fn === 'function';
+/**
+ * Check if a given variable is a reactive state
+ *
+ * @param {unknown} value - variable to check if it is a reactive state
+ * @returns {boolean} true if supplied parameter is a reactive state
+ */
+const isState = (value) => isFunction(value) && isFunction(value.set);
 /**
  * Recursively nest a map
  *
@@ -22,10 +27,30 @@ const isFunction = (fn) => typeof fn === 'function';
 const nestMap = (map, ...args) => {
     const key = args.shift();
     !map.has(key) && map.set(key, new Map());
-    return args.length ? nestMap(map.get(key), ...args) : map.get(key);
+    const submap = map.get(key);
+    return args.length ? nestMap(submap, ...args) : submap;
 };
-// hold the currently active effect
-let active;
+/**
+ * Create a new DOM instruction queue
+ *
+ * @returns {[Map<Element, FxDOMInstructionMap>, FxDOMInstructionQueue]} - tuple containing the targets map and a function to enqueue DOM instructions
+ */
+const queue = () => {
+    const targets = new Map();
+    const enqueue = (element, domFn, key, value) => {
+        nestMap(targets, element, domFn).set(key, value);
+    };
+    const flush = () => {
+        for (const [el, domFns] of targets) {
+            for (const [domFn, argsMap] of domFns) {
+                for (const [key, value] of argsMap)
+                    domFn(el, key, value);
+            }
+        }
+    };
+    return [targets, enqueue, flush];
+};
+/* === Exported functions === */
 /**
  * Define a reactive state
  *
@@ -41,7 +66,7 @@ const cause = (value) => {
     state.effects = new Set(); // set of listeners
     state.set = (updater) => {
         const old = value;
-        value = isFunction(updater) && !isFunction(value.set) ? updater(old) : updater;
+        value = isFunction(updater) && !isState(updater) ? updater(old) : updater;
         if (!Object.is(value, old)) {
             for (const effect of state.effects)
                 effect();
@@ -49,7 +74,6 @@ const cause = (value) => {
     };
     return state;
 };
-/* === Exported functions === */
 /**
  * Define what happens when a reactive state changes
  *
@@ -57,33 +81,24 @@ const cause = (value) => {
  * @param {FxEffectCallback} fn - callback function to be executed when a state changes
  */
 const effect = (fn) => {
-    const targets = new Map();
-    /**
-     * @since 0.6.1
-     * @param {Element} element - target element
-     * @param {FxDOMInstruction} domFn
-     * @param {unknown} key
-     * @param {unknown} value
-     */
-    const enqueue = (element, domFn, key, value) => nestMap(targets, element, domFn).set(key, value);
-    // effect callback function
-    const next = () => queueMicrotask(() => {
+    const [targets, enqueue, flush] = queue();
+    const next = () => {
         const prev = active;
         active = next;
         const cleanup = fn(enqueue);
         active = prev;
-        // flush all queued instructions
-        for (const [el, domFns] of targets) {
-            for (const [domFn, argsMap] of domFns) {
-                for (const [key, value] of argsMap)
-                    domFn(el, key, value);
-            }
-        }
-        isFunction(cleanup) && cleanup();
-    });
+        queueMicrotask(() => {
+            flush();
+            isFunction(cleanup) && cleanup();
+        });
+    };
     next.targets = targets;
     next();
 };
+
+/* === Constants === */
+const CONTEXT_REQUEST = 'context-request';
+/* === Exported functions === */
 /**
  * Recursivlely unwrap a given variable if it is a function
  *
@@ -246,7 +261,7 @@ class UIElement extends HTMLElement {
                     this.#subscribedContexts.set(context, unsubscribe);
                     const input = this.contextMap[context];
                     const [key, fn] = Array.isArray(input) ? input : [context, input];
-                    this.#states.set(key || context, isFunction(fn) ? fn(value) : value);
+                    this.#states.set(key || context, isFunction(fn) ? fn(value, this) : value);
                 };
                 const event = new ContextRequestEvent(context, callback, true);
                 this.dispatchEvent(event);
@@ -284,10 +299,10 @@ class UIElement extends HTMLElement {
     set(key, value, update = true) {
         if (this.#states.has(key)) {
             const state = this.#states.get(key);
-            update && isFunction(state.set) && state.set(value);
+            update && isState(state) && state.set(value);
         }
         else {
-            const state = isFunction(value) && isFunction(value.set) ? value : cause(value);
+            const state = isState(value) ? value : cause(value);
             this.#states.set(key, state);
         }
     }

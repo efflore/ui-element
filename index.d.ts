@@ -1,21 +1,8 @@
+import { type FxState, effect } from './lib/cause-effect';
 /**
  * @name UIElement
  * @version 0.7.0
  */
-export type FxDOMInstruction = (element: Element, key: unknown, value?: unknown) => unknown;
-export type FxDOMInstructionMap = Map<FxDOMInstruction, Map<unknown, unknown>>;
-export type FxEffect = {
-    (): void;
-    targets: Map<Element, FxDOMInstructionMap>;
-};
-export type FxState = {
-    (): unknown;
-    effects?: Set<FxEffect>;
-    set?(value: unknown): void;
-};
-export type FxDOMInstructionQueue = (element: Element, domFn: FxDOMInstruction, key: unknown, value: unknown) => void;
-export type FxMaybeCleanup = void | (() => void);
-export type FxEffectCallback = (queue: FxDOMInstructionQueue) => FxMaybeCleanup;
 export type FxAttributeParser = ((value: string | undefined, element: HTMLElement, old: string | undefined) => unknown) | undefined;
 export type FxMappedAttributeParser = [PropertyKey, FxAttributeParser];
 export type AttributeMap = Record<string, FxAttributeParser | FxMappedAttributeParser>;
@@ -34,13 +21,6 @@ declare global {
         'context-request': ContextRequestEvent<PropertyKey, FxState>;
     }
 }
-/**
- * Define what happens when a reactive state changes
- *
- * @since 0.1.0
- * @param {FxEffectCallback} fn - callback function to be executed when a state changes
- */
-declare const effect: (fn: FxEffectCallback) => void;
 /**
  * Recursivlely unwrap a given variable if it is a function
  *

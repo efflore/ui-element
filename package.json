@@ -5,7 +5,7 @@
   "main": "index.min.js",
   "types": "index.d.ts",
   "scripts": {
-    "build": "npm run build:rollup && npm run build:minify",
+    "build": "npm run build:rollup && npm run build:minify && npm run build:cause-effect",
     "build:rollup": "rollup -c",
     "build:minify": "terser index.js -c -m -o index.min.js --module",
     "build:cause-effect": "terser lib/cause-effect.js -c -m -o lib/cause-effect.min.js --module",

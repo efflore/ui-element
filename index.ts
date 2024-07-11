@@ -1,30 +1,11 @@
+import { type FxState, isFunction, isState, nestMap, cause, effect } from './lib/cause-effect';
+
 /**
  * @name UIElement
  * @version 0.7.0
  */
 
 /* === Types === */
-
-export type FxDOMInstruction = (element: Element, key: unknown, value?: unknown) => unknown;
-
-export type FxDOMInstructionMap = Map<FxDOMInstruction, Map<unknown, unknown>>;
-
-export type FxEffect = {
-  (): void;
-  targets: Map<Element, FxDOMInstructionMap>
-};
-
-export type FxState = {
-  (): unknown;
-  effects?: Set<FxEffect>;
-  set?(value: unknown): void;
-}
-
-export type FxDOMInstructionQueue = (element: Element, domFn: FxDOMInstruction, key: unknown, value: unknown) => void;
-
-export type FxMaybeCleanup = void | (() => void);
-
-export type FxEffectCallback = (queue: FxDOMInstructionQueue) => FxMaybeCleanup;
 
 export type FxAttributeParser = ((
   value: string | undefined,
@@ -68,92 +49,7 @@ declare global {
 
 const CONTEXT_REQUEST = 'context-request';
 
-/* === Internal variables and functions to the module === */
-
-/**
- * Check if a given variable is a function
- * 
- * @param {unknown} fn - variable to check if it is a function
- * @returns {boolean} true if supplied parameter is a function
- */
-const isFunction = (fn: unknown): boolean => typeof fn === 'function';
-
-/**
- * Recursively nest a map
- * 
- * @param {Map<unknown, unknown>} map - map to nest
- * @param {...unknown} args - key(s) to nest the map under
- * @returns {Map<unknown, unknown>} nested map
- */
-const nestMap = (map: Map<unknown, unknown>, ...args: unknown[]): Map<unknown, unknown> => {
-  const key = args.shift();
-  !map.has(key) && map.set(key, new Map<unknown, unknown>());
-  return args.length ? nestMap(map.get(key) as Map<unknown, unknown>, ...args) : map.get(key) as Map<unknown, unknown>;
-}
-
-// hold the currently active effect
-let active: FxEffect | undefined;
-
-/**
- * Define a reactive state
- * 
- * @since 0.1.0
- * @param {unknown} value - initial value of the state; may be a function for derived state
- * @returns {FxState} getter function for the current value with a `set` method to update the value
- */
-const cause = (value: unknown): FxState => {
-  const state = () => { // getter function
-    active && state.effects.add(active);
-    return value;
-  };
-  state.effects = new Set<FxEffect>(); // set of listeners
-  state.set = (updater: unknown) => { // setter function
-    const old = value;
-    value = isFunction(updater) && !isFunction((value as FxState).set) ? (updater as (old: unknown) => unknown)(old) : updater;
-    if (!Object.is(value, old)) {
-      for (const effect of state.effects) effect();
-    }
-  };
-  return state;
-};
-
 /* === Exported functions === */
-
-/**
- * Define what happens when a reactive state changes
- * 
- * @since 0.1.0
- * @param {FxEffectCallback} fn - callback function to be executed when a state changes
- */
-const effect = (fn: FxEffectCallback) => {
-  const targets = new Map();
-
-  /**
-   * @since 0.6.1
-   * @param {Element} element - target element
-   * @param {FxDOMInstruction} domFn 
-   * @param {unknown} key
-   * @param {unknown} value
-   */
-  const enqueue = (element: Element, domFn: FxDOMInstruction, key: unknown, value: unknown) => nestMap(targets, element, domFn).set(key, value);
-  
-  // effect callback function
-  const next = () => queueMicrotask(() => { 
-    const prev = active;
-    active = next;
-    const cleanup = fn(enqueue);
-    active = prev;
-    // flush all queued instructions
-    for (const [el, domFns] of targets) {
-      for (const [domFn, argsMap] of domFns) {
-        for (const [key, value] of argsMap) domFn(el, key, value);
-      }
-    }
-    isFunction(cleanup) && (cleanup as () => void)();
-  });
-  next.targets = targets;
-  next();
-}
 
 /**
  * Recursivlely unwrap a given variable if it is a function
@@ -162,7 +58,7 @@ const effect = (fn: FxEffectCallback) => {
  * @param {unknown} value
  * @returns {unknown} unwrapped variable
  */
-const unwrap = (value: unknown): unknown => isFunction(value) ? unwrap((value as () => unknown)()) : value;
+const unwrap = (value: unknown): unknown => isFunction(value) ? unwrap(value()) : value;
 
 /**
  * Parse a boolean attribute to an actual boolean value
@@ -333,7 +229,7 @@ class UIElement extends HTMLElement {
           this.#subscribedContexts.set(context, unsubscribe);
           const input = this.contextMap[context];
           const [key, fn] = Array.isArray(input) ? input : [context, input];
-          this.#states.set(key || context, isFunction(fn) ? (fn as (value: unknown) => void)(value) : value);
+          this.#states.set(key || context, isFunction(fn) ? fn(value, this) : value);
         };
         const event = new ContextRequestEvent(context, callback, true);
         this.dispatchEvent(event);
@@ -374,9 +270,9 @@ class UIElement extends HTMLElement {
   set(key: PropertyKey, value: unknown | FxState, update: boolean = true) {
     if (this.#states.has(key)) {
       const state = this.#states.get(key);
-      update && isFunction(state.set) && state.set(value);
+      update && isState(state) && state.set(value);
     } else {
-      const state = isFunction(value) && isFunction((value as FxState).set) ? value : cause(value);
+      const state = isState(value) ? value : cause(value);
       this.#states.set(key, state);
     }
   }

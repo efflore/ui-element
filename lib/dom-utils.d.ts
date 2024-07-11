@@ -152,7 +152,7 @@ declare class DebugElement extends UIElement {
  */
 declare const component: (tag: string, attributeMap: import("../types.js").AttributeMap, connect: (connect: UIElement) => void, disconnect: (disconnect: UIElement) => void) => {
     new (): {
-        attributeMap: import("../types.js").AttributeMap;
+        attributeMap: any;
         connectedCallback(): void;
         disconnectedCallback(): void;
     };
