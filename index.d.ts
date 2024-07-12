@@ -1,4 +1,4 @@
-import { type FxState, effect } from './lib/cause-effect';
+import { type FxState } from './lib/cause-effect';
 /**
  * @name UIElement
  * @version 0.7.0
@@ -22,15 +22,7 @@ declare global {
     }
 }
 /**
- * Recursivlely unwrap a given variable if it is a function
- *
- * @since 0.7.0
- * @param {unknown} value
- * @returns {unknown} unwrapped variable
- */
-declare const unwrap: (value: unknown) => unknown;
-/**
- * Parse a boolean attribute to an actual boolean value
+ * Parse a boolean attribute as an actual boolean value
  *
  * @since 0.7.0
  * @param {string|undefined} value
@@ -38,7 +30,7 @@ declare const unwrap: (value: unknown) => unknown;
  */
 declare const asBoolean: (value: string | undefined) => boolean;
 /**
- * Parse an attribute to a number forced to integer
+ * Parse an attribute as a number forced to integer
  *
  * @since 0.7.0
  * @param {string} value
@@ -46,7 +38,7 @@ declare const asBoolean: (value: string | undefined) => boolean;
  */
 declare const asInteger: (value: string) => number;
 /**
- * Parse an attribute to a number
+ * Parse an attribute as a number
  *
  * @since 0.7.0
  * @param {string} value
@@ -54,7 +46,7 @@ declare const asInteger: (value: string) => number;
  */
 declare const asNumber: (value: string) => number;
 /**
- * Parse an attribute to a string
+ * Parse an attribute as a string
  *
  * @since 0.7.0
  * @param {string} value
@@ -172,4 +164,4 @@ declare class UIElement extends HTMLElement {
      */
     targets(key: PropertyKey): Set<Element>;
 }
-export { UIElement as default, effect, unwrap, asBoolean, asInteger, asNumber, asString, ContextRequestEvent };
+export { UIElement as default, asBoolean, asInteger, asNumber, asString, ContextRequestEvent };

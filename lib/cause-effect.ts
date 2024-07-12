@@ -1,12 +1,10 @@
 /* === Types === */
 
-type FxDOMInstruction = (element: Element, key: unknown, value?: unknown) => unknown;
-
-type FxDOMInstructionMap = Map<FxDOMInstruction, Map<unknown, unknown>>;
+type FxDOMInstructionSet = Set<() => void>;
 
 type FxEffect = {
   (): void;
-  targets: Map<Element, FxDOMInstructionMap>
+  targets: Map<Element, FxDOMInstructionSet>
 };
 
 type FxState = {
@@ -15,50 +13,19 @@ type FxState = {
   set(value: unknown): void;
 }
 
-type FxDOMInstructionQueue = (element: Element, domFn: FxDOMInstruction, key: unknown, value: unknown) => void;
+type FxDOMInstructionQueue = (
+  element: Element,
+  fn: () => void
+) => void;
 
 type FxMaybeCleanup = void | (() => void);
 
-type FxEffectCallback = (queue: FxDOMInstructionQueue) => FxMaybeCleanup;
+type FxEffectCallback = (enqueue: FxDOMInstructionQueue) => FxMaybeCleanup;
 
 /* === Internal === */
 
 // hold the currently active effect
 let active: FxEffect | undefined;
-
-/**
- * Recursively nest a map
- * 
- * @param {Map<unknown, unknown>} map - map to nest
- * @param {...unknown} args - key(s) to nest the map under
- * @returns {Map<unknown, unknown>} nested map
- */
-const nestMap = (map: Map<unknown, unknown>, ...args: unknown[]): Map<unknown, unknown> => {
-  const key = args.shift();
-  !map.has(key) && map.set(key, new Map<unknown, unknown>());
-  const submap = map.get(key) as Map<unknown, unknown>;
-  return args.length ? nestMap(submap, ...args) : submap;
-}
-
-/**
- * Create a new DOM instruction queue
- * 
- * @returns {[Map<Element, FxDOMInstructionMap>, FxDOMInstructionQueue]} - tuple containing the targets map and a function to enqueue DOM instructions
- */
-const queue = (): [Map<Element, FxDOMInstructionMap>, FxDOMInstructionQueue, () => void] => {
-  const targets = new Map<Element, FxDOMInstructionMap>();
-  const enqueue: FxDOMInstructionQueue = (element: Element, domFn: FxDOMInstruction, key: unknown, value: unknown) => {
-    nestMap(targets, element, domFn).set(key, value);
-  };
-  const flush = () => {
-    for (const [el, domFns] of targets) {
-      for (const [domFn, argsMap] of domFns) {
-        for (const [key, value] of argsMap) domFn(el, key, value);
-      }
-    }
-  };
-  return [targets, enqueue, flush];
-};
 
 /* === Exported functions === */
 
@@ -93,9 +60,12 @@ const cause = (value: unknown): FxState => {
   state.effects = new Set<FxEffect>(); // set of listeners
   state.set = (updater: unknown) => { // setter function
     const old = value;
-    value = isFunction(updater) && !isState(updater) ? (updater as (old: unknown) => unknown)(old) : updater;
+    value = isFunction(updater) && !isState(updater)
+      ? updater(old)
+      : updater;
     if (!Object.is(value, old)) {
-      for (const effect of state.effects) effect();
+      for (const effect of state.effects)
+        effect();
     }
   };
   return state;
@@ -117,14 +87,23 @@ const derive = (fn: () => unknown): (() => unknown) => fn;
  * @param {FxEffectCallback} fn - callback function to be executed when a state changes
  */
 const effect = (fn: FxEffectCallback) => {
-  const [targets, enqueue, flush] = queue();
+  const targets = new Map<Element, FxDOMInstructionSet>();
   const next = () => {
     const prev = active;
     active = next;
-    const cleanup = fn(enqueue);
+    const cleanup = fn((
+      element: Element,
+      domFn: () => void
+    ): void => {
+      !targets.has(element) && targets.set(element, new Set<() => void>());
+      targets.get(element).add(domFn);
+    });
     active = prev;
     queueMicrotask(() => {
-      flush();    
+      for (const domFns of targets.values()) {
+        for (const domFn of domFns)
+          domFn();
+      }   
       isFunction(cleanup) && cleanup();
     });
   };

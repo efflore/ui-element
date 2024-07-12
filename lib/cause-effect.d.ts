@@ -1,17 +1,16 @@
-type FxDOMInstruction = (element: Element, key: unknown, value?: unknown) => unknown;
-type FxDOMInstructionMap = Map<FxDOMInstruction, Map<unknown, unknown>>;
+type FxDOMInstructionSet = Set<() => void>;
 type FxEffect = {
     (): void;
-    targets: Map<Element, FxDOMInstructionMap>;
+    targets: Map<Element, FxDOMInstructionSet>;
 };
 type FxState = {
     (): unknown;
     effects: Set<FxEffect>;
     set(value: unknown): void;
 };
-type FxDOMInstructionQueue = (element: Element, domFn: FxDOMInstruction, key: unknown, value: unknown) => void;
+type FxDOMInstructionQueue = (element: Element, fn: () => void) => void;
 type FxMaybeCleanup = void | (() => void);
-type FxEffectCallback = (queue: FxDOMInstructionQueue) => FxMaybeCleanup;
+type FxEffectCallback = (enqueue: FxDOMInstructionQueue) => FxMaybeCleanup;
 /**
  * Check if a given variable is a function
  *

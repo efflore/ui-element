@@ -1,4 +1,5 @@
-import UIElement, { effect, FxDOMInstruction, unwrap } from '../index';
+import UIElement from '../index';
+import { effect } from './cause-effect';
 
 /**
  * @name UIElement DOM Utils
@@ -8,14 +9,14 @@ import UIElement, { effect, FxDOMInstruction, unwrap } from '../index';
 /* === Constants === */
 
 const DEV_MODE = true;
-const SELECTOR_PREFIX = 'data-';
-const TEXT_SUFFIX = '-text';
-const PROP_SUFFIX = '-prop';
-const ATTR_SUFFIX = '-attr';
-const CLASS_SUFFIX = '-class';
-const STYLE_SUFFIX = '-style';
-const HOVER_SUFFIX = '-hover';
-const FOCUS_SUFFIX = '-focus';
+const SELECTOR_PREFIX = 'data';
+const TEXT_SUFFIX = 'text';
+const PROP_SUFFIX = 'prop';
+const ATTR_SUFFIX = 'attr';
+const CLASS_SUFFIX = 'class';
+const STYLE_SUFFIX = 'style';
+const HOVER_SUFFIX = 'hover';
+const FOCUS_SUFFIX = 'focus';
 
 /* === Internal variables and functions to the module === */
 
@@ -25,7 +26,18 @@ const FOCUS_SUFFIX = '-focus';
  * @param {any} value - variable to check if it is defined
  * @returns {boolean} true if supplied parameter is defined
  */
-const isDefined = (value: any): boolean => typeof value !== 'undefined';
+const isDefined = (value: any): value is {} | null => typeof value !== 'undefined';
+
+/**
+ * Check if a given variable is an element which can have a style property
+ * 
+ * @param {Element} node - element to check if it is styleable
+ * @returns {boolean} true if the node is styleable
+ */
+const isStylable = (node: Element): node is HTMLElement | SVGElement | MathMLElement =>
+  node instanceof HTMLElement
+  || node instanceof SVGElement
+  || node instanceof MathMLElement;
 
 /**
  * Loop through all elements with the given attribute and call the provided callback function
@@ -35,15 +47,21 @@ const isDefined = (value: any): boolean => typeof value !== 'undefined';
  * @param {string} attr - attribute name to look for
  * @param {(node: Element, value: string) => void} callback - callback function to be called for each element
  */
-const forAll = (el: UIElement, attr: string, callback: (node: Element, value: string) => void) => {
-  if (el.hasAttribute(attr)) {
-    callback(el, el.getAttribute(attr));
-    el.removeAttribute(attr);
-  }
-  for (const node of (el.shadowRoot || el).querySelectorAll(`[${attr}]`)) {
+const autoApply = (
+  el: UIElement,
+  attr: string,
+  callback: (
+    node: Element,
+    value: string
+  ) => void
+): void => {
+  const apply = (node: Element) => {
     callback(node, node.getAttribute(attr));
     node.removeAttribute(attr);
-  }
+  };
+  el.hasAttribute(attr) && apply(el);
+  for (const node of $(el).all(`[${attr}]`))
+    apply(node());
 }
 
 /**
@@ -53,7 +71,8 @@ const forAll = (el: UIElement, attr: string, callback: (node: Element, value: st
  * @param {Element} el 
  * @returns {string}
  */
-const elementName = (el: Element): string => `<${el.localName}${el.id && `#${el.id}`}${el.className && `.${el.className.replace(' ', '.')}`}>`;
+const elementName = (el: Element): string =>
+  `<${el.localName}${el.id && `#${el.id}`}${el.className && `.${el.className.replace(' ', '.')}`}>`;
 
 /**
  * Return a string representation of a JavaScript variable
@@ -72,70 +91,102 @@ const valueString = (value: any): string => typeof value === 'string'
 
 /* === Exported functions === */
 
-/**
- * Replace text content of the DOM element while preserving comment nodes
- * 
- * @since 0.6.0
- * @param {Element} element - DOM element to be updated
- * @param {string | (() => string) | null} fallback - unused; default for third parameter, so content can also be passed as second parameter
- * @param {string | (() => string) | undefined} [content=fallback] - new text content
- */
-const setText = (element: Element, fallback: string | (() => string) | null, content: string | (() => string) | undefined = fallback) => {
-  Array.from(element.childNodes).filter(node => node.nodeType !== Node.COMMENT_NODE).forEach(node => node.remove());
-  element.append(document.createTextNode((unwrap as () => string)(content)));
-};
+type FxElement = {
+  (): Element;
+  first: (selector: string) => FxElement | undefined;
+  all: (selector: string) => FxElement[];
+  [TEXT_SUFFIX]: {
+    set: (content: string) => void;
+  };
+  [PROP_SUFFIX]: {
+    get: (key: PropertyKey) => unknown;
+    set: (
+      key: PropertyKey,
+      value: unknown
+    ) => unknown;
+  };
+  [ATTR_SUFFIX]: {
+    get: (name: string) => string | null;
+    set: (
+      name: string,
+      value: string | boolean | undefined
+    ) => boolean | void;
+  };
+  [CLASS_SUFFIX]: {
+    get: (token: string) => boolean;
+    set: (
+      token: string,
+      force: boolean | undefined
+    ) => boolean;
+  };
+  [STYLE_SUFFIX]: {
+    get: (property: string) => string | null;
+    set: (
+      property: string,
+      value: string | undefined
+    ) => void;
+  };
+}
 
 /**
- * Set or delete a property of the DOM element
+ * Wrapper around a native DOM element for DOM manipulation
  * 
- * @since 0.6.0
- * @param {Element} element - DOM element to be updated
- * @param {PropertyKey} key 
- * @param {any} value 
+ * @param {Element} element 
+ * @returns {FxElement}
  */
-const setProp = (element: Element, key: PropertyKey, value: any) => {
-  isDefined(value) ? (element[key] = value) : delete element[key]; // don't unrap property assignments
-};
-
-/**
- * Set or remove an attribute of the DOM element
- * 
- * @since 0.6.0
- * @param {Element} element - DOM element to be updated
- * @param {string} name 
- * @param {string | (() => string) | boolean | undefined} value 
- */
-const setAttr = (element: Element, name: string, value: string | (() => string) | boolean | undefined) => {
-  typeof value === 'boolean'
-    ? element.toggleAttribute(name, value)
-    : isDefined(value)
-      ? element.setAttribute(name, unwrap(value))
-      : element.removeAttribute(name);
-};
-
-/**
- * Add or remove a class on the DOM element
- * 
- * @since 0.6.0
- * @param {Element} element - DOM element to be updated
- * @param {string} token - class to add or remove
- * @param {boolean | (() => boolean) | undefined} force - whether to forcefully add or remove the class
- */
-const setClass = (element: Element, token: string, force: boolean | (() => boolean) | undefined) => {
-  element.classList.toggle(token, unwrap(force));
-};
-
-/**
- * Set or remove a style property of the DOM element
- * 
- * @since 0.6.0
- * @param {Element} element - DOM element to be updated
- * @param {string} prop - style property name
- * @param {string | (() => string) | undefined} value - style property value
- */
-const setStyle = (element: Element, prop: string, value: string | (() => string) | undefined) => {
-  // @ts-ignore 'style' is not a property of Element, but it is a property of HTMLElement, SVGElement, MathMLElement
-  isDefined(value) ? element.style.setProperty(prop, unwrap(value)) : element.style.removeProperty(prop);
+const $ = (element: Element): FxElement => {
+  const root = element.shadowRoot || element;
+  const el = (): Element => element;
+  el.first = (selector: string): FxElement | undefined => {
+    const node = root.querySelector(selector);
+    return node && $(node);
+  };
+  el.all = (selector: string): FxElement[] =>
+    Array.from(root.querySelectorAll(selector)).map(node => $(node));
+  el[TEXT_SUFFIX] = {
+    get: (): string => element.textContent?.trim() || '',
+    set: (content: string): void => {
+      Array.from(element.childNodes)
+        .filter(node => node.nodeType !== Node.COMMENT_NODE)
+        .forEach(node => node.remove());
+      element.append(document.createTextNode(content));
+    }
+  };
+  el[PROP_SUFFIX] = {
+    get: (key: PropertyKey): unknown => element[key],
+    set: (
+      key: PropertyKey,
+      value: unknown
+    ): unknown => (element[key] = value)
+  };
+  el[ATTR_SUFFIX] = {
+    get: (name: string): string | null => element.getAttribute(name),
+    set: (
+      name: string,
+      value: string | boolean | undefined
+    ): boolean | void => (typeof value === 'boolean')
+      ? element.toggleAttribute(name, value)
+      : isDefined(value)
+        ? element.setAttribute(name, value)
+        : element.removeAttribute(name)
+  };
+  el[CLASS_SUFFIX] = {
+    get: (token: string): boolean => element.classList.contains(token),
+    set: (
+      token: string,
+      force: boolean | undefined
+    ): boolean => element.classList.toggle(token, force)
+  };
+  isStylable(element) && (el[STYLE_SUFFIX] = {
+    get: (prop: string): string => element.style.getPropertyValue(prop),
+    set: (
+      prop: string,
+      value: string
+    ): string | void => isDefined(value)
+      ? element.style.setProperty(prop, value)
+      : element.style.removeProperty(prop)
+  });
+  return el;
 };
 
 /**
@@ -147,41 +198,49 @@ const setStyle = (element: Element, prop: string, value: string | (() => string)
 const autoEffects = (el: UIElement) => {
 
   [TEXT_SUFFIX, PROP_SUFFIX, ATTR_SUFFIX, CLASS_SUFFIX, STYLE_SUFFIX].forEach(suffix => {
-    const attr = `${SELECTOR_PREFIX}${el.localName}${suffix}`;
+    const attr = `${SELECTOR_PREFIX}-${el.localName}-${suffix}`;
 
-    const textCallback = (/** @type {Element} */ node: Element, /** @type {string} */ value: string) => {
-      const state = value.trim();
-      const fallback = node.textContent || '';
-      el.set(state, fallback, false);
+    const textCallback = (
+      node: Element,
+      value: string
+    ): void => {
+      const key = value.trim();
+      const obj = $(node)[suffix];
+      const fallback = obj.get();
+      el.set(key, fallback, false);
       effect(enqueue => {
-        if (el.has(state)) {
-          const content = el.get(state);
-          enqueue(node, setText, true, isDefined(content) ? content : fallback);
+        if (el.has(key)) {
+          const content = el.get(key);
+          enqueue(node, () => obj.set(isDefined(content)
+            ? content
+            : fallback
+          ));
         }
       });
     };
 
-    const keyValueCallback = ( node: Element, v: string) => {
-      const splitted = (str: string, separator: string) => str.split(separator).map(s => s.trim());
-      
-      const [fallback, updater]: [(() => string), FxDOMInstruction] = ({
-        [PROP_SUFFIX]: [(key: string) => node[key], setProp],
-        [ATTR_SUFFIX]: [(key: string) => node.getAttribute(key), setAttr],
-        [CLASS_SUFFIX]: [(key: string) => node.classList.contains(key), setClass],
-        [STYLE_SUFFIX]: [(key: string) => (node instanceof HTMLElement) && node.style[key], setStyle],
-      })[suffix];
-
+    const keyValueCallback = (
+      node: Element,
+      v: string
+    ): void => {
+      const splitted = (
+        str: string,
+        separator: string
+      ) => str.split(separator).map(s => s.trim());
       splitted(v, ';').forEach((value: string) => {
-        let [name, state] = splitted(value, ':');
-        !state && (state = name);
-        el.set(state, fallback(), false);
+        const [name, key = name] = splitted(value, ':');
+        const obj = $(node)[suffix];
+        el.set(key, obj.get(), false);
         effect(enqueue => {
-          el.has(state) && enqueue(node, updater, name, el.get(state));
+          if (el.has(key)) {
+            const value = el.get(key);
+            enqueue(node, () => obj.set(name, value));
+          }
         });
       });
     };
 
-    forAll(el, attr, suffix === TEXT_SUFFIX ? textCallback : keyValueCallback);
+    autoApply(el, attr, suffix === TEXT_SUFFIX ? textCallback : keyValueCallback);
   });
 }
 
@@ -196,18 +255,22 @@ const highlightTargets = (el: UIElement, className: string = 'ui-effect') => {
   if (!DEV_MODE) return;
 
   [HOVER_SUFFIX, FOCUS_SUFFIX].forEach(suffix => {
-    const [on, off] = suffix === HOVER_SUFFIX ? ['mouseenter','mouseleave'] : ['focus', 'blur'];
-
-    const eventCallback = (/** @type {Element} */ node: Element, /** @type {string} */ value: string) => {
+    const [onOn, onOff] = suffix === HOVER_SUFFIX
+      ? ['mouseenter','mouseleave']
+      : ['focus', 'blur'];
+    autoApply(el, `${SELECTOR_PREFIX}-${el.localName}-${suffix}`, (
+      node: Element,
+      value: string
+    ): void => {
       const key = value.trim();
-      const addListener = (/** @type {string} */ type: string, /** @type {boolean} */ force: boolean) => node.addEventListener(type, () => {
-        for (const target of el.targets(key)) target.classList.toggle(className, force);
-      });
-      addListener(on, true);
-      addListener(off, false);
-    };
-
-    forAll(el, `${SELECTOR_PREFIX}${el.localName}${suffix}`, eventCallback);
+      const on = (type: string, force: boolean) =>
+        node.addEventListener(type, () => {
+          for (const target of el.targets(key))
+            target.classList.toggle(className, force);
+        });
+      on(onOn, true);
+      on(onOff, false);
+    });
   });
 }
 
@@ -278,7 +341,11 @@ class DebugElement extends UIElement {
    * @param {any} value - value to be set
    * @param {boolean} [update=true] - whether to update the state
    */
-  set(key: PropertyKey, value: any, update: boolean = true) {
+  set(
+    key: PropertyKey,
+    value: any,
+    update: boolean = true
+  ): void {
     this.log(`Set ${update ? '' : 'default '}value of state ${valueString(key)} in ${elementName(this)} to ${valueString(value)} and trigger dependent effects`);
     super.set(key, value, update);
   }
@@ -314,7 +381,7 @@ class DebugElement extends UIElement {
    * @since 0.5.0
    * @param {string} msg - debug message to be logged
    */
-  log(msg: string) {
+  log(msg: string): void {
     this.has('debug') && console.debug(msg);
   }
 }
@@ -329,8 +396,13 @@ class DebugElement extends UIElement {
  * @param {(disconnect: FxComponent) => void} disconnect - callback to be called when the element is disconnected from the DOM
  * @returns {typeof FxComponent} - custom element class
  */
-const component = (tag: string, attributeMap: import('../types.js').AttributeMap = {}, connect: (connect: UIElement) => void, disconnect: (disconnect: UIElement) => void): typeof FxComponent => {
-  const FxComponent = class extends (DEV_MODE ? DebugElement : UIElement) {
+const component = (
+  tag: string,
+  attributeMap: import('../index').AttributeMap = {},
+  connect: (connect: UIElement) => void,
+  disconnect: (disconnect: UIElement) => void
+): typeof FxComponent => {
+  const FxComponent = class extends UIElement {
     static observedAttributes = Object.keys(attributeMap);
     attributeMap = attributeMap;
 
@@ -342,7 +414,7 @@ const component = (tag: string, attributeMap: import('../types.js').AttributeMap
     }
 
     disconnectedCallback() {
-      DEV_MODE && super.disconnectedCallback();
+      // DEV_MODE && super.disconnectedCallback();
       disconnect && disconnect(this);
     }
   };
@@ -350,4 +422,4 @@ const component = (tag: string, attributeMap: import('../types.js').AttributeMap
   return FxComponent;
 };
 
-export { DEV_MODE, component, setText, setAttr, setClass, setProp, setStyle, autoEffects, highlightTargets, DebugElement };
+export { DEV_MODE, component, $, autoEffects, highlightTargets, DebugElement };

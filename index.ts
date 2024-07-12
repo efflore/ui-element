@@ -52,16 +52,7 @@ const CONTEXT_REQUEST = 'context-request';
 /* === Exported functions === */
 
 /**
- * Recursivlely unwrap a given variable if it is a function
- * 
- * @since 0.7.0
- * @param {unknown} value
- * @returns {unknown} unwrapped variable
- */
-const unwrap = (value: unknown): unknown => isFunction(value) ? unwrap(value()) : value;
-
-/**
- * Parse a boolean attribute to an actual boolean value
+ * Parse a boolean attribute as an actual boolean value
  * 
  * @since 0.7.0
  * @param {string|undefined} value 
@@ -70,7 +61,7 @@ const unwrap = (value: unknown): unknown => isFunction(value) ? unwrap(value()) 
 const asBoolean = (value: string | undefined): boolean => typeof value === 'string';
 
 /**
- * Parse an attribute to a number forced to integer
+ * Parse an attribute as a number forced to integer
  * 
  * @since 0.7.0
  * @param {string} value 
@@ -79,7 +70,7 @@ const asBoolean = (value: string | undefined): boolean => typeof value === 'stri
 const asInteger = (value: string): number => parseInt(value, 10);
 
 /**
- * Parse an attribute to a number
+ * Parse an attribute as a number
  * 
  * @since 0.7.0
  * @param {string} value 
@@ -88,7 +79,7 @@ const asInteger = (value: string): number => parseInt(value, 10);
 const asNumber = (value: string): number => parseFloat(value);
 
 /**
- * Parse an attribute to a string
+ * Parse an attribute as a string
  * 
  * @since 0.7.0
  * @param {string} value
@@ -116,8 +107,16 @@ class ContextRequestEvent<PropertyKey, FxState> extends Event {
    * @param {ContextCallback<FxState>} callback - callback for value getter and unsubscribe function
    * @param {boolean} [subscribe=false] - whether to subscribe to context changes
    */
-  constructor(context: PropertyKey, callback: ContextCallback<FxState>, subscribe: boolean = false) {
-    super(CONTEXT_REQUEST, { bubbles: true, cancelable: true, composed: true });
+  constructor(
+    context: PropertyKey,
+    callback: ContextCallback<FxState>,
+    subscribe: boolean = false
+  ) {
+    super(CONTEXT_REQUEST, {
+      bubbles: true,
+      cancelable: true,
+      composed: true
+    });
     this.context = context;
     this.callback = callback;
     this.subscribe = subscribe;
@@ -142,7 +141,10 @@ class UIElement extends HTMLElement {
    * @param {string} tag - name of the custom element
    * @param {CustomElementRegistry} [registry=customElements] - custom element registry to be used; defaults to `customElements`
    */
-  static define(tag: string, registry: CustomElementRegistry = customElements) {
+  static define(
+    tag: string,
+    registry: CustomElementRegistry = customElements
+  ): void {
     try {
       registry.get(tag) || registry.define(tag, this);
     } catch (err) {
@@ -175,15 +177,24 @@ class UIElement extends HTMLElement {
    * @param {string|undefined} old - old value of the modified attribute
    * @param {string|undefined} value - new value of the modified attribute
    */
-  attributeChangedCallback(name: string, old: string | undefined, value: string | undefined) {
+  attributeChangedCallback(
+    name: string,
+    old: string | undefined,
+    value: string | undefined
+  ): void {
     if (value !== old) {
       const input = this.attributeMap[name];
-      const [key, parser] = Array.isArray(input) ? input : [name, input];
-      this.set(key, isFunction(parser) ? parser(value, this, old) : value);
+      const [key, parser] = Array.isArray(input)
+        ? input :
+        [name, input];
+      this.set(key, isFunction(parser)
+        ? parser(value, this, old)
+        : value
+      );
     }
   }
 
-  connectedCallback() {
+  connectedCallback(): void {
     const proto = Object.getPrototypeOf(this);
 
     // context provider: listen to context request events
@@ -202,8 +213,13 @@ class UIElement extends HTMLElement {
       proto.consumedContexts?.forEach((context: PropertyKey) => {
         const event = new ContextRequestEvent(context, (value: FxState) => {
           const input = this.contextMap[context];
-          const [key, fn] = Array.isArray(input) ? input : [context, input];
-          this.#states.set(key || context, isFunction(fn) ? fn(value, this) : value);
+          const [key, fn] = Array.isArray(input)
+            ? input
+            : [context, input];
+          this.#states.set(key || context, isFunction(fn)
+            ? fn(value, this)
+            : value
+          );
         });
         this.dispatchEvent(event);
       });
@@ -229,6 +245,9 @@ class UIElement extends HTMLElement {
    * @returns {unknown} current value of state; undefined if state does not exist
    */
   get(key: PropertyKey): unknown {
+    const unwrap = (value: unknown): unknown => isFunction(value)
+      ? unwrap(value())
+      : value;
     return unwrap(this.#states.get(key));
   }
 
@@ -240,12 +259,18 @@ class UIElement extends HTMLElement {
    * @param {unknown} value - initial or new value; may be a function (gets old value as parameter) to be evaluated when value is retrieved
    * @param {boolean} [update=true] - if `true` (default), the state is updated; if `false`, just return existing value
    */
-  set(key: PropertyKey, value: unknown | FxState, update: boolean = true) {
+  set(
+    key: PropertyKey,
+    value: unknown | FxState,
+    update: boolean = true
+  ): void {
     if (this.#states.has(key)) {
       const state = this.#states.get(key);
       update && isState(state) && state.set(value);
     } else {
-      const state = isState(value) ? value : cause(value);
+      const state = isState(value)
+        ? value
+        : cause(value);
       this.#states.set(key, state);
     }
   }
@@ -269,11 +294,16 @@ class UIElement extends HTMLElement {
    * @param {FxStateMap} states - object of states to be passed
    * @param {CustomElementRegistry} [registry=customElements] - custom element registry to be used; defaults to `customElements`
    */
-  async pass(element: UIElement, states: FxStateMap, registry: CustomElementRegistry = customElements) {
+  async pass(
+    element: UIElement,
+    states: FxStateMap,
+    registry: CustomElementRegistry = customElements
+  ): Promise<void> {
     await registry.whenDefined(element.localName);
-    for (const [key, source] of Object.entries(states)) {
-      element.set(key, cause(isFunction(source) ? source : this.#states.get(source)));
-    }
+    for (const [key, source] of Object.entries(states))
+      element.set(key, cause(isFunction(source)
+        ? source
+        : this.#states.get(source)));
   }
 
   /**
@@ -286,11 +316,12 @@ class UIElement extends HTMLElement {
   targets(key: PropertyKey): Set<Element> {
     const targets = new Set<Element>();
     for (const effect of this.#states.get(key).effects) {
-      for (const target of effect.targets.keys()) targets.add(target);
+      for (const target of effect.targets.keys())
+        targets.add(target);
     }
     return targets;
   }
 
 }
 
-export { UIElement as default, effect, unwrap, asBoolean, asInteger, asNumber, asString, ContextRequestEvent };
+export { UIElement as default, effect, asBoolean, asInteger, asNumber, asString, ContextRequestEvent };
