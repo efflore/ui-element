@@ -1,8 +1,3 @@
-/* === Types === */
-/* === Internal === */
-// hold the currently active effect
-let active;
-/* === Exported functions === */
 /**
  * Check if a given variable is a function
  *
@@ -17,6 +12,11 @@ const isFunction = (fn) => typeof fn === 'function';
  * @returns {boolean} true if supplied parameter is a reactive state
  */
 const isState = (value) => isFunction(value) && isFunction(value.set);
+
+/* === Internal === */
+// hold the currently active effect
+let active;
+/* === Exported functions === */
 /**
  * Define a reactive state
  *
@@ -78,4 +78,4 @@ const effect = (fn) => {
     next();
 };
 
-export { cause, derive, effect, isFunction, isState };
+export { cause, derive, effect };

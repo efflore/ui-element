@@ -12,20 +12,6 @@ type FxDOMInstructionQueue = (element: Element, fn: () => void) => void;
 type FxMaybeCleanup = void | (() => void);
 type FxEffectCallback = (enqueue: FxDOMInstructionQueue) => FxMaybeCleanup;
 /**
- * Check if a given variable is a function
- *
- * @param {unknown} fn - variable to check if it is a function
- * @returns {boolean} true if supplied parameter is a function
- */
-declare const isFunction: (fn: unknown) => fn is Function;
-/**
- * Check if a given variable is a reactive state
- *
- * @param {unknown} value - variable to check if it is a reactive state
- * @returns {boolean} true if supplied parameter is a reactive state
- */
-declare const isState: (value: unknown) => value is FxState;
-/**
  * Define a reactive state
  *
  * @since 0.1.0
@@ -48,4 +34,4 @@ declare const derive: (fn: () => unknown) => (() => unknown);
  * @param {FxEffectCallback} fn - callback function to be executed when a state changes
  */
 declare const effect: (fn: FxEffectCallback) => void;
-export { type FxState, isFunction, isState, cause, derive, effect };
+export { type FxState, cause, derive, effect };

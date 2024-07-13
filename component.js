@@ -1,38 +1,3 @@
-/** @see https://github.com/webcomponents-cg/community-protocols/blob/main/proposals/context.md */
-/* === Constants === */
-const CONTEXT_REQUEST = 'context-request';
-/* === Exported class === */
-/**
- * Class for context-request events
- *
- * An event fired by a context requester to signal it desires a named context.
- *
- * A provider should inspect the `context` property of the event to determine if it has a value that can
- * satisfy the request, calling the `callback` with the requested value if so.
- *
- * If the requested context event contains a truthy `subscribe` value, then a provider can call the callback
- * multiple times if the value is changed, if this is the case the provider should pass an `unsubscribe`
- * function to the callback which requesters can invoke to indicate they no longer wish to receive these updates.
- *
- * @class ContextRequestEvent
- * @extends {Event}
- *
- * @property {T} context - context key
- * @property {ContextCallback<ContextType<T>>} callback - callback function for value getter and unsubscribe function
- * @property {boolean} [subscribe=false] - whether to subscribe to context changes
- */
-class ContextRequestEvent extends Event {
-    context;
-    callback;
-    subscribe;
-    constructor(context, callback, subscribe = false) {
-        super(CONTEXT_REQUEST, { bubbles: true, composed: true });
-        this.context = context;
-        this.callback = callback;
-        this.subscribe = subscribe;
-    }
-}
-
 /**
  * Check if a given variable is a function
  *
@@ -47,6 +12,13 @@ const isFunction = (fn) => typeof fn === 'function';
  * @returns {boolean} true if supplied parameter is a reactive state
  */
 const isState = (value) => isFunction(value) && isFunction(value.set);
+/**
+ * Check if a given variable is defined
+ *
+ * @param {any} value - variable to check if it is defined
+ * @returns {boolean} true if supplied parameter is defined
+ */
+const isDefined = (value) => typeof value !== 'undefined';
 
 /* === Internal === */
 // hold the currently active effect
@@ -104,6 +76,41 @@ const effect = (fn) => {
     next.targets = targets;
     next();
 };
+
+/** @see https://github.com/webcomponents-cg/community-protocols/blob/main/proposals/context.md */
+/* === Constants === */
+const CONTEXT_REQUEST = 'context-request';
+/* === Exported class === */
+/**
+ * Class for context-request events
+ *
+ * An event fired by a context requester to signal it desires a named context.
+ *
+ * A provider should inspect the `context` property of the event to determine if it has a value that can
+ * satisfy the request, calling the `callback` with the requested value if so.
+ *
+ * If the requested context event contains a truthy `subscribe` value, then a provider can call the callback
+ * multiple times if the value is changed, if this is the case the provider should pass an `unsubscribe`
+ * function to the callback which requesters can invoke to indicate they no longer wish to receive these updates.
+ *
+ * @class ContextRequestEvent
+ * @extends {Event}
+ *
+ * @property {T} context - context key
+ * @property {ContextCallback<ContextType<T>>} callback - callback function for value getter and unsubscribe function
+ * @property {boolean} [subscribe=false] - whether to subscribe to context changes
+ */
+class ContextRequestEvent extends Event {
+    context;
+    callback;
+    subscribe;
+    constructor(context, callback, subscribe = false) {
+        super(CONTEXT_REQUEST, { bubbles: true, composed: true });
+        this.context = context;
+        this.callback = callback;
+        this.subscribe = subscribe;
+    }
+}
 
 /* === Default export === */
 /**
@@ -309,4 +316,189 @@ const asNumber = (value) => parseFloat(value);
  */
 const asString = (value) => value;
 
-export { ContextRequestEvent, asBoolean, asInteger, asNumber, asString, UIElement as default, effect };
+/* === Constants === */
+const TEXT_SUFFIX = 'text';
+const PROP_SUFFIX = 'prop';
+const ATTR_SUFFIX = 'attr';
+const CLASS_SUFFIX = 'class';
+const STYLE_SUFFIX = 'style';
+/* Internal functions === */
+/**
+ * Check if a given variable is an element which can have a style property
+ *
+ * @param {Element} node - element to check if it is styleable
+ * @returns {boolean} true if the node is styleable
+ */
+const isStylable = (node) => node instanceof HTMLElement
+    || node instanceof SVGElement
+    || node instanceof MathMLElement;
+/* === Exported function === */
+/**
+ * Wrapper around a native DOM element for DOM manipulation
+ *
+ * @param {Element} element
+ * @returns {FxElement}
+ */
+const $ = (element) => {
+    const root = element.shadowRoot || element;
+    const el = () => element;
+    el.first = (selector) => {
+        const node = root.querySelector(selector);
+        return node && $(node);
+    };
+    el.all = (selector) => Array.from(root.querySelectorAll(selector)).map(node => $(node));
+    el[TEXT_SUFFIX] = {
+        get: () => element.textContent?.trim() || '',
+        set: (content) => {
+            Array.from(element.childNodes)
+                .filter(node => node.nodeType !== Node.COMMENT_NODE)
+                .forEach(node => node.remove());
+            element.append(document.createTextNode(content));
+        }
+    };
+    el[PROP_SUFFIX] = {
+        get: (key) => element[key],
+        set: (key, value) => (element[key] = value)
+    };
+    el[ATTR_SUFFIX] = {
+        get: (name) => element.getAttribute(name),
+        set: (name, value) => (typeof value === 'boolean')
+            ? element.toggleAttribute(name, value)
+            : isDefined(value)
+                ? element.setAttribute(name, value)
+                : element.removeAttribute(name)
+    };
+    el[CLASS_SUFFIX] = {
+        get: (token) => element.classList.contains(token),
+        set: (token, force) => element.classList.toggle(token, force)
+    };
+    isStylable(element) && (el[STYLE_SUFFIX] = {
+        get: (prop) => element.style.getPropertyValue(prop),
+        set: (prop, value) => isDefined(value)
+            ? element.style.setProperty(prop, value)
+            : element.style.removeProperty(prop)
+    });
+    return el;
+};
+
+/* === Constants === */
+const SELECTOR_PREFIX = 'data';
+/* === Exported function === */
+/**
+ * Loop through all elements with the given attribute and call the provided callback function
+ *
+ * @since 0.7.0
+ * @param {Element} el - UIElement to iterate over
+ * @param {string} suffix - attribute name suffix to look for
+ * @param {(node: Element, value: string) => void} callback - callback function to be called for each element
+ */
+const autoApply = (el, suffix, callback) => {
+    const attr = `${SELECTOR_PREFIX}-${el.localName}-${suffix}`;
+    const apply = (node) => {
+        callback(node, node.getAttribute(attr));
+        node.removeAttribute(attr);
+    };
+    el.hasAttribute(attr) && apply(el);
+    for (const node of el.querySelectorAll(`[${attr}]`))
+        apply(node);
+};
+
+/* === Exported function === */
+/**
+ * Automatically apply effects to UIElement and sub-elements based on its attributes
+ *
+ * @since 0.6.0
+ * @param {UIElement} el - UIElement to apply effects to
+ */
+const autoEffects = (el) => {
+    [TEXT_SUFFIX, PROP_SUFFIX, ATTR_SUFFIX, CLASS_SUFFIX, STYLE_SUFFIX].forEach(suffix => {
+        const textCallback = (node, value) => {
+            const key = value.trim();
+            const obj = $(node)[suffix];
+            const fallback = obj.get();
+            el.set(key, fallback, false);
+            effect(enqueue => {
+                if (el.has(key)) {
+                    const content = el.get(key);
+                    enqueue(node, () => obj.set(isDefined(content)
+                        ? content
+                        : fallback));
+                }
+            });
+        };
+        const keyValueCallback = (node, v) => {
+            const splitted = (str, separator) => str.split(separator).map(s => s.trim());
+            splitted(v, ';').forEach((value) => {
+                const [name, key = name] = splitted(value, ':');
+                const obj = $(node)[suffix];
+                el.set(key, obj.get(), false);
+                effect(enqueue => {
+                    if (el.has(key)) {
+                        const value = el.get(key);
+                        enqueue(node, () => obj.set(name, value));
+                    }
+                });
+            });
+        };
+        autoApply(el, suffix, suffix === TEXT_SUFFIX ? textCallback : keyValueCallback);
+    });
+};
+
+/* === Constants === */
+const HOVER_SUFFIX = 'hover';
+const FOCUS_SUFFIX = 'focus';
+const EFFECT_CLASS = 'ui-effect';
+/* === Exported function === */
+/**
+ * Add event listeners to UIElement and sub-elements to auto-highlight targets when hovering or focusing on elements with given attribute
+ *
+ * @since 0.7.0
+ * @param {UIElement} el - UIElement to apply event listeners to
+ * @param {string} [className=EFFECT_CLASS] - CSS class to be added to highlighted targets
+ */
+const highlightTargets = (el, className = EFFECT_CLASS) => {
+    [HOVER_SUFFIX, FOCUS_SUFFIX].forEach(suffix => {
+        const [onOn, onOff] = suffix === HOVER_SUFFIX
+            ? ['mouseenter', 'mouseleave']
+            : ['focus', 'blur'];
+        autoApply(el, suffix, (node, value) => {
+            const key = value.trim();
+            const on = (type, force) => node.addEventListener(type, () => {
+                for (const target of el.targets(key))
+                    target.classList.toggle(className, force);
+            });
+            on(onOn, true);
+            on(onOff, false);
+        });
+    });
+};
+
+/**
+ * Create a UIElement (or DebugElement in DEV_MODE) subclass for a custom element tag
+ *
+ * @since 0.7.0
+ * @param {string} tag - custom element tag name
+ * @param {import('../types.js').AttributeMap} attributeMap - object of observed attributes and their corresponding state keys and parser functions
+ * @param {(connect: FxComponent) => void} connect - callback to be called when the element is connected to the DOM
+ * @param {(disconnect: FxComponent) => void} disconnect - callback to be called when the element is disconnected from the DOM
+ * @returns {typeof FxComponent} - custom element class
+ */
+const component = (tag, attributeMap = {}, connect, disconnect) => {
+    const FxComponent = class extends UIElement {
+        static observedAttributes = Object.keys(attributeMap);
+        attributeMap = attributeMap;
+        connectedCallback() {
+            super.connectedCallback();
+            connect && connect(this);
+            autoEffects(this);
+            highlightTargets(this);
+        }
+        disconnectedCallback() {
+            disconnect && disconnect(this);
+        }
+    };
+    FxComponent.define(tag);
+    return FxComponent;
+};
+
+export { $, UIElement, asBoolean, asInteger, asNumber, asString, component as default, effect };

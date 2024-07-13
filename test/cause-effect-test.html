@@ -8,7 +8,7 @@
   <script type="module">
     import { runTests } from '@web/test-runner-mocha';
     import { assert } from '@esm-bundle/chai';
-    import { cause, derive, effect } from '../lib/cause-effect.js';
+    import { cause, derive, effect } from '../cause-effect.js';
 
     const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
     const paint = () => new Promise(resolve => requestAnimationFrame(resolve));

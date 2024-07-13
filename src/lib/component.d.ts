@@ -1,136 +1,7 @@
-import UIElement from '../index';
-/**
- * @name UIElement DOM Utils
- * @version 0.7.0
- */
-declare const DEV_MODE = true;
-declare const TEXT_SUFFIX = "text";
-declare const PROP_SUFFIX = "prop";
-declare const ATTR_SUFFIX = "attr";
-declare const CLASS_SUFFIX = "class";
-declare const STYLE_SUFFIX = "style";
-type FxElement = {
-    (): Element;
-    first: (selector: string) => FxElement | undefined;
-    all: (selector: string) => FxElement[];
-    [TEXT_SUFFIX]: {
-        set: (content: string) => void;
-    };
-    [PROP_SUFFIX]: {
-        get: (key: PropertyKey) => unknown;
-        set: (key: PropertyKey, value: unknown) => unknown;
-    };
-    [ATTR_SUFFIX]: {
-        get: (name: string) => string | null;
-        set: (name: string, value: string | boolean | undefined) => boolean | void;
-    };
-    [CLASS_SUFFIX]: {
-        get: (token: string) => boolean;
-        set: (token: string, force: boolean | undefined) => boolean;
-    };
-    [STYLE_SUFFIX]: {
-        get: (property: string) => string | null;
-        set: (property: string, value: string | undefined) => void;
-    };
-};
-/**
- * Wrapper around a native DOM element for DOM manipulation
- *
- * @param {Element} element
- * @returns {FxElement}
- */
-declare const $: (element: Element) => FxElement;
-/**
- * Automatically apply effects to UIElement and sub-elements based on its attributes
- *
- * @since 0.6.0
- * @param {UIElement} el - UIElement to apply effects to
- */
-declare const autoEffects: (el: UIElement) => void;
-/**
- * Add event listeners to UIElement and sub-elements to auto-highlight targets when hovering or focusing on elements with given attribute
- *
- * @since 0.7.0
- * @param {UIElement} el - UIElement to apply event listeners to
- * @param {string} [className='ui-effect'] - CSS class to be added to highlighted targets
- */
-declare const highlightTargets: (el: UIElement, className?: string) => void;
-/**
- * Add debug capabilities to UIElement classes
- *
- * @since 0.5.0
- *
- * @class DebugElement
- * @extends {UIElement}
- * @type {import("../types.js").DebugElement}
- */
-declare class DebugElement extends UIElement {
-    /**
-     * Wrap connectedCallback to log to the console
-     */
-    connectedCallback(): void;
-    /**
-     * Wrap disconnectedCallback to log to the console
-     */
-    disconnectedCallback(): void;
-    /**
-     * Wrap adoptedCallback to log to the console
-     */
-    adoptedCallback(): void;
-    /**
-     * Wrap attributeChangedCallback to log changes to the console
-     *
-     * @since 0.5.0
-     * @param {string} name
-     * @param {string|undefined} old
-     * @param {string|undefined} value
-     */
-    attributeChangedCallback(name: string, old: string | undefined, value: string | undefined): void;
-    /**
-     * Wrap set() to log signal reads to the console
-     *
-     * @since 0.5.0
-     * @param {PropertyKey} key
-     * @returns {any}
-     */
-    get(key: PropertyKey): any;
-    /**
-     * Wrap set() to log signal writes to the console
-     *
-     * @since 0.5.0
-     * @param {PropertyKey} key - state to be set
-     * @param {any} value - value to be set
-     * @param {boolean} [update=true] - whether to update the state
-     */
-    set(key: PropertyKey, value: any, update?: boolean): void;
-    /**
-     * Wrap delete() to log signal deletions to the console
-     *
-     * @since 0.7.0
-     * @param {PropertyKey} key - state to be deleted
-     * @returns {boolean} - whether the state was deleted
-     */
-    delete(key: PropertyKey): boolean;
-    /**
-     * Wrap pass() to log passed signals to the console
-     *
-     * @since 0.7.0
-     * @param {UIElement} element - UIElement to be passed to
-     * @param {import('../types.js').FxStateMap} states - states to be passed to the element
-     * @param {CustomElementRegistry} [registry=customElements] - custom element registry
-     * /
-    async pass(element: UIElement, states: import('../types').FxStateMap, registry: CustomElementRegistry = customElements) {
-      this.log(`Pass state(s) ${valueString(Object.keys(states))} to ${elementName(element)} from ${elementName(this)}`);
-      super.pass(element, states, registry);
-    } */
-    /**
-     * Log messages in debug mode
-     *
-     * @since 0.5.0
-     * @param {string} msg - debug message to be logged
-     */
-    log(msg: string): void;
-}
+import UIElement from "../ui-element";
+import { asBoolean, asInteger, asNumber, asString } from "../parse-attribute";
+import { effect } from "../cause-effect";
+import $ from "./fx-element";
 /**
  * Create a UIElement (or DebugElement in DEV_MODE) subclass for a custom element tag
  *
@@ -141,19 +12,19 @@ declare class DebugElement extends UIElement {
  * @param {(disconnect: FxComponent) => void} disconnect - callback to be called when the element is disconnected from the DOM
  * @returns {typeof FxComponent} - custom element class
  */
-declare const component: (tag: string, attributeMap: import("../index").AttributeMap, connect: (connect: UIElement) => void, disconnect: (disconnect: UIElement) => void) => {
+declare const component: (tag: string, attributeMap: import("../ui-element").FxAttributeMap, connect: (connect: UIElement) => void, disconnect: (disconnect: UIElement) => void) => {
     new (): {
-        attributeMap: import("../index").AttributeMap;
+        attributeMap: import("../ui-element").FxAttributeMap;
         connectedCallback(): void;
         disconnectedCallback(): void;
-        contextMap: import("../index").ContextMap;
+        contextMap: import("../ui-element").FxContextMap;
         "__#1@#states": Map<any, any>;
         attributeChangedCallback(name: string, old: string | undefined, value: string | undefined): void;
         has(key: PropertyKey): boolean;
         get(key: PropertyKey): unknown;
-        set(key: PropertyKey, value: unknown | import("./cause-effect").FxState, update?: boolean): void;
+        set(key: PropertyKey, value: unknown | import("../cause-effect").FxState, update?: boolean): void;
         delete(key: PropertyKey): boolean;
-        pass(element: UIElement, states: import("../index").FxStateMap, registry?: CustomElementRegistry): Promise<void>;
+        pass(element: UIElement, states: import("../ui-element").FxStateMap, registry?: CustomElementRegistry): Promise<void>;
         targets(key: PropertyKey): Set<Element>;
         accessKey: string;
         readonly accessKeyLabel: string;
@@ -486,4 +357,4 @@ declare const component: (tag: string, attributeMap: import("../index").Attribut
     observedAttributes: string[];
     define(tag: string, registry?: CustomElementRegistry): void;
 };
-export { DEV_MODE, component, $, autoEffects, highlightTargets, DebugElement };
+export { component as default, UIElement, effect, $, asBoolean, asInteger, asNumber, asString };

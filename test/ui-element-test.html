@@ -92,9 +92,7 @@
   <script type="module">
     import { runTests } from '@web/test-runner-mocha';
     import { assert } from '@esm-bundle/chai';
-    import { effect } from '../lib/cause-effect.js';
-    import { asBoolean, asInteger, asNumber, asString } from '../index.js';
-    import { component } from '../lib/dom-utils.js';
+    import component, { effect, asBoolean, asInteger, asNumber, asString } from '../component.js';
 
     const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
     const paint = () => new Promise(resolve => requestAnimationFrame(resolve));
