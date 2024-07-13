@@ -2,7 +2,7 @@
 
 UIElement - the "look ma, no JS framework!" library bringing signals-based reactivity to vanilla Web Components
 
-Version 0.6.2
+Version 0.7.0
 
 ## What is UIElement?
 
@@ -12,11 +12,11 @@ Version 0.6.2
 
 `UIElement` implements a `Map`-like interface on top of `HTMLElement` to access and modify reactive states. The method names `this.has()`, `this.get()`, `this.set()` and `this.delete()` feel familar to JavaScript developers and mirror what you already know.
 
-In the `connectedCallback()` you setup references to inner elements, add event listeners and pass reactive states to sub-components (`this.pass()`). Additionally, for every independent reactive state you define what happens when it changes in the callback of `this.effect()`. `UIElement` will automatically trigger these effects and bundle the fine-grained DOM updates when the browser refreshes the view on the next animation frame.
+In the `connectedCallback()` you setup references to inner elements, add event listeners and pass reactive states to subcomponents (`this.pass()`). Additionally, for every independent reactive state you define what happens when it changes in an `effect()` callback. `UIElement` will automatically trigger these effects and bundle the fine-grained DOM updates.
 
 `UIElement` is fast. In fact, faster than any JavaScript framework. Only direct fine-grained DOM updates in vanilla JavaScript can beat its performance. But then, you have no loose coupling of components and need to parse attributes and track changes yourself. This tends to get tedious and messy rather quickly. `UIElement` provides a structured way to keep your components simple, consistent and self-contained.
 
-`UIElement` is tiny. 685 bytes gzipped over the wire. And it has zero dependiences. If you want to understand how it works, you have to study the source code of [one single file](./index.js).
+`UIElement` is tiny. 998 bytes gzipped over the wire. And it has zero dependiences. If you want to understand how it works, you have to study the source code of [one single file](./index.js).
 
 That's all.
 
@@ -24,9 +24,9 @@ That's all.
 
 `UIElement` does not do many of the things JavaScript frameworks do.
 
-Most importantly, it does not render components. We suggest, you render components (eighter Light DOM children or Declarative Shadow DOM) on the server side. There are existing solutions like [WebC](https://github.com/11ty/webc) or [Enhance](https://github.com/enhance-dev/enhance) that allow you to declare and render Web Components on the server side with (almost) pure HTML, CSS and JavaScript. `UIElement` is proven to work with either WebC or Enhance. But you could use any tech stack able to render HTML. There is no magic involved besides the building blocks of any website: HTML, CSS and JavaScript. `UIElement` does not make any assumptions about the structure of the inner HTML. In fact, it is up to you to reference inner elements and do fine-grained DOM updates in effects. This also means, there is no new language or format to learn. HTML, CSS and modern JavaScript (ES6) is all you need to know to develop your own web components with `UIElement`.
+Most importantly, it **does not render components**. We suggest, you render components (eighter Light DOM children or Declarative Shadow DOM) on the server side. There are existing solutions like [WebC](https://github.com/11ty/webc) or [Enhance](https://github.com/enhance-dev/enhance) that allow you to declare and render Web Components on the server side with (almost) pure HTML, CSS and JavaScript. `UIElement` is proven to work with either WebC or Enhance. But you could use any tech stack able to render HTML. There is no magic involved besides the building blocks of any website: HTML, CSS and JavaScript. `UIElement` does not make any assumptions about the structure of the inner HTML. In fact, it is up to you to reference inner elements and do fine-grained DOM updates in effects. This also means, there is no new language or format to learn. HTML, CSS and modern JavaScript (ES6) is all you need to know to develop your own web components with `UIElement`.
 
-`UIElement` does no routing. It is strictly for single-page applications or reactive islands. But of course, you can reuse the same components on many different pages, effectively creating tailored single-page applications for every page you want to enhance with rich interactivity. We believe, this is the most efficient way to build rich multi-page applications, as only the scripts for the elements used on the current page are loaded, not a huge bundle for the whole app.
+`UIElement` **does no routing**. It is strictly for single-page applications or reactive islands. But of course, you can reuse the same components on many different pages, effectively creating tailored single-page applications for every route you want to enhance with rich interactivity. We believe, this is the most efficient way to build rich multi-page applications, as only the scripts for the elements used on the current page are loaded, not a huge bundle for the whole app. We also avoid the double-data problem server-side rendering frameworks have, transmitting the initial state as HTML and the data for client-side use again as JSON.
 
 `UIElement` uses no Virtual DOM and doesn't do any dirty-checking or DOM diffing. Consider these approaches by JavaScript frameworks as technical debt, not needed anymore.
 
@@ -43,11 +43,11 @@ npm install @efflore/ui-element
 In JavaScript:
 
 ```js
-import UIElement from '@efflore/ui-element';
+import UIElement, { asInteger } from '@efflore/ui-element';
 
 class MyCounter extends UIElement {
   static observedAttributes = ['value'];
-  attributeMap = { value: 'integer' };
+  attributeMap = { value: asInteger };
 
   connectedCallback() {
     this.querySelector('.decrement').onclick = () => this.set('value', v => --v);
@@ -127,7 +127,7 @@ It consists of three functions:
 - `derive()` returns a getter function for the current value of the derived computation
 - `effect()` accepts a callback function to be exectuted when used signals change
 
-Unlike the [TC39 Signals Proposal](https://github.com/tc39/proposal-signals), Cause & Effect uses a much simpler push-based approach, effectively just decorator functions around signal getters and setters. All work till DOM updates is done synchronously and eagerly. As long as your computed functions are pure and DOM side effects are kept to a minimum, this should pose no issues and is even faster than doing all the checks and memoization and scheduling in the more sophisticated push-then-pull approach of the Signals Proposal.
+Unlike the [TC39 Signals Proposal](https://github.com/tc39/proposal-signals), Cause & Effect uses a much simpler approach, effectively just decorator functions around signal getters and setters. All work is done synchronously and eagerly. As long as your computed functions are pure and DOM side effects are kept to a minimum, this should pose no issues and is even faster than doing all the checks and memoization in the more sophisticated push-then-pull approach of the Signals Proposal.
 
 If you however want to use side-effects or expensive work in computed function or updating / rendering in the DOM in effects takes longer than an animation frame, you might encounter glitches. If that's what you are doing, you are better off with a mature, full-fledged JavaScript framework.
 
@@ -139,11 +139,11 @@ That said, we plan to offer a `UIElement` version with the Signals Proposal Poly
 import { cause, derive, effect } from './lib/cause-effect';
 ```
 
-[Source](./lib/cause-effect.js)
+[Source](./cause-effect.js)
 
 ### Debug Element
 
-`DebugElement` is a base class that extends `UIElement`. It wraps `attributeChangeCallback`, `get()`, `set()` to log changes to attributes, signal reads and writes to the console, if you set the `debug` property of your custom element to `true`.
+`DebugElement` is a base class that extends `UIElement`. It wraps `attributeChangeCallback`, `get()`, `set()`, `delete()`, and `pass()` to log changes to attributes, reads, writes and passes of reactive states to the console, if you set a `debug` boolean attribute on your custom element. This will set a `debug` reactive state on the element instance.
 
 #### Usage
 
@@ -151,15 +151,15 @@ import { cause, derive, effect } from './lib/cause-effect';
 import DebugElement from './lib/debug-element.js';
 
 class MyElement extends DebugElement {
-  debug = true;
   /* ... */
 }
 ```
 
-Make sure the import of `UIElement` on the first line points to your installed package:
+Make sure the imports of `UIElement` on the first line points to your installed package and replace the `isDefined` import by the actual function:
 
 ```js
 import UIElement from '@efflore/ui-element';
+const isDefined = value => typeof value !== 'undefined';
 ```
 
 If you use Debug Element as your base class for custom elements, you may call `super.connectedCallback();` (and the other lifecycle callbacks) to log when your element connects to the DOM.
@@ -168,27 +168,35 @@ To log when some DOM features of child elements are updated in effects, you need
 
 ```js
 // in connectedCallback()
-this.effect(queue => {
-  queue(this.querySelector('span'), (el, key, value = key) => (el.textContent = value), this.get('value'));
-  queue(this.querySelector('.card'), (el, key, value) => el.classList.toggle(key, value), 'selected', this.get('selected'));
+effect(enqueue => {
+  const description = this.querySelector('span');
+  const card = this.querySelector('.card');
+  const content = this.get('value');
+  const selected = this.get('selected');
+  enqueue(description, () => (description.textContent = content));
+  enqueue(card, () => card.classList.toggle('selected', selected));
 });
 ```
 
 Otherwise Debug Element only knows which effect runs in which component, but not the exact elements targeted by your effect.
 
-Enqueueing fine-grained DOM updates is always possible. It's a bit more verbose, but it ensures all updates of your effect happen concurrently. `autoEffects()` from DOM Utils (see next section) does this by default. All DOM utility functions receive the target element as first parameter, making it possible to use this shorter notation:
+Enqueueing fine-grained DOM updates is always possible. It's a bit more verbose, but it ensures all updates of your effect happen concurrently. `$()` from DOM Utils (see next section) does this by default. All DOM utility functions receive the target element as first parameter, making it possible to use this shorter notation:
 
 ```js
-import { setText, setClass } from './lib/dom-utils';
+import $ from './src/lib/fx-element';
 
 // in connectedCallback()
-this.effect(queue => {
-  queue(this.querySelector('span'), setText, this.get('value'));
-  queue(this.querySelector('.card'), setClass, 'selected', this.get('selected'));
+effect(enqueue => {
+  const description = $(this).first('span');
+  const card = $(this).first('.card');
+  const content = this.get('value');
+  const selected = this.get('selected');
+  enqueue(description(), () => description.text.set(content));
+  enqueue(card(), () => card.class.set('selected', selected));
 });
 ```
 
-[Source](./lib/debug-element.js)
+[Source](./src/lib/debug-element.ts)
 
 ### DOM Utils
 
@@ -271,30 +279,22 @@ By always following this pattern of data-flow, that is close to an optimal imple
 
 ### Context Controller
 
-Context Controller implements the [Context Community Protocol](https://github.com/webcomponents-cg/community-protocols/blob/main/proposals/context.md) and makes observed contexts available as reactive states. It provides three classes:
+`UIelement` incorportes a Context Controller that implements the [Context Community Protocol](https://github.com/webcomponents-cg/community-protocols/blob/main/proposals/context.md) and makes observed contexts available as reactive states.
 
-- `ContextRequestEvent` are dispatched from context comsumers and listened to by context providers
-- `ContextProvider` expose consumable contexts through a static `providedContexts` array of context keys
-- `ContextConsumer` request consumable contexts set in a static `observedContexts` array of context keys
+Context consumers request a context through `ContextRequestEvent`. The events then bubble up until it eventually finds a context provider which provides that specific context. Context provider then return a reactive state as value in the callback function. There's no need to manually subscribe to context changes. As the returned value is a signal, each `effect()` that uses the context will automatically be notified.
 
 #### Context Provider Usage
 
 ```js
 import UIElement from '@efflore/ui-element';
-import { ContextProvider } from './lib/context-controller';
 
 class MotionContext extends UIElement {
   static providedContexts = ['reduced-motion'];
 
   connectedCallback() {
-    this.contextProvider = new ContextProvider(this);
     const mql = matchMedia('(prefers-reduced-motion)');
     this.set('reduced-motion', mql.matches);
     mql.onchange = e => this.set('reduced-motion', e.matches);
-  }
-
-  disconnectedCallback() {
-    this.contextProvider.disconnect();
   }
 }
 
@@ -305,18 +305,12 @@ MotionContext.define('motion-context');
 
 ```js
 import UIElement from '@efflore/ui-element';
-import { ContextConsumer } from './lib/context-consumer';
 
 class MyAnimation extends UIElement {
-  static observedContexts = ['reduced-motion'];
+  static consumedContexts = ['reduced-motion'];
 
   connectedCallback() {
-    this.contextConsumer = new ContextConsumer(this);
-    this.effect(() => this.get('reduced-motion') ? this.#subtleFadeIn() : this.#pulsateAndMoveAround());
-  }
-
-  disconnectedCallback() {
-    this.contextConsumer.disconnect();
+    effect(() => this.get('reduced-motion') ? subtleFadeIn() : pulsateAndMoveAround());
   }
 }
 
@@ -333,13 +327,13 @@ Visibility Observer is a showcase how you can add composable functionality to `U
 
 ```js
 import UIElement from '@efflore/ui-element';
-import VisibilityObserver from './lib/visibility-observer';
+import VisibilityObserver from './src/lib/visibility-observer';
 
 class MyAnimation extends UIElement {
 
   connectedCallback() {
     this.visibilityObserver = new VisibilityObserver(this); // sets and updates 'visible' state on `this`
-    this.effect(() => this.get('visible') ? this.#startAnimation() : this.#stopAnimation());
+    effect(() => this.get('visible') ? startAnimation() : stopAnimation());
   }
 
   disconnectedCallback() {
