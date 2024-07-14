@@ -83,7 +83,7 @@ declare class UIElement extends HTMLElement {
      *
      * @since 0.5.0
      * @param {UIElement} element - child element to pass the states to
-     * @param {UIStateMap} states - object of states to be passed
+     * @param {UIStateMap} states - object of states to be passed; target state keys as keys, source state keys or function as values
      * @param {CustomElementRegistry} [registry=customElements] - custom element registry to be used; defaults to `customElements`
      */
     pass(element: UIElement, states: UIStateMap, registry?: CustomElementRegistry): Promise<void>;
