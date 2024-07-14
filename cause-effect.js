@@ -1,3 +1,8 @@
+/* === Types === */
+/* === Internal === */
+// hold the currently active effect
+let active;
+/* === Exported functions === */
 /**
  * Check if a given variable is a function
  *
@@ -12,17 +17,12 @@ const isFunction = (fn) => typeof fn === 'function';
  * @returns {boolean} true if supplied parameter is a reactive state
  */
 const isState = (value) => isFunction(value) && isFunction(value.set);
-
-/* === Internal === */
-// hold the currently active effect
-let active;
-/* === Exported functions === */
 /**
  * Define a reactive state
  *
  * @since 0.1.0
  * @param {unknown} value - initial value of the state; may be a function for derived state
- * @returns {FxState} getter function for the current value with a `set` method to update the value
+ * @returns {UIState} getter function for the current value with a `set` method to update the value
  */
 const cause = (value) => {
     const state = () => {
@@ -54,7 +54,7 @@ const derive = (fn) => fn;
  * Define what happens when a reactive state changes
  *
  * @since 0.1.0
- * @param {FxEffectCallback} fn - callback function to be executed when a state changes
+ * @param {UIEffectCallback} fn - callback function to be executed when a state changes
  */
 const effect = (fn) => {
     const targets = new Map();
@@ -78,4 +78,4 @@ const effect = (fn) => {
     next();
 };
 
-export { cause, derive, effect };
+export { cause, derive, effect, isFunction, isState };

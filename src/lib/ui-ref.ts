@@ -1,5 +1,3 @@
-import { isDefined } from '../utils';
-
 /* === Constants === */
 
 const TEXT_SUFFIX = 'text';
@@ -10,10 +8,10 @@ const STYLE_SUFFIX = 'style';
 
 /* === Type definitions === */
 
-type FxElement = {
+type UIRef = {
   (): Element;
-  first: (selector: string) => FxElement | undefined;
-  all: (selector: string) => FxElement[];
+  first: (selector: string) => UIRef | undefined;
+  all: (selector: string) => UIRef[];
   [TEXT_SUFFIX]: {
     set: (content: string) => void;
   };
@@ -63,20 +61,28 @@ const isStylable = (node: Element): node is HTMLElement | SVGElement | MathMLEle
 /* === Exported function === */
 
 /**
+ * Check if a given variable is defined
+ * 
+ * @param {any} value - variable to check if it is defined
+ * @returns {boolean} true if supplied parameter is defined
+ */
+const isDefined = (value: any): value is {} | null => typeof value !== 'undefined';
+
+/**
  * Wrapper around a native DOM element for DOM manipulation
  * 
- * @param {Element} element 
- * @returns {FxElement}
+ * @param {Element} element - native DOM element to wrap
+ * @returns {UIRef} - UIRef instance for the given element
  */
-const $ = (element: Element): FxElement => {
+const uiRef = (element: Element): UIRef => {
   const root = element.shadowRoot || element;
   const el = (): Element => element;
-  el.first = (selector: string): FxElement | undefined => {
+  el.first = (selector: string): UIRef | undefined => {
     const node = root.querySelector(selector);
-    return node && $(node);
+    return node && uiRef(node);
   };
-  el.all = (selector: string): FxElement[] =>
-    Array.from(root.querySelectorAll(selector)).map(node => $(node));
+  el.all = (selector: string): UIRef[] =>
+    Array.from(root.querySelectorAll(selector)).map(node => uiRef(node));
   el[TEXT_SUFFIX] = {
     get: (): string => element.textContent?.trim() || '',
     set: (content: string): void => {
@@ -123,4 +129,4 @@ const $ = (element: Element): FxElement => {
   return el;
 };
 
-export { $ as default, TEXT_SUFFIX, PROP_SUFFIX, ATTR_SUFFIX, CLASS_SUFFIX, STYLE_SUFFIX };
+export { uiRef as default, TEXT_SUFFIX, PROP_SUFFIX, ATTR_SUFFIX, CLASS_SUFFIX, STYLE_SUFFIX, isDefined };

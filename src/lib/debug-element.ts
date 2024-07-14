@@ -1,5 +1,5 @@
 import UIElement from '../ui-element';
-import { isDefined } from '../utils';
+import { isDefined } from './ui-ref';
 
 /**
  * @name UIElement DOM Utils
@@ -134,7 +134,7 @@ class DebugElement extends UIElement {
    * @param {import('../types.js').FxStateMap} states - states to be passed to the element
    * @param {CustomElementRegistry} [registry=customElements] - custom element registry
    */
-  async pass(element: UIElement, states: import('../ui-element').FxStateMap, registry: CustomElementRegistry = customElements) {
+  async pass(element: UIElement, states: import('../ui-element').UIStateMap, registry: CustomElementRegistry = customElements) {
     this.log(`Pass state(s) ${valueString(Object.keys(states))} to ${elementName(element)} from ${elementName(this)}`);
     super.pass(element, states, registry);
   }

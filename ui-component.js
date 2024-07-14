@@ -1,3 +1,8 @@
+/* === Types === */
+/* === Internal === */
+// hold the currently active effect
+let active;
+/* === Exported functions === */
 /**
  * Check if a given variable is a function
  *
@@ -13,23 +18,11 @@ const isFunction = (fn) => typeof fn === 'function';
  */
 const isState = (value) => isFunction(value) && isFunction(value.set);
 /**
- * Check if a given variable is defined
- *
- * @param {any} value - variable to check if it is defined
- * @returns {boolean} true if supplied parameter is defined
- */
-const isDefined = (value) => typeof value !== 'undefined';
-
-/* === Internal === */
-// hold the currently active effect
-let active;
-/* === Exported functions === */
-/**
  * Define a reactive state
  *
  * @since 0.1.0
  * @param {unknown} value - initial value of the state; may be a function for derived state
- * @returns {FxState} getter function for the current value with a `set` method to update the value
+ * @returns {UIState} getter function for the current value with a `set` method to update the value
  */
 const cause = (value) => {
     const state = () => {
@@ -53,7 +46,7 @@ const cause = (value) => {
  * Define what happens when a reactive state changes
  *
  * @since 0.1.0
- * @param {FxEffectCallback} fn - callback function to be executed when a state changes
+ * @param {UIEffectCallback} fn - callback function to be executed when a state changes
  */
 const effect = (fn) => {
     const targets = new Map();
@@ -139,13 +132,13 @@ class UIElement extends HTMLElement {
     /**
      * @since 0.5.0
      * @property
-     * @type {FxAttributeMap}
+     * @type {UIAttributeMap}
      */
     attributeMap = {};
     /**
      * @since 0.7.0
      * @property
-     * @type {FxContextMap}
+     * @type {UIContextMap}
      */
     contextMap = {};
     // @private hold states – use `has()`, `get()`, `set()` and `delete()` to access and modify
@@ -256,7 +249,7 @@ class UIElement extends HTMLElement {
      *
      * @since 0.5.0
      * @param {UIElement} element - child element to pass the states to
-     * @param {FxStateMap} states - object of states to be passed
+     * @param {UIStateMap} states - object of states to be passed
      * @param {CustomElementRegistry} [registry=customElements] - custom element registry to be used; defaults to `customElements`
      */
     async pass(element, states, registry = customElements) {
@@ -334,19 +327,26 @@ const isStylable = (node) => node instanceof HTMLElement
     || node instanceof MathMLElement;
 /* === Exported function === */
 /**
+ * Check if a given variable is defined
+ *
+ * @param {any} value - variable to check if it is defined
+ * @returns {boolean} true if supplied parameter is defined
+ */
+const isDefined = (value) => typeof value !== 'undefined';
+/**
  * Wrapper around a native DOM element for DOM manipulation
  *
- * @param {Element} element
- * @returns {FxElement}
+ * @param {Element} element - native DOM element to wrap
+ * @returns {UIRef} - UIRef instance for the given element
  */
-const $ = (element) => {
+const uiRef = (element) => {
     const root = element.shadowRoot || element;
     const el = () => element;
     el.first = (selector) => {
         const node = root.querySelector(selector);
-        return node && $(node);
+        return node && uiRef(node);
     };
-    el.all = (selector) => Array.from(root.querySelectorAll(selector)).map(node => $(node));
+    el.all = (selector) => Array.from(root.querySelectorAll(selector)).map(node => uiRef(node));
     el[TEXT_SUFFIX] = {
         get: () => element.textContent?.trim() || '',
         set: (content) => {
@@ -403,7 +403,7 @@ const autoApply = (el, suffix, callback) => {
         apply(node);
 };
 
-/* === Exported function === */
+/* === Exported functions === */
 /**
  * Automatically apply effects to UIElement and sub-elements based on its attributes
  *
@@ -414,7 +414,7 @@ const autoEffects = (el) => {
     [TEXT_SUFFIX, PROP_SUFFIX, ATTR_SUFFIX, CLASS_SUFFIX, STYLE_SUFFIX].forEach(suffix => {
         const textCallback = (node, value) => {
             const key = value.trim();
-            const obj = $(node)[suffix];
+            const obj = uiRef(node)[suffix];
             const fallback = obj.get();
             el.set(key, fallback, false);
             effect(enqueue => {
@@ -430,7 +430,7 @@ const autoEffects = (el) => {
             const splitted = (str, separator) => str.split(separator).map(s => s.trim());
             splitted(v, ';').forEach((value) => {
                 const [name, key = name] = splitted(value, ':');
-                const obj = $(node)[suffix];
+                const obj = uiRef(node)[suffix];
                 el.set(key, obj.get(), false);
                 effect(enqueue => {
                     if (el.has(key)) {
@@ -478,13 +478,13 @@ const highlightTargets = (el, className = EFFECT_CLASS) => {
  *
  * @since 0.7.0
  * @param {string} tag - custom element tag name
- * @param {import('../types.js').AttributeMap} attributeMap - object of observed attributes and their corresponding state keys and parser functions
- * @param {(connect: FxComponent) => void} connect - callback to be called when the element is connected to the DOM
- * @param {(disconnect: FxComponent) => void} disconnect - callback to be called when the element is disconnected from the DOM
+ * @param {UIAttributeMap} attributeMap - object of observed attributes and their corresponding state keys and parser functions
+ * @param {(connect: UIElement) => void} connect - callback to be called when the element is connected to the DOM
+ * @param {(disconnect: UIElement) => void} disconnect - callback to be called when the element is disconnected from the DOM
  * @returns {typeof FxComponent} - custom element class
  */
-const component = (tag, attributeMap = {}, connect, disconnect) => {
-    const FxComponent = class extends UIElement {
+const uiComponent = (tag, attributeMap = {}, connect, disconnect) => {
+    const UIComponent = class extends UIElement {
         static observedAttributes = Object.keys(attributeMap);
         attributeMap = attributeMap;
         connectedCallback() {
@@ -497,8 +497,8 @@ const component = (tag, attributeMap = {}, connect, disconnect) => {
             disconnect && disconnect(this);
         }
     };
-    FxComponent.define(tag);
-    return FxComponent;
+    UIComponent.define(tag);
+    return UIComponent;
 };
 
-export { $, UIElement, asBoolean, asInteger, asNumber, asString, component as default, effect };
+export { UIElement, asBoolean, asInteger, asNumber, asString, uiComponent as default, effect, uiRef };

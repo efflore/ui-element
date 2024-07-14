@@ -3,10 +3,10 @@ declare const PROP_SUFFIX = "prop";
 declare const ATTR_SUFFIX = "attr";
 declare const CLASS_SUFFIX = "class";
 declare const STYLE_SUFFIX = "style";
-type FxElement = {
+type UIRef = {
     (): Element;
-    first: (selector: string) => FxElement | undefined;
-    all: (selector: string) => FxElement[];
+    first: (selector: string) => UIRef | undefined;
+    all: (selector: string) => UIRef[];
     [TEXT_SUFFIX]: {
         set: (content: string) => void;
     };
@@ -28,10 +28,17 @@ type FxElement = {
     };
 };
 /**
+ * Check if a given variable is defined
+ *
+ * @param {any} value - variable to check if it is defined
+ * @returns {boolean} true if supplied parameter is defined
+ */
+declare const isDefined: (value: any) => value is {} | null;
+/**
  * Wrapper around a native DOM element for DOM manipulation
  *
- * @param {Element} element
- * @returns {FxElement}
+ * @param {Element} element - native DOM element to wrap
+ * @returns {UIRef} - UIRef instance for the given element
  */
-declare const $: (element: Element) => FxElement;
-export { $ as default, TEXT_SUFFIX, PROP_SUFFIX, ATTR_SUFFIX, CLASS_SUFFIX, STYLE_SUFFIX };
+declare const uiRef: (element: Element) => UIRef;
+export { uiRef as default, TEXT_SUFFIX, PROP_SUFFIX, ATTR_SUFFIX, CLASS_SUFFIX, STYLE_SUFFIX, isDefined };

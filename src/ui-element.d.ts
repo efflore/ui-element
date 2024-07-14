@@ -1,11 +1,11 @@
-import { type FxState } from "./cause-effect";
-type FxAttributeParser = ((value: string | undefined, element: HTMLElement, old: string | undefined) => unknown) | undefined;
-type FxMappedAttributeParser = [PropertyKey, FxAttributeParser];
-type FxAttributeMap = Record<string, FxAttributeParser | FxMappedAttributeParser>;
-type FxStateMap = Record<PropertyKey, PropertyKey | FxState>;
-type FxContextParser = ((value: unknown | undefined, element: HTMLElement) => unknown) | undefined;
-type FxMappedContextParser = [PropertyKey, FxContextParser];
-type FxContextMap = Record<PropertyKey, FxContextParser | FxMappedContextParser>;
+import { type UIState } from "./cause-effect";
+type UIAttributeParser = ((value: string | undefined, element: HTMLElement, old: string | undefined) => unknown) | undefined;
+type UIMappedAttributeParser = [PropertyKey, UIAttributeParser];
+type UIAttributeMap = Record<string, UIAttributeParser | UIMappedAttributeParser>;
+type UIStateMap = Record<PropertyKey, PropertyKey | UIState>;
+type UIContextParser = ((value: unknown | undefined, element: HTMLElement) => unknown) | undefined;
+type UIMappedContextParser = [PropertyKey, UIContextParser];
+type UIContextMap = Record<PropertyKey, UIContextParser | UIMappedContextParser>;
 /**
  * Base class for reactive custom elements
  *
@@ -26,15 +26,15 @@ declare class UIElement extends HTMLElement {
     /**
      * @since 0.5.0
      * @property
-     * @type {FxAttributeMap}
+     * @type {UIAttributeMap}
      */
-    attributeMap: FxAttributeMap;
+    attributeMap: UIAttributeMap;
     /**
      * @since 0.7.0
      * @property
-     * @type {FxContextMap}
+     * @type {UIContextMap}
      */
-    contextMap: FxContextMap;
+    contextMap: UIContextMap;
     /**
      * Native callback function when an observed attribute of the custom element changes
      *
@@ -69,7 +69,7 @@ declare class UIElement extends HTMLElement {
      * @param {unknown} value - initial or new value; may be a function (gets old value as parameter) to be evaluated when value is retrieved
      * @param {boolean} [update=true] - if `true` (default), the state is updated; if `false`, just return existing value
      */
-    set(key: PropertyKey, value: unknown | FxState, update?: boolean): void;
+    set(key: PropertyKey, value: unknown | UIState, update?: boolean): void;
     /**
      * Delete a state, also removing all effects dependent on the state
      *
@@ -83,10 +83,10 @@ declare class UIElement extends HTMLElement {
      *
      * @since 0.5.0
      * @param {UIElement} element - child element to pass the states to
-     * @param {FxStateMap} states - object of states to be passed
+     * @param {UIStateMap} states - object of states to be passed
      * @param {CustomElementRegistry} [registry=customElements] - custom element registry to be used; defaults to `customElements`
      */
-    pass(element: UIElement, states: FxStateMap, registry?: CustomElementRegistry): Promise<void>;
+    pass(element: UIElement, states: UIStateMap, registry?: CustomElementRegistry): Promise<void>;
     /**
      * Return a Set of elements that have effects dependent on the given state
      *
@@ -96,4 +96,4 @@ declare class UIElement extends HTMLElement {
      */
     targets(key: PropertyKey): Set<Element>;
 }
-export { type FxStateMap, type FxAttributeMap, type FxContextMap, UIElement as default };
+export { type UIStateMap, type UIAttributeMap, type UIContextMap, UIElement as default };

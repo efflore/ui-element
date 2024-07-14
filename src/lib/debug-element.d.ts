@@ -67,7 +67,7 @@ declare class DebugElement extends UIElement {
      * @param {import('../types.js').FxStateMap} states - states to be passed to the element
      * @param {CustomElementRegistry} [registry=customElements] - custom element registry
      */
-    pass(element: UIElement, states: import('../ui-element').FxStateMap, registry?: CustomElementRegistry): Promise<void>;
+    pass(element: UIElement, states: import('../ui-element').UIStateMap, registry?: CustomElementRegistry): Promise<void>;
     /**
      * Log messages in debug mode
      *

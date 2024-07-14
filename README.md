@@ -16,7 +16,7 @@ In the `connectedCallback()` you setup references to inner elements, add event l
 
 `UIElement` is fast. In fact, faster than any JavaScript framework. Only direct fine-grained DOM updates in vanilla JavaScript can beat its performance. But then, you have no loose coupling of components and need to parse attributes and track changes yourself. This tends to get tedious and messy rather quickly. `UIElement` provides a structured way to keep your components simple, consistent and self-contained.
 
-`UIElement` is tiny. 998 bytes gzipped over the wire. And it has zero dependiences. If you want to understand how it works, you have to study the source code of [one single file](./index.js).
+`UIElement` is tiny. 914 bytes gzipped over the wire. And it has zero dependiences. If you want to understand how it works, you have to study the source code of [one single file](./index.js).
 
 That's all.
 
@@ -43,11 +43,11 @@ npm install @efflore/ui-element
 In JavaScript:
 
 ```js
-import UIElement, { asInteger } from '@efflore/ui-element';
+import UIElement from '@efflore/ui-element';
 
 class MyCounter extends UIElement {
   static observedAttributes = ['value'];
-  attributeMap = { value: asInteger };
+  attributeMap = { value: v => parseInt(v, 10) };
 
   connectedCallback() {
     this.querySelector('.decrement').onclick = () => this.set('value', v => --v);
@@ -110,6 +110,15 @@ Or from client side:
 <script defer src="js/my-input.js"></script>
 <script defer src="js/my-slider.js"></script>
 ```
+
+## Advanced Usage
+
+### Context
+
+
+### Scheduling
+
+
 
 ## Complementary Utilities
 
@@ -241,25 +250,16 @@ The counter example with `autoEffects()`:
   }
 </style>
 <my-counter value="42">
-  <p>Count: <span ui-text="value">42</span></p>
+  <p>Count: <span data-my-counter-text="value">42</span></p>
   <div>
     <button class="decrement" onclick="this.closest('my-counter').set('value', v => --v)">–</button>
     <button class="increment" onclick="this.closest('my-counter').set('value', v => ++v)">+</button>
   </div>
 </my-counter>
 <script type="module">
-  import UIElement from '@efflore/ui-element';
-  import { autoEffects } from './lib/dom-utils';
-  
-  class MyCounter extends UIElement {
-    static observedAttributes = ['value'];
-    attributeMap = { value: 'integer' };
+  import component from './src/lib/component';
 
-    connectedCallback() {
-      autoEffects();
-    }
-  }
-  MyCounter.define('my-counter');
+  component('my-counter', { value: v => parseInt(v, 10) });
 </script>
 ```
 

@@ -1,31 +1,30 @@
-import { type FxState, cause } from "./cause-effect";
-import { isFunction, isState } from "./utils";
+import { type UIState, isFunction, isState, cause } from "./cause-effect";
 import { Context, CONTEXT_REQUEST, ContextRequestEvent } from "./context-request";
 
 /* === Types === */
 
-type FxAttributeParser = ((
+type UIAttributeParser = ((
   value: string | undefined,
   element: HTMLElement,
   old: string | undefined
 ) => unknown) | undefined;
 
-type FxMappedAttributeParser = [PropertyKey, FxAttributeParser];
+type UIMappedAttributeParser = [PropertyKey, UIAttributeParser];
 
-type FxAttributeMap = Record<string, FxAttributeParser | FxMappedAttributeParser>;
+type UIAttributeMap = Record<string, UIAttributeParser | UIMappedAttributeParser>;
 
-type FxStateMap = Record<PropertyKey, PropertyKey | FxState>;
+type UIStateMap = Record<PropertyKey, PropertyKey | UIState>;
 
-type FxContextParser = ((
+type UIContextParser = ((
   value: unknown | undefined,
   element: HTMLElement
 ) => unknown) | undefined;
 
-type FxMappedContextParser = [PropertyKey, FxContextParser];
+type UIMappedContextParser = [PropertyKey, UIContextParser];
 
-type FxContextMap = Record<PropertyKey, FxContextParser | FxMappedContextParser>;
+type UIContextMap = Record<PropertyKey, UIContextParser | UIMappedContextParser>;
 
-type FxStateContext = Context<PropertyKey, FxState>;
+type UIStateContext = Context<PropertyKey, UIState>;
 
 /* === Default export === */
 
@@ -59,16 +58,16 @@ class UIElement extends HTMLElement {
   /**
    * @since 0.5.0
    * @property
-   * @type {FxAttributeMap}
+   * @type {UIAttributeMap}
    */
-  attributeMap: FxAttributeMap = {};
+  attributeMap: UIAttributeMap = {};
 
   /**
    * @since 0.7.0
    * @property
-   * @type {FxContextMap}
+   * @type {UIContextMap}
    */
-  contextMap: FxContextMap = {};
+  contextMap: UIContextMap = {};
 
   // @private hold states – use `has()`, `get()`, `set()` and `delete()` to access and modify
   #states = new Map();
@@ -104,7 +103,7 @@ class UIElement extends HTMLElement {
     // context provider: listen to context request events
     const provided = proto.providedContexts || [];
     if (provided.length) {
-      this.addEventListener(CONTEXT_REQUEST, (e: ContextRequestEvent<FxStateContext>) => {
+      this.addEventListener(CONTEXT_REQUEST, (e: ContextRequestEvent<UIStateContext>) => {
         const { context, callback } = e;
         if (!provided.includes(context) || !isFunction(callback)) return;
         e.stopPropagation();
@@ -114,8 +113,8 @@ class UIElement extends HTMLElement {
 
     // context consumer
     setTimeout(() => { // wait for all custom elements to be defined
-      proto.consumedContexts?.forEach((context: FxStateContext) => {
-        const event = new ContextRequestEvent(context, (value: FxState) => {
+      proto.consumedContexts?.forEach((context: UIStateContext) => {
+        const event = new ContextRequestEvent(context, (value: UIState) => {
           const input = this.contextMap[context];
           const [key, fn] = Array.isArray(input)
             ? input
@@ -165,7 +164,7 @@ class UIElement extends HTMLElement {
    */
   set(
     key: PropertyKey,
-    value: unknown | FxState,
+    value: unknown | UIState,
     update: boolean = true
   ): void {
     if (this.#states.has(key)) {
@@ -195,12 +194,12 @@ class UIElement extends HTMLElement {
    * 
    * @since 0.5.0
    * @param {UIElement} element - child element to pass the states to
-   * @param {FxStateMap} states - object of states to be passed
+   * @param {UIStateMap} states - object of states to be passed
    * @param {CustomElementRegistry} [registry=customElements] - custom element registry to be used; defaults to `customElements`
    */
   async pass(
     element: UIElement,
-    states: FxStateMap,
+    states: UIStateMap,
     registry: CustomElementRegistry = customElements
   ): Promise<void> {
     await registry.whenDefined(element.localName);
@@ -228,4 +227,4 @@ class UIElement extends HTMLElement {
 
 }
 
-export { type FxStateMap, type FxAttributeMap, type FxContextMap, UIElement as default };
+export { type UIStateMap, type UIAttributeMap, type UIContextMap, UIElement as default };

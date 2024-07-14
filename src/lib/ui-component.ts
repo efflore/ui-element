@@ -1,7 +1,7 @@
-import UIElement from "../ui-element";
-import { asBoolean, asInteger, asNumber, asString } from "../parse-attribute";
+import UIElement, { type UIAttributeMap } from "../ui-element";
 import { effect } from "../cause-effect";
-import $ from "./fx-element";
+import { asBoolean, asInteger, asNumber, asString } from "./parse-attribute";
+import uiRef from "./ui-ref";
 import autoEffects from "./auto-effects";
 import highlightTargets from "./highlight-targets";
 import { DEV_MODE } from "./debug-element";
@@ -11,18 +11,18 @@ import { DEV_MODE } from "./debug-element";
  * 
  * @since 0.7.0
  * @param {string} tag - custom element tag name
- * @param {import('../types.js').AttributeMap} attributeMap - object of observed attributes and their corresponding state keys and parser functions
- * @param {(connect: FxComponent) => void} connect - callback to be called when the element is connected to the DOM
- * @param {(disconnect: FxComponent) => void} disconnect - callback to be called when the element is disconnected from the DOM
+ * @param {UIAttributeMap} attributeMap - object of observed attributes and their corresponding state keys and parser functions
+ * @param {(connect: UIElement) => void} connect - callback to be called when the element is connected to the DOM
+ * @param {(disconnect: UIElement) => void} disconnect - callback to be called when the element is disconnected from the DOM
  * @returns {typeof FxComponent} - custom element class
  */
-const component = (
+const uiComponent = (
   tag: string,
-  attributeMap: import('../ui-element').FxAttributeMap = {},
+  attributeMap: UIAttributeMap = {},
   connect: (connect: UIElement) => void,
   disconnect: (disconnect: UIElement) => void
-): typeof FxComponent => {
-  const FxComponent = class extends UIElement {
+): typeof UIComponent => {
+  const UIComponent = class extends UIElement {
     static observedAttributes = Object.keys(attributeMap);
     attributeMap = attributeMap;
 
@@ -37,8 +37,8 @@ const component = (
       disconnect && disconnect(this);
     }
   };
-  FxComponent.define(tag);
-  return FxComponent;
+  UIComponent.define(tag);
+  return UIComponent;
 };
 
-export { component as default, UIElement, effect, $, asBoolean, asInteger, asNumber, asString };
+export { uiComponent as default, UIElement, effect, uiRef, asBoolean, asInteger, asNumber, asString };

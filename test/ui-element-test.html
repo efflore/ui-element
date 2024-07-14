@@ -92,14 +92,14 @@
   <script type="module">
     import { runTests } from '@web/test-runner-mocha';
     import { assert } from '@esm-bundle/chai';
-    import component, { effect, asBoolean, asInteger, asNumber, asString } from '../component.js';
+    import uiComponent, { effect, asBoolean, asInteger, asNumber, asString } from '../ui-component.js';
 
     const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
     const paint = () => new Promise(resolve => requestAnimationFrame(resolve));
     const normalizeText = text => text.replace(/\s+/g, ' ').trim();
 
     // (class extends UIElement { /* debug = true */ }).define('void-component');
-    component('void-component');
+    uiComponent('void-component');
 
     /* class CausalComponent extends UIElement {
       // debug = true;
@@ -114,7 +114,7 @@
     }
     CausalComponent.define('causal-component'); */
 
-    component('causal-component', {}, el => {
+    uiComponent('causal-component', {}, el => {
       el.set('heading', 'Hello from Internal State');
     });
 
@@ -144,7 +144,7 @@
     }
     UpdatingComponent.define('updating-component'); */
 
-    component('updating-component', {
+    uiComponent('updating-component', {
       heading: ['title'],
       count: asInteger,
       step: asNumber,
@@ -165,7 +165,7 @@
     }
     ParentComponent.define('parent-component'); */
 
-    component('parent-component', { heading: asString }, el => {
+    uiComponent('parent-component', { heading: asString }, el => {
       el.pass(el.querySelector('child-component'), {
         heading: 'heading',
         text: () => el.get('heading').toUpperCase(),
@@ -183,7 +183,7 @@
     }
     ChildComponent.define('child-component'); */
 
-    component('child-component');
+    uiComponent('child-component');
 
     /* class MyCounter extends DebugElement {
       static observedAttributes = ['value'];
@@ -213,7 +213,7 @@
     }
     MyCounter.define('my-counter'); */
 
-    component('my-counter', { value: asInteger }, el => {
+    uiComponent('my-counter', { value: asInteger }, el => {
       el.set('parity', () => el.get('value') % 2 ? 'odd' : 'even');
       el.set('double', () => el.get('value') * 2);
       el.querySelector('.decrement').onclick = () => el.set('value', v => --v);
@@ -233,7 +233,7 @@
     }
     GreetingConfigurator.define('greeting-configurator'); */
 
-    component('greeting-configurator', {}, el => {
+    uiComponent('greeting-configurator', {}, el => {
       const first = el.querySelector('.first');
       const last = el.querySelector('.last');
       const useFullname = el.querySelector('input-checkbox');
@@ -257,7 +257,7 @@
     }
     HelloWorld.define('hello-world'); */
 
-    component('hello-world', { greeting: asString }, el => {
+    uiComponent('hello-world', { greeting: asString }, el => {
       el.set('greeting', el.querySelector('.greeting').textContent, false);
     });
 
@@ -271,7 +271,7 @@
     }
     InputField.define('input-field'); */
 
-    component('input-field', {}, el => {
+    uiComponent('input-field', {}, el => {
       const input = el.querySelector('input');
       el.set('value', input.value);
       input.onchange = () => el.set('value', input.value);
@@ -287,7 +287,7 @@
     }
     InputCheckbox.define('input-checkbox'); */
 
-    component('input-checkbox', {}, el => {
+    uiComponent('input-checkbox', {}, el => {
       const input = el.querySelector('input');
       el.set('checked', input.checked);
       input.onchange = () => el.set('checked', input.checked);

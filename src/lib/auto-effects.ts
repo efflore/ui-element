@@ -1,10 +1,9 @@
 import UIElement from "../ui-element";
 import { effect } from "../cause-effect";
-import { isDefined } from "../utils";
 import autoApply from "./auto-apply";
-import $, { TEXT_SUFFIX, PROP_SUFFIX, ATTR_SUFFIX, CLASS_SUFFIX, STYLE_SUFFIX } from "./fx-element"; 
+import uiRef, { TEXT_SUFFIX, PROP_SUFFIX, ATTR_SUFFIX, CLASS_SUFFIX, STYLE_SUFFIX, isDefined } from "./ui-ref"; 
 
-/* === Exported function === */
+/* === Exported functions === */
 
 /**
  * Automatically apply effects to UIElement and sub-elements based on its attributes
@@ -21,7 +20,7 @@ const autoEffects = (el: UIElement) => {
       value: string
     ): void => {
       const key = value.trim();
-      const obj = $(node)[suffix];
+      const obj = uiRef(node)[suffix];
       const fallback = obj.get();
       el.set(key, fallback, false);
       effect(enqueue => {
@@ -45,7 +44,7 @@ const autoEffects = (el: UIElement) => {
       ) => str.split(separator).map(s => s.trim());
       splitted(v, ';').forEach((value: string) => {
         const [name, key = name] = splitted(value, ':');
-        const obj = $(node)[suffix];
+        const obj = uiRef(node)[suffix];
         el.set(key, obj.get(), false);
         effect(enqueue => {
           if (el.has(key)) {
