@@ -1,9 +1,14 @@
 // @ts-nocheck
-import globals from "globals";
-import pluginJs from "@eslint/js";
-
+import globals from 'globals';
+import eslint from '@eslint/js';
+import tseslint from 'typescript-eslint';
 
 export default [
-  {languageOptions: { globals: globals.browser }},
-  pluginJs.configs.recommended,
+  {
+    languageOptions: {
+      globals: globals.browser
+    },
+  },
+  eslint.configs.recommended,
+  ...tseslint.configs.recommended,
 ];

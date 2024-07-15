@@ -4,27 +4,57 @@ import { Context, CONTEXT_REQUEST, ContextRequestEvent } from "./context-request
 /* === Types === */
 
 type UIAttributeParser = ((
-  value: string | undefined,
-  element: HTMLElement,
-  old: string | undefined
+  value: unknown | undefined,
+  element?: HTMLElement,
+  old?: unknown | undefined,
 ) => unknown) | undefined;
 
 type UIMappedAttributeParser = [PropertyKey, UIAttributeParser];
 
 type UIAttributeMap = Record<string, UIAttributeParser | UIMappedAttributeParser>;
 
-type UIStateMap = Record<PropertyKey, PropertyKey | UIState>;
+type UIStateMap = Record<PropertyKey, PropertyKey | UIState<unknown>>;
 
 type UIContextParser = ((
   value: unknown | undefined,
-  element: HTMLElement
+  element?: HTMLElement
 ) => unknown) | undefined;
 
 type UIMappedContextParser = [PropertyKey, UIContextParser];
 
 type UIContextMap = Record<PropertyKey, UIContextParser | UIMappedContextParser>;
 
-type UIStateContext = Context<PropertyKey, UIState>;
+type UIStateContext = Context<PropertyKey, UIState<unknown>>;
+
+interface IUIElement extends Partial<HTMLElement> {
+  attributeMap: UIAttributeMap;
+  contextMap: UIContextMap;
+  connectedCallback(): void;
+  disconnectedCallback?(): void;
+  attributeChangedCallback(name: string, old: string | undefined, value: string | undefined): void;
+  has(key: PropertyKey): boolean;
+  get(key: PropertyKey): unknown;
+  set(key: PropertyKey, value: unknown | UIState<unknown>, update?: boolean): void;
+  delete(key: PropertyKey): boolean;
+  pass(element: UIElement, states: UIStateMap, registry?: CustomElementRegistry): Promise<void>;
+  targets(key: PropertyKey): Set<Element>;
+}
+
+/* === Internal function === */
+
+/**
+ * Parse a attribute or context mapping value into a key-value pair
+ * 
+ * @param {[PropertyKey, UIAttributeParser | UIContextParser] | UIAttributeParser | UIContextParser} value 
+ * @param {PropertyKey} defaultKey 
+ * @returns {[PropertyKey, UIAttributeParser | UIContextParser]}
+ */
+const getArrayMapping = (
+  value: [PropertyKey, UIAttributeParser | UIContextParser] | UIAttributeParser | UIContextParser,
+  defaultKey: PropertyKey
+): [PropertyKey, UIAttributeParser | UIContextParser] => {
+  return Array.isArray(value) ? value : [defaultKey, isFunction(value) ? value : (v: unknown): unknown => v];
+};
 
 /* === Default export === */
 
@@ -33,7 +63,7 @@ type UIStateContext = Context<PropertyKey, UIState>;
  * 
  * @class UIElement
  * @extends HTMLElement
- * @type {UIElement}
+ * @type {IUIElement}
  */
 class UIElement extends HTMLElement {
 
@@ -87,11 +117,9 @@ class UIElement extends HTMLElement {
   ): void {
     if (value !== old) {
       const input = this.attributeMap[name];
-      const [key, parser] = Array.isArray(input)
-        ? input :
-        [name, input];
-      this.set(key, isFunction(parser)
-        ? parser(value, this, old)
+      const [key, fn] = getArrayMapping(input, name);
+      this.set(key, isFunction(fn)
+        ? fn(value, this, old)
         : value
       );
     }
@@ -114,11 +142,9 @@ class UIElement extends HTMLElement {
     // context consumer
     setTimeout(() => { // wait for all custom elements to be defined
       proto.consumedContexts?.forEach((context: UIStateContext) => {
-        const event = new ContextRequestEvent(context, (value: UIState) => {
+        const event = new ContextRequestEvent(context, (value: UIState<unknown>) => {
           const input = this.contextMap[context];
-          const [key, fn] = Array.isArray(input)
-            ? input
-            : [context, input];
+          const [key, fn] = getArrayMapping(input, context);
           this.#states.set(key || context, isFunction(fn)
             ? fn(value, this)
             : value
@@ -164,7 +190,7 @@ class UIElement extends HTMLElement {
    */
   set(
     key: PropertyKey,
-    value: unknown | UIState,
+    value: unknown | UIState<unknown>,
     update: boolean = true
   ): void {
     if (this.#states.has(key)) {
@@ -198,7 +224,7 @@ class UIElement extends HTMLElement {
    * @param {CustomElementRegistry} [registry=customElements] - custom element registry to be used; defaults to `customElements`
    */
   async pass(
-    element: UIElement,
+    element: IUIElement,
     states: UIStateMap,
     registry: CustomElementRegistry = customElements
   ): Promise<void> {
@@ -228,4 +254,4 @@ class UIElement extends HTMLElement {
 
 }
 
-export { type UIStateMap, type UIAttributeMap, type UIContextMap, UIElement as default };
+export { type IUIElement, type UIStateMap, type UIAttributeMap, type UIContextMap, UIElement as default };

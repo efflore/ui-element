@@ -63,10 +63,10 @@ const isStylable = (node: Element): node is HTMLElement | SVGElement | MathMLEle
 /**
  * Check if a given variable is defined
  * 
- * @param {any} value - variable to check if it is defined
+ * @param {unknown} value - variable to check if it is defined
  * @returns {boolean} true if supplied parameter is defined
  */
-const isDefined = (value: any): value is {} | null => typeof value !== 'undefined';
+const isDefined = (value: unknown): value is NonNullable<unknown> => typeof value !== 'undefined';
 
 /**
  * Wrapper around a native DOM element for DOM manipulation

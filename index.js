@@ -21,7 +21,7 @@ const isState = (value) => isFunction(value) && isFunction(value.set);
  * Define a reactive state
  *
  * @since 0.1.0
- * @param {unknown} value - initial value of the state; may be a function for derived state
+ * @param {any} value - initial value of the state; may be a function for derived state
  * @returns {UIState} getter function for the current value with a `set` method to update the value
  */
 const cause = (value) => {
@@ -58,7 +58,7 @@ const effect = (fn) => {
             targets.get(element).add(domFn);
         });
         active = prev;
-        queueMicrotask(() => {
+        (targets.size || cleanup) && queueMicrotask(() => {
             for (const domFns of targets.values()) {
                 for (const domFn of domFns)
                     domFn();
@@ -105,13 +105,24 @@ class ContextRequestEvent extends Event {
     }
 }
 
+/* === Internal function === */
+/**
+ * Parse a attribute or context mapping value into a key-value pair
+ *
+ * @param {[PropertyKey, UIAttributeParser | UIContextParser] | UIAttributeParser | UIContextParser} value
+ * @param {PropertyKey} defaultKey
+ * @returns {[PropertyKey, UIAttributeParser | UIContextParser]}
+ */
+const getArrayMapping = (value, defaultKey) => {
+    return Array.isArray(value) ? value : [defaultKey, isFunction(value) ? value : (v) => v];
+};
 /* === Default export === */
 /**
  * Base class for reactive custom elements
  *
  * @class UIElement
  * @extends HTMLElement
- * @type {UIElement}
+ * @type {IUIElement}
  */
 class UIElement extends HTMLElement {
     /**
@@ -154,11 +165,9 @@ class UIElement extends HTMLElement {
     attributeChangedCallback(name, old, value) {
         if (value !== old) {
             const input = this.attributeMap[name];
-            const [key, parser] = Array.isArray(input)
-                ? input :
-                [name, input];
-            this.set(key, isFunction(parser)
-                ? parser(value, this, old)
+            const [key, fn] = getArrayMapping(input, name);
+            this.set(key, isFunction(fn)
+                ? fn(value, this, old)
                 : value);
         }
     }
@@ -180,9 +189,7 @@ class UIElement extends HTMLElement {
             proto.consumedContexts?.forEach((context) => {
                 const event = new ContextRequestEvent(context, (value) => {
                     const input = this.contextMap[context];
-                    const [key, fn] = Array.isArray(input)
-                        ? input
-                        : [context, input];
+                    const [key, fn] = getArrayMapping(input, context);
                     this.#states.set(key || context, isFunction(fn)
                         ? fn(value, this)
                         : value);
