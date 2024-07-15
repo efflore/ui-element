@@ -1,14 +1,16 @@
+import type UIElement from '../ui-element';
+
 const VISIBILITY_STATE = 'visible';
 
-export default class VisibilityObserver {
+class VisibilityObserver {
   observer = null;
 
   /**
    * Set up IntersectionObserver for UIElement visibility state
    * 
-   * @param {import("../types").UIElement} element 
+   * @param {UIElement} element 
    */
-  constructor(element) {
+  constructor(element: UIElement) {
     element.set(VISIBILITY_STATE, false);
 
     this.observer = new IntersectionObserver(([entry]) => {
@@ -20,3 +22,5 @@ export default class VisibilityObserver {
     this.observer && this.observer.disconnect();
   }
 }
+
+export default VisibilityObserver;
