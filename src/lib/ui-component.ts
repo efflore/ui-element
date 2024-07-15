@@ -1,4 +1,4 @@
-import UIElement, { type UIAttributeMap } from "../ui-element";
+import UIElement, { type IUIElement, type UIAttributeMap } from "../ui-element";
 import { effect } from "../cause-effect";
 import { asBoolean, asInteger, asNumber, asString } from "./parse-attribute";
 import uiRef from "./ui-ref";
@@ -12,15 +12,15 @@ import { DEV_MODE } from "./debug-element";
  * @since 0.7.0
  * @param {string} tag - custom element tag name
  * @param {UIAttributeMap} attributeMap - object of observed attributes and their corresponding state keys and parser functions
- * @param {(connect: UIElement) => void} connect - callback to be called when the element is connected to the DOM
- * @param {(disconnect: UIElement) => void} disconnect - callback to be called when the element is disconnected from the DOM
+ * @param {(connect: IUIElement) => void} connect - callback to be called when the element is connected to the DOM
+ * @param {(disconnect: IUIElement) => void} disconnect - callback to be called when the element is disconnected from the DOM
  * @returns {typeof FxComponent} - custom element class
  */
 const uiComponent = (
   tag: string,
   attributeMap: UIAttributeMap = {},
-  connect: (connect: UIElement) => void,
-  disconnect: (disconnect: UIElement) => void
+  connect: (connect: IUIElement) => void,
+  disconnect: (disconnect: IUIElement) => void
 ): typeof UIComponent => {
   const UIComponent = class extends UIElement {
     static observedAttributes = Object.keys(attributeMap);

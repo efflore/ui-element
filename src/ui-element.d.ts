@@ -1,17 +1,30 @@
 import { type UIState } from "./cause-effect";
-type UIAttributeParser = ((value: string | undefined, element: HTMLElement, old: string | undefined) => unknown) | undefined;
+type UIAttributeParser = ((value: unknown | undefined, element?: HTMLElement, old?: unknown | undefined) => unknown) | undefined;
 type UIMappedAttributeParser = [PropertyKey, UIAttributeParser];
 type UIAttributeMap = Record<string, UIAttributeParser | UIMappedAttributeParser>;
-type UIStateMap = Record<PropertyKey, PropertyKey | UIState>;
-type UIContextParser = ((value: unknown | undefined, element: HTMLElement) => unknown) | undefined;
+type UIStateMap = Record<PropertyKey, PropertyKey | UIState<unknown>>;
+type UIContextParser = ((value: unknown | undefined, element?: HTMLElement) => unknown) | undefined;
 type UIMappedContextParser = [PropertyKey, UIContextParser];
 type UIContextMap = Record<PropertyKey, UIContextParser | UIMappedContextParser>;
+interface IUIElement extends Partial<HTMLElement> {
+    attributeMap: UIAttributeMap;
+    contextMap: UIContextMap;
+    connectedCallback(): void;
+    disconnectedCallback?(): void;
+    attributeChangedCallback(name: string, old: string | undefined, value: string | undefined): void;
+    has(key: PropertyKey): boolean;
+    get(key: PropertyKey): unknown;
+    set(key: PropertyKey, value: unknown | UIState<unknown>, update?: boolean): void;
+    delete(key: PropertyKey): boolean;
+    pass(element: UIElement, states: UIStateMap, registry?: CustomElementRegistry): Promise<void>;
+    targets(key: PropertyKey): Set<Element>;
+}
 /**
  * Base class for reactive custom elements
  *
  * @class UIElement
  * @extends HTMLElement
- * @type {UIElement}
+ * @type {IUIElement}
  */
 declare class UIElement extends HTMLElement {
     #private;
@@ -69,7 +82,7 @@ declare class UIElement extends HTMLElement {
      * @param {unknown} value - initial or new value; may be a function (gets old value as parameter) to be evaluated when value is retrieved
      * @param {boolean} [update=true] - if `true` (default), the state is updated; if `false`, just return existing value
      */
-    set(key: PropertyKey, value: unknown | UIState, update?: boolean): void;
+    set(key: PropertyKey, value: unknown | UIState<unknown>, update?: boolean): void;
     /**
      * Delete a state, also removing all effects dependent on the state
      *
@@ -86,7 +99,7 @@ declare class UIElement extends HTMLElement {
      * @param {UIStateMap} states - object of states to be passed; target state keys as keys, source state keys or function as values
      * @param {CustomElementRegistry} [registry=customElements] - custom element registry to be used; defaults to `customElements`
      */
-    pass(element: UIElement, states: UIStateMap, registry?: CustomElementRegistry): Promise<void>;
+    pass(element: IUIElement, states: UIStateMap, registry?: CustomElementRegistry): Promise<void>;
     /**
      * Return a Set of elements that have effects dependent on the given state
      *
@@ -96,4 +109,4 @@ declare class UIElement extends HTMLElement {
      */
     targets(key: PropertyKey): Set<Element>;
 }
-export { type UIStateMap, type UIAttributeMap, type UIContextMap, UIElement as default };
+export { type IUIElement, type UIStateMap, type UIAttributeMap, type UIContextMap, UIElement as default };

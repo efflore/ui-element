@@ -10,7 +10,7 @@
     "build:minify": "terser index.js -c -m -o index.min.js --module",
     "build:cause-effect": "terser cause-effect.js -c -m -o cause-effect.min.js --module",
     "build:ui-component": "terser ui-component.js -c -m -o ui-component.min.js --module",
-    "lint": "npx eslint index.js",
+    "lint": "npx eslint src/**/*.ts",
     "test": "run-s test:setup test:ci",
     "test:setup": "npx playwright install-deps",
     "test:ci": "web-test-runner \"test/*-test.html\" --node-resolve --playwright --browsers chromium firefox webkit",
@@ -28,12 +28,13 @@
   "license": "MIT",
   "type": "module",
   "devDependencies": {
-    "@eslint/js": "^9.6.0",
+    "@eslint/js": "^9.7.0",
     "@esm-bundle/chai": "^4.3.4-fix.0",
     "@rollup/plugin-typescript": "^11.1.6",
+    "@types/eslint__js": "^8.42.3",
     "@web/test-runner": "^0.18.2",
     "@web/test-runner-playwright": "^0.11.0",
-    "eslint": "^9.6.0",
+    "eslint": "^8.56.0",
     "globals": "^15.8.0",
     "npm-run-all": "^4.1.5",
     "playwright": "^1.45.1",
@@ -41,6 +42,7 @@
     "sinon": "^18.0.0",
     "terser": "^5.31.2",
     "tslib": "^2.6.3",
-    "typescript": "^5.5.3"
+    "typescript": "^5.5.3",
+    "typescript-eslint": "^7.16.0"
   }
 }

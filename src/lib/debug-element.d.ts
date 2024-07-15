@@ -1,4 +1,4 @@
-import UIElement from '../ui-element';
+import UIElement, { type IUIElement, type UIStateMap } from '../ui-element';
 /**
  * @name UIElement DOM Utils
  * @version 0.7.0
@@ -35,22 +35,22 @@ declare class DebugElement extends UIElement {
      */
     attributeChangedCallback(name: string, old: string | undefined, value: string | undefined): void;
     /**
-     * Wrap set() to log signal reads to the console
+     * Wrap get() to log signal reads to the console
      *
      * @since 0.5.0
-     * @param {PropertyKey} key
-     * @returns {any}
+     * @param {PropertyKey} key - state to get
+     * @returns {unknown} - current value of the state
      */
-    get(key: PropertyKey): any;
+    get(key: PropertyKey): unknown;
     /**
      * Wrap set() to log signal writes to the console
      *
      * @since 0.5.0
      * @param {PropertyKey} key - state to be set
-     * @param {any} value - value to be set
+     * @param {unknown} value - value to be set
      * @param {boolean} [update=true] - whether to update the state
      */
-    set(key: PropertyKey, value: any, update?: boolean): void;
+    set(key: PropertyKey, value: unknown, update?: boolean): void;
     /**
      * Wrap delete() to log signal deletions to the console
      *
@@ -63,11 +63,11 @@ declare class DebugElement extends UIElement {
      * Wrap pass() to log passed signals to the console
      *
      * @since 0.7.0
-     * @param {UIElement} element - UIElement to be passed to
-     * @param {import('../types.js').FxStateMap} states - states to be passed to the element
+     * @param {IUIElement} element - UIElement to be passed to
+     * @param {UIStateMap} states - states to be passed to the element
      * @param {CustomElementRegistry} [registry=customElements] - custom element registry
      */
-    pass(element: UIElement, states: import('../ui-element').UIStateMap, registry?: CustomElementRegistry): Promise<void>;
+    pass(element: IUIElement, states: UIStateMap, registry?: CustomElementRegistry): Promise<void>;
     /**
      * Log messages in debug mode
      *
