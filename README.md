@@ -115,171 +115,7 @@ Or from client side:
 
 ### Context
 
-
-### Scheduling
-
-
-
-## Complementary Utilities
-
-As of version 0.5.0 we include some additional scripts to complement `UIElement`.
-
-⚠️ **Caution**: These scripts (besides Cause & Effect) are not well tested and are considered work-in-progress. Its API and implementation details might change at any time. We deliberatly don't provide them as installable packages yet, rather as a source of inspiration for you. Feel free to copy and adapt to your needs, at your own risk.
-
-### Cause & Effect
-
-Cause & Effect is the core reactivity engine of `UIElement`. You may also use it stand-alone, indepenent of `UIElement`.
-
-It consists of three functions:
-
-- `cause()` return a getter function for the current value with a `.set()` method to update the value
-- `derive()` returns a getter function for the current value of the derived computation
-- `effect()` accepts a callback function to be exectuted when used signals change
-
-Unlike the [TC39 Signals Proposal](https://github.com/tc39/proposal-signals), Cause & Effect uses a much simpler approach, effectively just decorator functions around signal getters and setters. All work is done synchronously and eagerly. As long as your computed functions are pure and DOM side effects are kept to a minimum, this should pose no issues and is even faster than doing all the checks and memoization in the more sophisticated push-then-pull approach of the Signals Proposal.
-
-If you however want to use side-effects or expensive work in computed function or updating / rendering in the DOM in effects takes longer than an animation frame, you might encounter glitches. If that's what you are doing, you are better off with a mature, full-fledged JavaScript framework.
-
-That said, we plan to offer a `UIElement` version with the Signals Proposal Polyfill instead of Cause & Effect in future versions as a drop-in replacement with the same API. As the Signals Proposal is still in early stage and they explicitely warn not to use the polyfill in production, we decided to do that not yet.
-
-#### Usage
-
-```js
-import { cause, derive, effect } from './lib/cause-effect';
-```
-
-[Source](./cause-effect.js)
-
-### Debug Element
-
-`DebugElement` is a base class that extends `UIElement`. It wraps `attributeChangeCallback`, `get()`, `set()`, `delete()`, and `pass()` to log changes to attributes, reads, writes and passes of reactive states to the console, if you set a `debug` boolean attribute on your custom element. This will set a `debug` reactive state on the element instance.
-
-#### Usage
-
-```js
-import DebugElement from './lib/debug-element.js';
-
-class MyElement extends DebugElement {
-  /* ... */
-}
-```
-
-Make sure the imports of `UIElement` on the first line points to your installed package and replace the `isDefined` import by the actual function:
-
-```js
-import UIElement from '@efflore/ui-element';
-const isDefined = value => typeof value !== 'undefined';
-```
-
-If you use Debug Element as your base class for custom elements, you may call `super.connectedCallback();` (and the other lifecycle callbacks) to log when your element connects to the DOM.
-
-To log when some DOM features of child elements are updated in effects, you need to enqueue all fine-grained DOM updated like this:
-
-```js
-// in connectedCallback()
-effect(enqueue => {
-  const description = this.querySelector('span');
-  const card = this.querySelector('.card');
-  const content = this.get('value');
-  const selected = this.get('selected');
-  enqueue(description, () => (description.textContent = content));
-  enqueue(card, () => card.classList.toggle('selected', selected));
-});
-```
-
-Otherwise Debug Element only knows which effect runs in which component, but not the exact elements targeted by your effect.
-
-Enqueueing fine-grained DOM updates is always possible. It's a bit more verbose, but it ensures all updates of your effect happen concurrently. `$()` from DOM Utils (see next section) does this by default. All DOM utility functions receive the target element as first parameter, making it possible to use this shorter notation:
-
-```js
-import $ from './src/lib/fx-element';
-
-// in connectedCallback()
-effect(enqueue => {
-  const description = $(this).first('span');
-  const card = $(this).first('.card');
-  const content = this.get('value');
-  const selected = this.get('selected');
-  enqueue(description(), () => description.text.set(content));
-  enqueue(card(), () => card.class.set('selected', selected));
-});
-```
-
-[Source](./src/lib/debug-element.ts)
-
-### DOM Utils
-
-A few utility functions for fine-grained DOM updates in `effect()`s that streamline the interface and save tedious existance and change checks:
-
-- `setText()` preserves comment nodes in contrast to `element.textContent` assignments
-- `setProp()` sets or deletes a property on an element
-- `setAttr()` sets or removes an attribute on an element
-- `setClass()` adds or removes a class on an element
-- `setStyle()` sets or removes a style property on an element
-
-You may also call `autoEffects()` in the `connectedCallback()` to auto-wire effects to child elements with certail attributes:
-
-- `ui-text="state"` will auto-update the `textContent` of the element to the current value of state `'state'`
-- `ui-prop="prop: state"` will auto-set property `prop` to the current value of state `'state'`
-- `ui-attr="step; value"` will auto-update the attributes `step` and `value` to the currrent values of the states with the same keys
-- `ui-class="selected"` will auto-toggle the class `selected` on the element to the corresponding boolean state value
-- `ui-style="--color-bg: color; --color-text: contrasting-color"` will auto-set the CSS custom properties `--color-bg` and `--color-text` to the current values of the states `'color'` and `'contrasting-color'`
-
-With all key/value pair attributes, you can provide several separated by `;`. Each key/value pair consists of (1) a property key, attribute name, class token or style property name divided by `:` from (2) the state signal to be auto-applied. If the second part is omitted, it is assumed both parts share the same key.
-
-Auto-Effects will be be applied to the Shadow DOM, if your component uses it; otherwise to the Light DOM sub-tree. The `ui-*` attributes will be removed from the DOM once your component is connected and the effects are set up. If you load a partial from the server containing these attributes, you will have to call `autoEffects()` again to have the effects auto-applied to the newly loaded partial as well.
-
- By using these declarative attributes you can considerably reduce the amount of simple effects in your component's JavaScript. Almost all fine-grained DOM updates can be done this way. You gain Locality of Behavior (LoB) in your markup and can decide per case where effects shall be applied. On the other hand, you lose Separation of Concerns (SoC) - if you care about it. It's the same trade-off as with JSX, but in pure HTML.
-
-As not all users like the sort of magic of Auto-Effects, it's an optional opt-in and not part of the core `UIElement` library. Copy the source code and adapt it to your needs, if you like it.
-
-These utility function try to minimize DOM updates to the necessary. But of course, you can also use regular DOM API methods, as you interact with real DOM elements, not an abstraction thereof. If you know for sure, the target element exists, the passed value is valid and the DOM needs to be updated every time the source state changes, you may bypass the additional checks by these utility functions and use native DOM APIs instead.
-
-#### Usage
-
-```js
-import { setText, setProp, setAttr, setClass, setStyle, autoEffects } from './lib/dom-utils';
-```
-
-The counter example with `autoEffects()`:
-
-```html
-<style>
-  my-counter {
-    /* ... */
-  }
-</style>
-<my-counter value="42">
-  <p>Count: <span data-my-counter-text="value">42</span></p>
-  <div>
-    <button class="decrement" onclick="this.closest('my-counter').set('value', v => --v)">–</button>
-    <button class="increment" onclick="this.closest('my-counter').set('value', v => ++v)">+</button>
-  </div>
-</my-counter>
-<script type="module">
-  import component from './src/lib/component';
-
-  component('my-counter', { value: v => parseInt(v, 10) });
-</script>
-```
-
-Where has the JavaScript gone? – It almost disappeared. To explain the magic:
-
-1. Web Components observe `observedAttributes` and call the `attributeChangedCallback()`
-2. `UIElement` **auto-parses** the `'value'` attribute as an integer and creates a state signal with the same key
-3. `autoEffects()` detects `ui-text="value"` in the DOM sub-tree and runs the effect a first time and removes the `ui-text` attribute
-4. `UIElement` **auto-tracks** the use of the `'value'` signal in the effect you did not even write
-5. The inlined `onclick` handlers in the HTML will increment or decrement the `'value'` signal value
-6. `UIElement` **auto-runs** the effect you did not even write again with a new `'value'` value
-7. `autoEffects()` knows which element's `textContent` to **auto-update**
-
-By always following this pattern of data-flow, that is close to an optimal implementation in vanilla JavaScript, we can drastrically reduce need JavaScrpt both on the library side (`UIElement` + `dom-utils` ca. 1.4 kB gzipped) and on userland side.
-
-[Source](./lib/dom-utils.js)
-
-### Context Controller
-
-`UIelement` incorportes a Context Controller that implements the [Context Community Protocol](https://github.com/webcomponents-cg/community-protocols/blob/main/proposals/context.md) and makes observed contexts available as reactive states.
+`UIElement` incorporates a context controller that implements the [Context Community Protocol](https://github.com/webcomponents-cg/community-protocols/blob/main/proposals/context.md) and makes observed contexts available as reactive states.
 
 Context consumers request a context through `ContextRequestEvent`. The events then bubble up until it eventually finds a context provider which provides that specific context. Context provider then return a reactive state as value in the callback function. There's no need to manually subscribe to context changes. As the returned value is a signal, each `effect()` that uses the context will automatically be notified.
 
@@ -317,7 +153,200 @@ class MyAnimation extends UIElement {
 MyAnimation.define('my-animation');
 ```
 
-[Source](./lib/context-controller.js)
+### Scheduling and Cleanup
+
+If you use `effect()` with a callback function like `() => doMyEffectWork()`, it will do all work synchronously in the tracking phase of the effect. That might not be ideal for several reasons:
+
+- If effect work is expensive and takes more time than a single tick, not all DOM updates of the effect might happen concurrently.
+- If you `set()` a signal that is used in the effect, you risk producing an infite loop.
+- `UIElement` doesn't know which DOM elements are targeted in the effect.
+
+That's why the effect can be broken up into three phases to have more control:
+
+1. *Tracking phase*: Get all needed signal values, do all the pure computational work and enqueue DOM instructions for concurrent repaint of affected elements.
+2. *DOM update phase*: `UIElement` will flush all enqueued DOM instructions.
+3. *Cleanup phase*: Returned cleanup function from effect callback will be called.
+
+Only in the first phase `UIElement` will auto-track signal accesses. An example:
+
+```js
+// in connectedCallback()
+effect(enqueue => {
+
+  // tracking phase: prepare
+  const description = this.querySelector('span');
+  const card = this.querySelector('.card');
+  const content = this.get('value');
+
+  // schedule for DOM update phase
+  enqueue(description, () => (description.textContent = content));
+  enqueue(card, () => card.classList.add('highlight'));
+
+  // cleanup later
+  return () => setTimeout(() => card.classList.remove('highlight'), 200);
+});
+```
+
+## Complementary Utilities
+
+As of version 0.5.0 we include some additional scripts to complement `UIElement`.
+
+⚠️ **Caution**: These scripts (besides Cause & Effect) are not well tested and are considered work-in-progress. Its API and implementation details might change at any time. We deliberatly don't provide them as installable packages yet, rather as a source of inspiration for you. Feel free to copy and adapt to your needs, at your own risk.
+
+### Cause & Effect
+
+Cause & Effect is the core reactivity engine of `UIElement`. You may also use it stand-alone, indepenent of `UIElement`.
+
+It consists of three functions:
+
+- `cause()` return a getter function for the current value with a `.set()` method to update the value
+- `derive()` returns a getter function for the current value of the derived computation
+- `effect()` accepts a callback function to be exectuted when used signals change
+
+Cause & Effect is possibly the simplest way to turn JavaScript into a reactive language – with just 312 bytes gezipped code. Unlike the [TC39 Signals Proposal](https://github.com/tc39/proposal-signals), Cause & Effect uses a much simpler approach, effectively just decorator functions around signal getters and setters. All work is done synchronously and eagerly. As long as your computed functions are pure and DOM side effects are kept to a minimum, this should pose no issues and is even faster than doing all the checks and memoization in the more sophisticated push-then-pull approach of the Signals Proposal.
+
+If you however want to use side-effects or expensive work in computed function or updating / rendering in the DOM in effects takes longer than an animation frame, you might encounter glitches. If that's what you are doing, you are better off with a mature, full-fledged JavaScript framework.
+
+That said, we plan to offer a `UIElement` version with the Signals Proposal Polyfill instead of Cause & Effect in future versions as a drop-in replacement with the same API. As the Signals Proposal is still in early stage and they explicitely warn not to use the polyfill in production, we decided to do that not yet.
+
+#### Usage Example
+
+```js
+import { cause, effect } from './cause-effect';
+
+const count = cause(0); // create a signal
+const double = () => count() * 2; // derive a computed signal
+effect(() => {
+  document.getElementById('my-count').textContent = count(); // updates text of <*#my-count>
+  document.getElementById('my-double').textContent = double(); // updates text of <*#my-double>
+});
+count.set(42); // sets value of count signal and calls effect
+```
+
+[Source](./cause-effect.js)
+
+### UIComponent and UIRef
+
+We embrace progressive enhancement with `UIElement`. You can choose the right abstraction level of the library for your project:
+
+1. **Minimal**: Cause & Effect – just the reactivity engine
+2. **Default**: UIElement & Effect – base class for custom elements with a map of reactive states, observed attribute parsing and context controller
+3. **Comfort**: UIComponent, UIRef and Auto-Effects - boilerplate-reducing function components to create `UIElement` classes with UIRef wrapper for DOM elements and convenience methods for DOM updates (sort of tiny jQuery), and Auto-Effects for HTMX-style behavior control using attributes
+
+The last option comes with a bit more library code (around 1.8 kB gzipped), but allows you to write significantly less JavaScript. It's still very small compared to other libraries or full-fledged frameworks.
+
+#### UIComponent Usage
+
+```html
+<style>
+  my-counter {
+    /* ... */
+  }
+</style>
+<my-counter value="42">
+  <p>Count: <span data-my-counter-text="value">42</span></p>
+  <div>
+    <button class="decrement" onclick="this.closest('my-counter').set('value', v => --v)">–</button>
+    <button class="increment" onclick="this.closest('my-counter').set('value', v => ++v)">+</button>
+  </div>
+</my-counter>
+<script type="module">
+  import uiComponent, { asInteger } from './ui-component';
+  uiComponent('my-counter', { value: v => asInteger });
+</script>
+```
+
+Where has the JavaScript gone? – It almost disappeared. To explain the magic:
+
+1. Web Components observe `observedAttributes` and call the `attributeChangedCallback()` (keys of attribute map passed as second parameter)
+2. `UIElement` **auto-parses** the `'value'` attribute as an integer and creates a state signal with the same key
+3. `autoEffects()` detects `data-my-counter-text="value"` in the DOM sub-tree and runs the effect a first time and removes the `data-my-counter-text` attribute
+4. `UIElement` **auto-tracks** the use of the `'value'` signal in the effect you did not even write
+5. The inlined `onclick` handlers in the HTML will increment or decrement the `'value'` signal value
+6. `UIElement` **auto-runs** the effect you did not even write again with a new `'value'` value
+7. `autoEffects()` knows which element's `textContent` to **auto-update**
+
+Possible magic attributes for Auto-Effects in `uiComponent()`:
+
+- `data-${el.localName}-text="state"` will auto-update the `textContent` of the element to the current value of state `'state'`
+- `data-${el.localName}-prop="prop: state"` will auto-set property `prop` to the current value of state `'state'`
+- `data-${el.localName}-attr="step; value"` will auto-update the attributes `step` and `value` to the currrent values of the states with the same keys
+- `data-${el.localName}-class="selected"` will auto-toggle the class `selected` on the element to the corresponding boolean state value
+- `data-${el.localName}-style="--color-bg: color; --color-text: contrasting-color"` will auto-set the CSS custom properties `--color-bg` and `--color-text` to the current values of the states `'color'` and `'contrasting-color'`
+
+With all key/value pair attributes, you can provide several separated by `;`. Each key/value pair consists of (1) a property key, attribute name, class token or style property name divided by `:` from (2) the state signal to be auto-applied. If the second part is omitted, it is assumed both parts share the same key.
+
+Auto-Effects will be be applied to the Shadow DOM, if your component uses it; otherwise to the Light DOM sub-tree. The `data-${el.localName}-` attributes will be removed from the DOM once your component is connected and the effects are set up. If you load a partial from the server containing these attributes, you will have to call `autoEffects()` manually to have the effects auto-applied to the newly loaded partial as well.
+
+ By using these declarative attributes you can considerably reduce the amount of simple effects in your component's JavaScript. Almost all fine-grained DOM updates can be done this way. You gain Locality of Behavior (LoB) in your markup and can decide per case where effects shall be applied. On the other hand, you lose Separation of Concerns (SoC) - if you care about it. It's the same trade-off as with JSX, but in pure HTML.
+
+ #### UIRef Usage
+
+If you prefer to explicitly write the effects rather than binding behavior through magic attributes, you can use the `uiRef()` function to create a wrapped reference to a DOM element:
+
+```js
+import uiComponent, { uiRef } from './ui-component';
+
+uiComponent('my-counter', {}, el => {
+  // third parameter of uiComponent is called in connectedCallback()
+
+  const ref = uiRef(el); // creates a reference to a DOM element
+  // console.log(ref()); // calling the reference returns the native DOM element
+  const count = ref.first('.count'); // first does querySelector and returns a reference
+  el.set('value', count.text.get()); // get initial value from textContent instead of observed attribute
+  const decrement = ref.first('.decrement');
+  const increment = ref.first('.increment');
+  decrement().onclick = () => el.set('value', v => --v);
+  increment().onclick = () => el.set('value', v => ++v);
+
+  effect(enqueue => {
+    const double = ref.first('.double');
+    const value = el.get('value');
+    enqueue(count(), count.text.set(value));
+    enqueue(double(), double.text.set(value * 2));
+    enqueue(ref(), ref.class.set('odd', value % 2));
+  });
+});
+```
+
+On `UIRef` objects you can call these utility methods:
+
+- `ref.text.set()` preserves comment nodes in contrast to `element.textContent` assignments
+- `ref.prop.set()` sets or deletes a property on an element
+- `ref.attr.set()` sets or removes an attribute on an element
+- `ref.class.set()` adds or removes a class on an element
+- `ref.style.set()` sets or removes a style property on an element
+
+[Source](./ui-component.js)
+
+### Debug Element
+
+`DebugElement` is a base class that extends `UIElement`. It wraps `attributeChangeCallback`, `get()`, `set()`, `delete()`, and `pass()` to log changes to attributes, reads, writes and passes of reactive states to the console, if you set a `debug` boolean attribute on your custom element. This will set a `debug` reactive state on the element instance.
+
+#### Usage Example
+
+```js
+import DebugElement from './lib/debug-element.js';
+
+class MyElement extends DebugElement {
+  connectedCallback() {
+    this.set('debug', true); // will enable debugging for all instances
+    // use the 'debug' boolean attribute to enable debugging just for that specific instance
+    /* ... */
+  }
+}
+```
+
+Make sure the imports of `UIElement` on the first line points to your installed package and replace the `isDefined` import by the actual function:
+
+```js
+import UIElement from '@efflore/ui-element';
+const isDefined = value => typeof value !== 'undefined';
+```
+
+If you use Debug Element as your base class for custom elements, you may call `super.connectedCallback();` (and the other lifecycle callbacks) to log when your element connects to the DOM.
+
+[Source](./src/lib/debug-element.ts)
 
 ### Visibility Oberserver
 
@@ -344,4 +373,4 @@ class MyAnimation extends UIElement {
 MyAnimation.define('my-animation');
 ```
 
-[Source](./lib/visibility-observer.js)
+[Source](./src/lib/visibility-observer.ts)
