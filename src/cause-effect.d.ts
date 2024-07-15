@@ -1,10 +1,10 @@
 type UIDOMInstructionSet = Set<() => void>;
 type UIEffect = {
     (): void;
-    targets: Map<Element, UIDOMInstructionSet>;
+    targets?: Map<Element, UIDOMInstructionSet>;
 };
-type UIState = {
-    (): unknown;
+type UIState<T> = {
+    (): T;
     effects: Set<UIEffect>;
     set(value: unknown): void;
 };
@@ -24,23 +24,23 @@ declare const isFunction: (fn: unknown) => fn is Function;
  * @param {unknown} value - variable to check if it is a reactive state
  * @returns {boolean} true if supplied parameter is a reactive state
  */
-declare const isState: (value: unknown) => value is UIState;
+declare const isState: (value: unknown) => value is UIState<unknown>;
 /**
  * Define a reactive state
  *
  * @since 0.1.0
- * @param {unknown} value - initial value of the state; may be a function for derived state
+ * @param {any} value - initial value of the state; may be a function for derived state
  * @returns {UIState} getter function for the current value with a `set` method to update the value
  */
-declare const cause: (value: unknown) => UIState;
+declare const cause: (value: any) => UIState<any>;
 /**
  * Create a derived state from an existing state
  *
  * @since 0.1.0
- * @param {() => unknown} fn - existing state to derive from
- * @returns {() => unknown} derived state
+ * @param {() => any} fn - existing state to derive from
+ * @returns {() => any} derived state
  */
-declare const derive: (fn: () => unknown) => (() => unknown);
+declare const derive: (fn: () => any) => (() => any);
 /**
  * Define what happens when a reactive state changes
  *

@@ -1,4 +1,4 @@
-import UIElement, { type UIAttributeMap } from "../ui-element";
+import UIElement, { type IUIElement, type UIAttributeMap } from "../ui-element";
 import { effect } from "../cause-effect";
 import { asBoolean, asInteger, asNumber, asString } from "./parse-attribute";
 import uiRef from "./ui-ref";
@@ -8,11 +8,11 @@ import uiRef from "./ui-ref";
  * @since 0.7.0
  * @param {string} tag - custom element tag name
  * @param {UIAttributeMap} attributeMap - object of observed attributes and their corresponding state keys and parser functions
- * @param {(connect: UIElement) => void} connect - callback to be called when the element is connected to the DOM
- * @param {(disconnect: UIElement) => void} disconnect - callback to be called when the element is disconnected from the DOM
+ * @param {(connect: IUIElement) => void} connect - callback to be called when the element is connected to the DOM
+ * @param {(disconnect: IUIElement) => void} disconnect - callback to be called when the element is disconnected from the DOM
  * @returns {typeof FxComponent} - custom element class
  */
-declare const uiComponent: (tag: string, attributeMap: UIAttributeMap, connect: (connect: UIElement) => void, disconnect: (disconnect: UIElement) => void) => {
+declare const uiComponent: (tag: string, attributeMap: UIAttributeMap, connect: (connect: IUIElement) => void, disconnect: (disconnect: IUIElement) => void) => {
     new (): {
         attributeMap: UIAttributeMap;
         connectedCallback(): void;
@@ -22,9 +22,9 @@ declare const uiComponent: (tag: string, attributeMap: UIAttributeMap, connect: 
         attributeChangedCallback(name: string, old: string | undefined, value: string | undefined): void;
         has(key: PropertyKey): boolean;
         get(key: PropertyKey): unknown;
-        set(key: PropertyKey, value: unknown | import("../cause-effect").UIState, update?: boolean): void;
+        set(key: PropertyKey, value: unknown | import("../cause-effect").UIState<unknown>, update?: boolean): void;
         delete(key: PropertyKey): boolean;
-        pass(element: UIElement, states: import("../ui-element").UIStateMap, registry?: CustomElementRegistry): Promise<void>;
+        pass(element: IUIElement, states: import("../ui-element").UIStateMap, registry?: CustomElementRegistry): Promise<void>;
         targets(key: PropertyKey): Set<Element>;
         accessKey: string;
         readonly accessKeyLabel: string;

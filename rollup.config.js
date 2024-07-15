@@ -1,8 +1,8 @@
 import typescript from '@rollup/plugin-typescript';
 
 export default {
-  input: 'index.ts',
   // input: 'src/cause-effect.ts',
+  input: 'index.ts',
   // input: 'src/lib/ui-component.ts',
   output: {
     dir: './',

@@ -1,4 +1,4 @@
-import type UIElement from "../ui-element";
+import type IUIElement from "../ui-element";
 import autoApply from "./auto-apply";
 
 /* === Constants === */
@@ -16,7 +16,7 @@ const EFFECT_CLASS = 'ui-effect';
  * @param {UIElement} el - UIElement to apply event listeners to
  * @param {string} [className=EFFECT_CLASS] - CSS class to be added to highlighted targets
  */
-const highlightTargets = (el: UIElement, className: string = EFFECT_CLASS) => {
+const highlightTargets = (el: IUIElement, className: string = EFFECT_CLASS) => {
   [HOVER_SUFFIX, FOCUS_SUFFIX].forEach(suffix => {
     const [onOn, onOff] = suffix === HOVER_SUFFIX
       ? ['mouseenter','mouseleave']
