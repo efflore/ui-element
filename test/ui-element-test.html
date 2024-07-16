@@ -100,8 +100,7 @@
         this.set('heading', 'Hello from Internal State');
         effect(enqueue => {
           const title = this.querySelector('h1');
-          const heading = this.get('heading');
-          enqueue(title, () => title.textContent = heading);
+          enqueue(title, () => title.textContent = this.get('heading'));
         });
       }
 
@@ -123,19 +122,9 @@
         const badge = this.querySelector('span');
         const input = this.querySelector('input');
 
-        effect(enqueue => {
-          if (this.has('title')) {
-            const title = this.get('title');
-            enqueue(heading, () => heading.textContent = title);
-          }
-        });
+        effect(enqueue => this.has('title') && enqueue(heading, () => heading.textContent = this.get('title')));
 
-        effect(enqueue => {
-          if (this.has('count')) {
-            const count = this.get('count');
-            enqueue(badge, () => badge.textContent = count);
-          }
-        });
+        effect(enqueue => this.has('count') && enqueue(badge, () => badge.textContent = this.get('count')));
 
         effect(enqueue => {
           if (this.has('step')) {
@@ -147,19 +136,9 @@
           }
         });
 
-        effect(enqueue => {
-          if (this.has('value')) {
-            const value = this.get('value');
-            enqueue(input, () => input.setAttribute('value', value));
-          }
-        });
+        effect(enqueue => this.has('value') && enqueue(input, () => input.setAttribute('value', this.get('value'))));
 
-        effect(enqueue => {
-          if (this.has('selected')) {
-            const selected = this.get('selected');
-            enqueue(heading, () => heading.classList.toggle('selected', selected));
-          }
-        });
+        effect(enqueue => this.has('selected') && enqueue(heading, () => heading.classList.toggle('selected', this.get('selected'))));
       }
     }
     UpdatingComponent.define('updating-component');
@@ -184,15 +163,8 @@
         this.set('heading', title.textContent);
         this.set('text', paragraph.textContent);
 
-        effect(enqueue => {
-          const heading = this.get('heading');
-          heading && enqueue(title, () => title.textContent = heading);
-        });
-
-        effect(enqueue => {
-          const text = this.get('text');
-          text && enqueue(paragraph, () => paragraph.textContent = text);
-        });
+        effect(enqueue => this.has('heading') && enqueue(title, () => title.textContent = this.get('heading')));
+        effect(enqueue => this.has('text') && enqueue(paragraph, () => paragraph.textContent = this.get('text')));
       }
     }
     ChildComponent.define('child-component');
@@ -210,11 +182,9 @@
           const parityEl = this.querySelector('.parity');
           const doubleEl = this.querySelector('.double');
           const value = this.get('value');
-          const parity = value % 2 ? 'odd' : 'even';
-          const double = value * 2;
           enqueue(valueEl, () => valueEl.textContent = value);
-          enqueue(parityEl, () => parityEl.textContent = parity);
-          enqueue(doubleEl, () => doubleEl.textContent = double);
+          enqueue(parityEl, () => parityEl.textContent = value % 2 ? 'odd' : 'even');
+          enqueue(doubleEl, () => doubleEl.textContent = value * 2);
         });
       }
     }
@@ -243,15 +213,8 @@
         this.set('greeting', greetingEl.textContent, false);
         this.set('name', defaultName);
 
-        effect(enqueue => {
-          const greeting = this.get('greeting');
-          enqueue(greetingEl, () => greetingEl.textContent = greeting);
-        });
-
-        effect(enqueue => {
-          const name = this.get('name') || defaultName;
-          enqueue(nameEl, () => nameEl.textContent = name);
-        });
+        effect(enqueue => enqueue(greetingEl, () => greetingEl.textContent = this.get('greeting')));
+        effect(enqueue => enqueue(nameEl, () => nameEl.textContent = this.get('name') || defaultName));
       }
     }
     HelloWorld.define('hello-world');

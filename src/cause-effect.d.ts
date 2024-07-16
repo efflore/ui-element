@@ -1,6 +1,8 @@
 type UIDOMInstructionSet = Set<() => void>;
 type UIEffect = {
     (): void;
+    run(): void;
+    effects?: Set<UIEffect>;
     targets?: Map<Element, UIDOMInstructionSet>;
 };
 type UIState<T> = {
@@ -38,7 +40,7 @@ declare const cause: (value: any) => UIState<any>;
  *
  * @since 0.1.0
  * @param {() => any} fn - existing state to derive from
- * @returns {() => any} derived state
+ * @returns {UIEffect} derived state
  */
 declare const derive: (fn: () => any) => (() => any);
 /**

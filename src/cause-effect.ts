@@ -4,6 +4,8 @@ type UIDOMInstructionSet = Set<() => void>;
 
 type UIEffect = {
   (): void;
+  run(): void;
+  effects?: Set<UIEffect>;
   targets?: Map<Element, UIDOMInstructionSet>
 };
 
@@ -26,6 +28,16 @@ type UIEffectCallback = (enqueue: UIDOMInstructionQueue) => UIMaybeCleanup;
 
 // hold the currently active effect
 let active: UIEffect | undefined;
+
+/**
+ * Run all effects in the provided set
+ * 
+ * @param {Set<UIEffects>} effects 
+ */
+const autorun = (effects: Set<UIEffect>) => {
+  for (const effect of effects)
+    effect.run();
+}
 
 /* === Exported functions === */
 
@@ -63,10 +75,7 @@ const cause = (value: any): UIState<any> => {
     value = isFunction(updater) && !isState(updater)
       ? updater(old)
       : updater;
-    if (!Object.is(value, old)) {
-      for (const effect of state.effects)
-        effect();
-    }
+    !Object.is(value, old) && autorun(state.effects);
   };
   return state;
 };
@@ -76,7 +85,7 @@ const cause = (value: any): UIState<any> => {
  * 
  * @since 0.1.0
  * @param {() => any} fn - existing state to derive from
- * @returns {() => any} derived state
+ * @returns {UIEffect} derived state
  */
 const derive = (fn: () => any): (() => any) => {
   const computed = () => {
@@ -86,6 +95,8 @@ const derive = (fn: () => any): (() => any) => {
     active = prev;
     return value;
   };
+  computed.effects = new Set<UIEffect>(); // set of listeners
+  computed.run = () => autorun(computed.effects);
   return computed;
 };
 
@@ -107,15 +118,14 @@ const effect = (fn: UIEffectCallback) => {
       !targets.has(element) && targets.set(element, new Set<() => void>());
       targets.get(element).add(domFn);
     });
+    for (const domFns of targets.values()) {
+      for (const domFn of domFns)
+        domFn();
+    }   
     active = prev;
-    (targets.size || cleanup) && queueMicrotask(() => {
-      for (const domFns of targets.values()) {
-        for (const domFn of domFns)
-          domFn();
-      }   
-      isFunction(cleanup) && cleanup();
-    });
+    isFunction(cleanup) && queueMicrotask(cleanup);
   };
+  next.run = () => next();
   next.targets = targets;
   next();
 }

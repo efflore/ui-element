@@ -46,12 +46,7 @@ const autoEffects = (el: UIElement) => {
         const [name, key = name] = splitted(value, ':');
         const obj = uiRef(node)[suffix];
         el.set(key, obj.get(), false);
-        effect(enqueue => {
-          if (el.has(key)) {
-            const value = el.get(key);
-            enqueue(node, () => obj.set(name, value));
-          }
-        });
+        effect(enqueue => el.has(key) && enqueue(node, () => obj.set(name, el.get(key))));
       });
     };
 

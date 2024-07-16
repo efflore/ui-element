@@ -2,6 +2,15 @@
 /* === Internal === */
 // hold the currently active effect
 let active;
+/**
+ * Run all effects in the provided set
+ *
+ * @param {Set<UIEffects>} effects
+ */
+const autorun = (effects) => {
+    for (const effect of effects)
+        effect.run();
+};
 /* === Exported functions === */
 /**
  * Check if a given variable is a function
@@ -35,10 +44,7 @@ const cause = (value) => {
         value = isFunction(updater) && !isState(updater)
             ? updater(old)
             : updater;
-        if (!Object.is(value, old)) {
-            for (const effect of state.effects)
-                effect();
-        }
+        !Object.is(value, old) && autorun(state.effects);
     };
     return state;
 };
@@ -57,15 +63,14 @@ const effect = (fn) => {
             !targets.has(element) && targets.set(element, new Set());
             targets.get(element).add(domFn);
         });
+        for (const domFns of targets.values()) {
+            for (const domFn of domFns)
+                domFn();
+        }
         active = prev;
-        (targets.size || cleanup) && queueMicrotask(() => {
-            for (const domFns of targets.values()) {
-                for (const domFn of domFns)
-                    domFn();
-            }
-            isFunction(cleanup) && cleanup();
-        });
+        isFunction(cleanup) && queueMicrotask(cleanup);
     };
+    next.run = () => next();
     next.targets = targets;
     next();
 };
