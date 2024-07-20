@@ -1,10 +1,12 @@
-type UIDOMInstructionSet = Set<() => void>;
 type UIEffect = {
     (): void;
     run(): void;
-    effects?: Set<UIEffect>;
-    targets?: Map<Element, UIDOMInstructionSet>;
+    targets?: Map<Element, Set<() => void>>;
 };
+interface UIComputed<T> extends UIEffect {
+    (): T;
+    effects: Set<UIEffect>;
+}
 type UIState<T> = {
     (): T;
     effects: Set<UIEffect>;
@@ -40,9 +42,9 @@ declare const cause: (value: any) => UIState<any>;
  *
  * @since 0.1.0
  * @param {() => any} fn - existing state to derive from
- * @returns {UIEffect} derived state
+ * @returns {UIComputed<any>} derived state
  */
-declare const derive: (fn: () => any) => (() => any);
+declare const derive: (fn: () => any) => UIComputed<any>;
 /**
  * Define what happens when a reactive state changes
  *

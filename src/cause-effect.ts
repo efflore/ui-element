@@ -1,13 +1,15 @@
 /* === Types === */
 
-type UIDOMInstructionSet = Set<() => void>;
-
 type UIEffect = {
   (): void;
   run(): void;
-  effects?: Set<UIEffect>;
-  targets?: Map<Element, UIDOMInstructionSet>
+  targets?: Map<Element, Set<() => void>>
 };
+
+interface UIComputed<T> extends UIEffect {
+  (): T;
+  effects: Set<UIEffect>;
+}
 
 type UIState<T> = {
   (): T;
@@ -81,13 +83,48 @@ const cause = (value: any): UIState<any> => {
 };
 
 /**
+ * Create an asyc request queue
+ */
+const queue = () => {
+  const actions: Array<{
+    fn: () => Promise<any>,
+    resolve: (value: unknown) => void,
+    reject?: (error: Error) => void
+  }> = [];
+  let pending = false;
+  const dequeue = async () => {
+    if (pending) return;
+    const action = actions.shift();
+    if (!action) return;
+    try {
+      pending = true;
+      const result = await action.fn();
+      pending = false;
+      action.resolve(result);
+    } catch (error) {
+      pending = false;
+      action.reject(error);
+    } finally {
+      dequeue();
+    }
+  };
+  const enqueue = (fn: () => Promise<any>) => {
+    return new Promise((resolve, reject) => {
+      actions.push({ fn, resolve, reject });
+      dequeue();
+    });
+  };
+  return enqueue;
+};
+
+/**
  * Create a derived state from an existing state
  * 
  * @since 0.1.0
  * @param {() => any} fn - existing state to derive from
- * @returns {UIEffect} derived state
+ * @returns {UIComputed<any>} derived state
  */
-const derive = (fn: () => any): (() => any) => {
+const derive = (fn: () => any): UIComputed<any> => {
   const computed = () => {
     const prev = active;
     active = computed;
@@ -107,7 +144,7 @@ const derive = (fn: () => any): (() => any) => {
  * @param {UIEffectCallback} fn - callback function to be executed when a state changes
  */
 const effect = (fn: UIEffectCallback) => {
-  const targets = new Map<Element, UIDOMInstructionSet>();
+  const targets = new Map<Element, Set<() => void>>();
   const next = () => {
     const prev = active;
     active = next;

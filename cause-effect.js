@@ -53,7 +53,7 @@ const cause = (value) => {
  *
  * @since 0.1.0
  * @param {() => any} fn - existing state to derive from
- * @returns {UIEffect} derived state
+ * @returns {UIComputed<any>} derived state
  */
 const derive = (fn) => {
     const computed = () => {
