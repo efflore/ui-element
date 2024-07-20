@@ -50,4 +50,4 @@ declare const derive: (fn: () => any) => (() => any);
  * @param {UIEffectCallback} fn - callback function to be executed when a state changes
  */
 declare const effect: (fn: UIEffectCallback) => void;
-export { type UIState, isFunction, isState, cause, derive, effect };
+export { type UIState, type UIDOMInstructionQueue, isFunction, isState, cause, derive, effect };

@@ -127,7 +127,7 @@ const getArrayMapping = (value, defaultKey) => {
  *
  * @class UIElement
  * @extends HTMLElement
- * @type {IUIElement}
+ * @type {UIElement}
  */
 class UIElement extends HTMLElement {
     /**

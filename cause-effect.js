@@ -56,11 +56,10 @@ const cause = (value) => {
  * @returns {UIEffect} derived state
  */
 const derive = (fn) => {
-    let value;
     const computed = () => {
         const prev = active;
         active = computed;
-        value = fn();
+        const value = fn();
         active = prev;
         return value;
     };

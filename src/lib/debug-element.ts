@@ -1,14 +1,21 @@
-import UIElement, { type IUIElement, type UIStateMap } from '../ui-element';
-import { isDefined } from './ui-ref';
+import UIElement, { type UIStateMap } from '../ui-element';
+import { isDefined } from './ui';
 
-/**
- * @name UIElement DOM Utils
- * @version 0.7.0
- */
+/* === Types === */
+
+/* interface DebugElement extends UIElement {
+  highlight: (className?: string) => void;
+  log(msg: string): void;
+}; */
 
 /* === Constants === */
 
 const DEV_MODE = true;
+const DEBUG_STATE = 'debug';
+const SELECTOR_PREFIX = 'data-';
+const HOVER_SUFFIX = 'hover';
+const FOCUS_SUFFIX = 'focus';
+const EFFECT_CLASS = 'ui-effect';
 
 /* === Internal variables and functions to the module === */
 
@@ -53,7 +60,7 @@ class DebugElement extends UIElement {
    * Wrap connectedCallback to log to the console
    */
   connectedCallback() {
-    (typeof this.getAttribute('debug') === 'string') && this.set('debug', true);
+    (typeof this.getAttribute(DEBUG_STATE) === 'string') && this.set(DEBUG_STATE, true);
     this.log(`Connected ${elementName(this)}`);
   }
 
@@ -130,14 +137,44 @@ class DebugElement extends UIElement {
    * Wrap pass() to log passed signals to the console
    * 
    * @since 0.7.0
-   * @param {IUIElement} element - UIElement to be passed to
+   * @param {UIElement} element - UIElement to be passed to
    * @param {UIStateMap} states - states to be passed to the element
    * @param {CustomElementRegistry} [registry=customElements] - custom element registry
    */
-  async pass(element: IUIElement, states: UIStateMap, registry: CustomElementRegistry = customElements) {
+  async pass(element: UIElement, states: UIStateMap, registry: CustomElementRegistry = customElements) {
     this.log(`Pass state(s) ${valueString(Object.keys(states))} to ${elementName(element as HTMLElement)} from ${elementName(this)}`);
     super.pass(element, states, registry);
   }
+
+  /**
+   * Add event listeners to UIElement and sub-elements to auto-highlight targets when hovering or focusing on elements with given attribute
+   * 
+   * @since 0.7.0
+   * @param {string} [className=EFFECT_CLASS] - CSS class to be added to highlighted targets
+   */
+  highlight(className: string = EFFECT_CLASS) {
+    [HOVER_SUFFIX, FOCUS_SUFFIX].forEach(suffix => {
+      const [onOn, onOff] = suffix === HOVER_SUFFIX
+        ? ['mouseenter','mouseleave']
+        : ['focus', 'blur'];
+      const attr = `${SELECTOR_PREFIX}-${this.localName}-${suffix}`;
+      const apply = (node: Element) => {
+        const key = this.getAttribute(attr).trim();
+        const on = (type: string, force: boolean) =>
+          node.addEventListener(type, () => {
+            for (const target of this.targets(key))
+              target.classList.toggle(className, force);
+          });
+        on(onOn, true);
+        on(onOff, false);
+        node.removeAttribute(attr);
+      };
+
+      this.hasAttribute(attr) && apply(this);
+      for (const node of (this.shadowRoot || this).querySelectorAll(`[${attr}]`))
+        apply(node);
+    });
+  };
 
   /**
    * Log messages in debug mode
@@ -146,7 +183,7 @@ class DebugElement extends UIElement {
    * @param {string} msg - debug message to be logged
    */
   log(msg: string): void {
-    this.has('debug') && console.debug(msg);
+    this.has(DEBUG_STATE) && console.debug(msg);
   }
 }
 

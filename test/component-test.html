@@ -30,42 +30,42 @@
     <h1>Hello from Server</h1>
   </void-component>
   <causal-component id="causal">
-    <h1 data-causal-component-text="heading">Hello from Server</h1>
+    <h1>Hello from Server</h1>
   </causal-component>
   <causal-component id="causal-with-ignored-attribute" heading="Hello from Attribute">
-    <h1 data-causal-component-text="heading">Hello from Server</h1>
+    <h1>Hello from Server</h1>
   </causal-component>
   <updating-component id="updating">
-    <h1 data-updating-component-text="title">Hello from Server</h1>
-    <p>Number of unread messages: <span data-updating-component-text="count"></span></p>
+    <h1>Hello from Server</h1>
+    <p>Number of unread messages: <span></span></p>
   </updating-component>
   <updating-component id="updating-with-string-attribute" heading="Hello from Attribute">
-    <h1 data-updating-component-text="title">Hello from Server</h1>
-    <p>Number of unread messages: <span data-updating-component-text="count"></span></p>
+    <h1>Hello from Server</h1>
+    <p>Number of unread messages: <span></span></p>
   </updating-component>
   <updating-component id="updating-with-number-attribute" count="42" step="0.1" value="3.14">
-    <h1 data-updating-component-text="title">Hello from Server</h1>
-    <p>Number of unread messages: <span data-updating-component-text="count"></span></p>
-    <input type="number" data-updating-component-attr="step; value" />
+    <h1>Hello from Server</h1>
+    <p>Number of unread messages: <span></span></p>
+    <input type="number" />
   </updating-component>
   <updating-component id="updating-with-boolean-attribute" selected>
-    <h1 data-updating-component-text="title" data-updating-component-class="selected">Hello from Server</h1>
-    <p>Number of unread messages: <span data-updating-component-text="count"></span></p>
+    <h1 data-updating-component-text="title">Hello from Server</h1>
+    <p>Number of unread messages: <span></span></p>
   </updating-component>
   <child-component id="orphan">
-    <h1 data-child-component-text="heading">Hello from Server</h1>
-    <p data-child-component-text="text">Text from Server</p>
+    <h1>Hello from Server</h1>
+    <p>Text from Server</p>
   </child-component>
   <parent-component id="parent" heading="Hello from Attribute">
     <child-component id="child">
-      <h1 data-child-component-text="heading">Hello from Server</h1>
-      <p data-child-component-text="text">Text from Server</p>
+      <h1>Hello from Server</h1>
+      <p>Text from Server</p>
     </child-component>
   </parent-component>
   <my-counter value="42">
-    <p>Count: <span class="value" data-my-counter-text="value">42</span></p>
-    <p>Parity: <span class="parity" data-my-counter-text="parity">even</span></p>
-    <p>Double: <span class="double" data-my-counter-text="double">84</span></p>
+    <p>Count: <span class="value">42</span></p>
+    <p>Parity: <span class="parity">even</span></p>
+    <p>Double: <span class="double">84</span></p>
     <div>
       <button class="decrement" data-my-counter-hover="value">–</button>
       <button class="increment" data-my-counter-hover="value">+</button>
@@ -83,8 +83,8 @@
     </input-checkbox>
     <hello-world>
       <p>
-        <span class="greeting" data-hello-world-text="greeting">Hello</span>
-        <span class="name" data-hello-world-text="name">World</span>
+        <span class="greeting">Hello</span>
+        <span class="name">World</span>
       </p>
     </hello-world>
   </greeting-configurator>
@@ -92,65 +92,79 @@
   <script type="module">
     import { runTests } from '@web/test-runner-mocha';
     import { assert } from '@esm-bundle/chai';
-    import uiComponent, { effect, asBoolean, asInteger, asNumber, asString } from '../ui-component.js';
+    import component, { effect, asBoolean, asInteger, asNumber, asString } from '../component.js';
 
     const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
     const paint = () => new Promise(resolve => requestAnimationFrame(resolve));
     const normalizeText = text => text.replace(/\s+/g, ' ').trim();
 
-    uiComponent('void-component');
+    component('void-component');
 
-    uiComponent('causal-component', {}, el => {
+    component('causal-component', {}, (el, my) => {
       el.set('heading', 'Hello from Internal State');
+      my.first('h1')?.text('heading');
     });
 
-    uiComponent('updating-component', {
+    component('updating-component', {
       heading: ['title'],
       count: asInteger,
       step: asNumber,
       value: (v, el) => Number.isInteger(el.get('step')) ? parseInt(v, 10) : parseFloat(v),
       selected: asBoolean,
+    }, (el, my) => {
+      my.first('h1')?.text('title').class('selected');
+      my.first('p span')?.text('count');
+      my.first('input')?.attr('value').attr('step');
     });
 
-    uiComponent('parent-component', { heading: asString }, el => {
-      el.pass(el.querySelector('child-component'), {
+    component('parent-component', { heading: asString }, (el, my) => {
+      el.pass(my.first('child-component')(), {
         heading: 'heading',
         text: () => el.get('heading').toUpperCase(),
       });
     });
 
-    uiComponent('child-component');
-
-    uiComponent('my-counter', { value: asInteger }, el => {
-      el.set('parity', () => el.get('value') % 2 ? 'odd' : 'even');
-      el.set('double', () => el.get('value') * 2);
-      el.querySelector('.decrement').onclick = () => el.set('value', v => --v);
-      el.querySelector('.increment').onclick = () => el.set('value', v => ++v);
+    component('child-component', {}, (el, my) => {
+      my.first('h1')?.text('heading');
+      my.first('p')?.text('text');
     });
 
-    uiComponent('greeting-configurator', {}, el => {
-      const first = el.querySelector('.first');
-      const last = el.querySelector('.last');
-      const useFullname = el.querySelector('input-checkbox');
-      el.pass(el.querySelector('hello-world'), {
-        name: () => useFullname.get('checked') ? `${first.get('value')} ${last.get('value')}` : first.get('value'),
+    component('my-counter', { value: asInteger }, (el, my) => {
+      el.set('parity', () => el.get('value') % 2 ? 'odd' : 'even');
+      el.set('double', () => el.get('value') * 2);
+      my.first('.decrement').on('click', () => el.set('value', v => --v));
+      my.first('.increment').on('click', () => el.set('value', v => ++v));
+      my.first('.value')?.text('value');
+      my.first('.parity')?.text('parity');
+      my.first('.double')?.text('double');
+    });
+
+    component('greeting-configurator', {}, (el, my) => {
+      const first = my.first('.first');
+      const last = my.first('.last');
+      const useFullname = my.first('input-checkbox');
+      el.pass(my.first('hello-world')(), {
+        name: () => useFullname().get('checked')
+          ? `${first().get('value')} ${last().get('value')}`
+          : first().get('value'),
       });
     });
 
-    uiComponent('hello-world', { greeting: asString }, el => {
-      el.set('greeting', el.querySelector('.greeting').textContent, false);
+    component('hello-world', { greeting: asString }, (el, my) => {
+      my.first('.greeting')?.text('greeting');
+      my.first('.name')?.text('name');
     });
 
-    uiComponent('input-field', {}, el => {
-      const input = el.querySelector('input');
-      el.set('value', input.value);
-      input.onchange = () => el.set('value', input.value);
+    component('input-field', {}, (el, my) => {
+      const input = my.first('input');
+      input && el.set('value', input().value);
+      input?.on('change', () => el.set('value', input().value));
     });
 
-    uiComponent('input-checkbox', {}, el => {
-      const input = el.querySelector('input');
-      el.set('checked', input.checked);
-      input.onchange = () => el.set('checked', input.checked);
+    component('input-checkbox', {}, (el, my) => {
+      const input = my.first('input');
+      input && el.set('checked', input().checked);
+      input?.on('change', () => el.set('checked', input().checked));
     });
 
     runTests(() => {

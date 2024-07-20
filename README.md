@@ -2,7 +2,7 @@
 
 UIElement - the "look ma, no JS framework!" library bringing signals-based reactivity to vanilla Web Components
 
-Version 0.7.0
+Version 0.7.2
 
 ## What is UIElement?
 
@@ -188,7 +188,7 @@ effect(enqueue => {
 
 ## Complementary Utilities
 
-As of version 0.5.0 we include some additional scripts to complement `UIElement`.
+Since version 0.5.0 we include some additional scripts to complement `UIElement`.
 
 ⚠️ **Caution**: These scripts (besides Cause & Effect) are not well tested and are considered work-in-progress. Its API and implementation details might change at any time. We deliberatly don't provide them as installable packages yet, rather as a source of inspiration for you. Feel free to copy and adapt to your needs, at your own risk.
 
@@ -202,7 +202,7 @@ It consists of three functions:
 - `derive()` returns a getter function for the current value of the derived computation
 - `effect()` accepts a callback function to be exectuted when used signals change
 
-Cause & Effect is possibly the simplest way to turn JavaScript into a reactive language – with just 356 bytes gezipped code. Unlike the [TC39 Signals Proposal](https://github.com/tc39/proposal-signals), Cause & Effect uses a much simpler approach, effectively just decorator functions around signal getters and setters. All work is done synchronously and eagerly. As long as your computed functions are pure and DOM side effects are kept to a minimum, this should pose no issues and is even faster than doing all the checks and memoization in the more sophisticated push-then-pull approach of the Signals Proposal.
+Cause & Effect is possibly the simplest way to turn JavaScript into a reactive language – with just 349 bytes gezipped code. Unlike the [TC39 Signals Proposal](https://github.com/tc39/proposal-signals), Cause & Effect uses a much simpler approach, effectively just decorator functions around signal getters and setters. All work is done synchronously and eagerly. As long as your computed functions are pure and DOM side effects are kept to a minimum, this should pose no issues and is even faster than doing all the checks and memoization in the more sophisticated push-then-pull approach of the Signals Proposal.
 
 If you however want to use side-effects or expensive work in computed function or updating / rendering in the DOM in effects takes longer than an animation frame, you might encounter glitches. If that's what you are doing, you are better off with a mature, full-fledged JavaScript framework.
 
@@ -224,17 +224,17 @@ count.set(42); // sets value of count signal and calls effect
 
 [Source](./cause-effect.js)
 
-### UIComponent and UIRef
+### Component and UI
 
 We embrace progressive enhancement with `UIElement`. You can choose the right abstraction level of the library for your project:
 
 1. **Minimal**: Cause & Effect – just the reactivity engine
 2. **Default**: UIElement & Effect – base class for custom elements with a map of reactive states, observed attribute parsing and context controller
-3. **Comfort**: UIComponent, UIRef and Auto-Effects - boilerplate-reducing function components to create `UIElement` classes with UIRef wrapper for DOM elements and convenience methods for DOM updates (sort of tiny jQuery), and Auto-Effects for HTMX-style behavior control using attributes
+3. **Comfort**: Component & UI - boilerplate-reducing function components to create `UIElement` classes with UI wrapper for DOM elements and convenience methods for DOM updates (sort of tiny jQuery)
 
-The last option comes with a bit more library code (around 1.8 kB gzipped), but allows you to write significantly less JavaScript. It's still very small compared to other libraries or full-fledged frameworks.
+The last option comes with a bit more library code (around 1.6 kB gzipped), but allows you to write significantly less JavaScript. It's still very small compared to other libraries or full-fledged frameworks.
 
-#### UIComponent Usage
+#### Component Usage
 
 ```html
 <style>
@@ -243,15 +243,19 @@ The last option comes with a bit more library code (around 1.8 kB gzipped), but 
   }
 </style>
 <my-counter value="42">
-  <p>Count: <span data-my-counter-text="value">42</span></p>
+  <p>Count: <span>42</span></p>
   <div>
-    <button class="decrement" onclick="this.closest('my-counter').set('value', v => --v)">–</button>
-    <button class="increment" onclick="this.closest('my-counter').set('value', v => ++v)">+</button>
+    <button class="decrement">–</button>
+    <button class="increment">+</button>
   </div>
 </my-counter>
 <script type="module">
-  import uiComponent, { asInteger } from './ui-component';
-  uiComponent('my-counter', { value: v => asInteger });
+  import component, { asInteger } from './component';
+  component('my-counter', { value: v => asInteger }, (el, my) => {
+    my.first('.decrement').on('click', () => el.set('value', v => --v));
+    my.first('.increment').on('click', () => el.set('value', v => ++v));
+    my.first('span').text('value');
+  });
 </script>
 ```
 
@@ -259,64 +263,58 @@ Where has the JavaScript gone? – It almost disappeared. To explain the magic:
 
 1. Web Components observe `observedAttributes` and call the `attributeChangedCallback()` (keys of attribute map passed as second parameter)
 2. `UIElement` **auto-parses** the `'value'` attribute as an integer and creates a state signal with the same key
-3. `autoEffects()` detects `data-my-counter-text="value"` in the DOM sub-tree and runs the effect a first time and removes the `data-my-counter-text` attribute
+3. `my.first('span').text('value');` looks for the first `span` in the DOM sub-tree and **auto-creates** an effect for it
 4. `UIElement` **auto-tracks** the use of the `'value'` signal in the effect you did not even write
-5. The inlined `onclick` handlers in the HTML will increment or decrement the `'value'` signal value
+5. The `on('click')` handlers will increment or decrement the `'value'` signal value on button clicks
 6. `UIElement` **auto-runs** the effect you did not even write again with a new `'value'` value
-7. `autoEffects()` knows which element's `textContent` to **auto-update**
+7. The effect knows which element's `textContent` to **auto-update**
 
-Possible magic attributes for Auto-Effects in `uiComponent()`:
+ #### UI Usage
 
-- `data-${el.localName}-text="state"` will auto-update the `textContent` of the element to the current value of state `'state'`
-- `data-${el.localName}-prop="prop: state"` will auto-set property `prop` to the current value of state `'state'`
-- `data-${el.localName}-attr="step; value"` will auto-update the attributes `step` and `value` to the currrent values of the states with the same keys
-- `data-${el.localName}-class="selected"` will auto-toggle the class `selected` on the element to the corresponding boolean state value
-- `data-${el.localName}-style="--color-bg: color; --color-text: contrasting-color"` will auto-set the CSS custom properties `--color-bg` and `--color-text` to the current values of the states `'color'` and `'contrasting-color'`
-
-With all key/value pair attributes, you can provide several separated by `;`. Each key/value pair consists of (1) a property key, attribute name, class token or style property name divided by `:` from (2) the state signal to be auto-applied. If the second part is omitted, it is assumed both parts share the same key.
-
-Auto-Effects will be be applied to the Shadow DOM, if your component uses it; otherwise to the Light DOM sub-tree. The `data-${el.localName}-` attributes will be removed from the DOM once your component is connected and the effects are set up. If you load a partial from the server containing these attributes, you will have to call `autoEffects()` manually to have the effects auto-applied to the newly loaded partial as well.
-
- By using these declarative attributes you can considerably reduce the amount of simple effects in your component's JavaScript. Almost all fine-grained DOM updates can be done this way. You gain Locality of Behavior (LoB) in your markup and can decide per case where effects shall be applied. On the other hand, you lose Separation of Concerns (SoC) - if you care about it. It's the same trade-off as with JSX, but in pure HTML.
-
- #### UIRef Usage
-
-If you prefer to explicitly write the effects rather than binding behavior through magic attributes, you can use the `uiRef()` function to create a wrapped reference to a DOM element:
+You can use the `ui()` function to create a wrapped reference to a DOM element:
 
 ```js
-import uiComponent, { uiRef } from './ui-component';
+import component, { ui } from './component';
 
-uiComponent('my-counter', {}, el => {
-  // third parameter of uiComponent is called in connectedCallback()
+component('my-counter', {}, (el, my) => {
+  // third parameter of component is called in connectedCallback()
+  // `el` is `this` of your custom element
+  // `my` is a UI reference function to the element with convenience methods to query sub-elements, bind events, and auto-create effects
 
-  const ref = uiRef(el); // creates a reference to a DOM element
-  // console.log(ref()); // calling the reference returns the native DOM element
-  const count = ref.first('.count'); // first does querySelector and returns a reference
-  el.set('value', count.text.get()); // get initial value from textContent instead of observed attribute
-  const decrement = ref.first('.decrement');
-  const increment = ref.first('.increment');
-  decrement().onclick = () => el.set('value', v => --v);
-  increment().onclick = () => el.set('value', v => ++v);
+  // console.log(my()); // calling the UI reference returns the native DOM element
+  const count = my.first('.count'); // first does querySelector and returns a UI reference
+  el.set('value', count().textContent); // get initial value from textContent instead of observed attribute
+  my.first('.decrement').on('click', () => el.set('value', v => --v));
+  my.first('.increment').on('click', () => el.set('value', v => ++v));
 
+  // you can explicitly write your own effects ...
   effect(enqueue => {
-    const double = ref.first('.double');
+    const double = my.first('.double');
     const value = el.get('value');
-    enqueue(count(), count.text.set(value));
-    enqueue(double(), double.text.set(value * 2));
-    enqueue(ref(), ref.class.set('odd', value % 2));
+    enqueue(count(), () => count().textContent = value);
+    enqueue(double(), () => double().textContent = value * 2);
+    enqueue(my(), () => my().classList.toggle('odd', value % 2));
   });
+
+  // ... or auto-create effects with UI reference methods
+  count.text('value');
+  el.set('double', () => el.get(value) * 2); // but then you have to first create a derived state for it
+  my.first('.double').text('double');
+  el.set('odd', () => el.get(value) % 2);
+  my.class('odd');
 });
 ```
 
-On `UIRef` objects you can call these utility methods:
+On `UI` reference objects you can call these utility methods:
 
-- `ref.text.set()` preserves comment nodes in contrast to `element.textContent` assignments
-- `ref.prop.set()` sets or deletes a property on an element
-- `ref.attr.set()` sets or removes an attribute on an element
-- `ref.class.set()` adds or removes a class on an element
-- `ref.style.set()` sets or removes a style property on an element
+- `ref.text()` preserves comment nodes in contrast to `element.textContent` assignments
+- `ref.prop()` sets or deletes a property on an element
+- `ref.attr()` sets or removes an attribute on an element
+- `ref.bool()` toggles a boolean attribute on an element
+- `ref.class()` adds or removes a class on an element
+- `ref.style()` sets or removes a style property on an element
 
-[Source](./ui-component.js)
+[Source](./component.js)
 
 ### Debug Element
 

@@ -130,4 +130,4 @@ const effect = (fn: UIEffectCallback) => {
   next();
 }
 
-export { type UIState, isFunction, isState, cause, derive, effect };
+export { type UIState, type UIDOMInstructionQueue, isFunction, isState, cause, derive, effect };
