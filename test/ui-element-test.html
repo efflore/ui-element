@@ -83,6 +83,14 @@
       </p>
     </hello-world>
   </greeting-configurator>
+  <lazy-load src="/test/mock/lazy-load.html" id="lazy-success">
+    <p class="loading" role="status">Loading...</p>
+    <p class="error" role="alert" aria-live="polite"></p>
+  </lazy-load>
+  <lazy-load src="/test/mock/404.html" id="lazy-error">
+    <p class="loading" role="status">Loading...</p>
+    <p class="error" role="alert" aria-live="polite"></p>
+  </lazy-load>
 
   <script type="module">
     import { runTests } from '@web/test-runner-mocha';
@@ -238,6 +246,40 @@
       }
     }
     InputCheckbox.define('input-checkbox');
+
+    class LazyLoad extends UIElement {
+      connectedCallback() {
+        this.set('error', '');
+        this.set('content', () => {
+          fetch(this.getAttribute('src')) // TODO ensure 'src' attribute is a valid URL from a trusted source
+            .then(async response => {
+              await wait(1500); // we wait a bit, otherwise Promise is already fulfilled when test runs
+              return response.ok
+                ? this.set('content', await response.text())
+                : this.set('error', response.statusText);
+            })
+            .catch(error => this.set('error', error));
+          return; // we don't return a fallback value
+        });
+
+        effect(() => {
+          const error = this.get('error');
+          if (!error) return;
+          this.querySelector('.loading').remove(); // remove placeholder for pending state
+          this.querySelector('.error').textContent = error;
+        });
+
+        effect(() => {
+          const content = this.get('content');
+          if (!content) return;
+          const shadow = this.shadowRoot || this.attachShadow({ mode: 'open' }); // we use shadow DOM to encapsulate styles
+          shadow.innerHTML = content; // UNSAFE!, use only trusted sources in 'src' attribute
+          this.querySelector('.loading').remove(); // remove placeholder for pending state
+          this.querySelector('.error').remove(); // won't be needed anymore as request was successful
+        });
+      }
+    }
+    LazyLoad.define('lazy-load');
 
     runTests(() => {
 
@@ -600,6 +642,32 @@
             assert.equal(normalizeText(greeting.textContent), 'Hi Esther', 'Should update if use fullname is unchecked');
           });
 
+        });
+
+        describe('Lazy Load', function () {
+
+          it('should display loading status initially', function () {
+            const lazyComponent = document.getElementById('lazy-success');
+            assert.equal(normalizeText(lazyComponent.querySelector('.loading').textContent), 'Loading...');
+          });
+
+          it('should display lazy loaded content', async function () {
+            const lazyComponent = document.getElementById('lazy-success');
+            await wait(1600);
+            const shadow = lazyComponent.shadowRoot;
+            assert.isDefined(shadow, 'Should have a shadow root');
+            assert.equal(normalizeText(shadow.querySelector('p').textContent), 'Lazy loaded content', 'Should display lazy loaded content');
+            assert.equal(lazyComponent.querySelector('.loading'), null, 'Should no longer have a loading status');
+            assert.equal(lazyComponent.querySelector('.error'), null, 'Should no longer have an error container');
+          });
+
+          it('should display error message', async function () {
+            const lazyComponent = document.getElementById('lazy-error');
+            await wait(1600);
+            assert.equal(normalizeText(lazyComponent.querySelector('.error').textContent), 'Not Found', 'Should display error message');
+            assert.equal(lazyComponent.querySelector('.loading'), null, 'Should no longer have a loading status');
+            assert.equal(lazyComponent.shadowRoot, null, 'Should not have a shadow root');
+          });
         });
 
       });

@@ -365,4 +365,4 @@ declare const component: (tag: string, attributeMap: UIAttributeMap, connect: (h
     observedAttributes: string[];
     define(tag: string, registry?: CustomElementRegistry): void;
 };
-export { component as default, UIElement, DebugElement, effect, ui, asBoolean, asInteger, asNumber, asString, asJSON };
+export { DebugElement as default, UIElement, effect, component, ui, asBoolean, asInteger, asNumber, asString, asJSON };

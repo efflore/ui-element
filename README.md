@@ -16,7 +16,7 @@ In the `connectedCallback()` you setup references to inner elements, add event l
 
 `UIElement` is fast. In fact, faster than any JavaScript framework. Only direct fine-grained DOM updates in vanilla JavaScript can beat its performance. But then, you have no loose coupling of components and need to parse attributes and track changes yourself. This tends to get tedious and messy rather quickly. `UIElement` provides a structured way to keep your components simple, consistent and self-contained.
 
-`UIElement` is tiny. 929 bytes gzipped over the wire. And it has zero dependiences. If you want to understand how it works, you have to study the source code of [one single file](./index.js).
+`UIElement` is tiny. 1 kB gzipped over the wire. And it has zero dependiences. If you want to understand how it works, you have to study the source code of [one single file](./index.js).
 
 That's all.
 
@@ -112,6 +112,50 @@ Or from client side:
 ```
 
 ## Advanced Usage
+
+### Async Signals
+
+Within the reactive chain everything is done synchronously. But you can have async reactive states as source signals. To do so, `set()` a reactive state to a function that creates a `Promise` and returns a fallback value while pending. The `Promise` should resolve by setting its own state to the promised value and reject by setting an error state. When the state is first accessed, the function will be executed. As soon as the promised value is available, dependent effects will be called to update the value.
+
+#### Usage
+
+```js
+import UIElement, { effect } from '@efflore/ui-element';
+
+class LazyLoad extends UIElement {
+
+  connectedCallback() {
+    this.set('error', '');
+    this.set('content', () => {
+      fetch(this.getAttribute('src')) // TODO ensure 'src' attribute is a valid URL from a trusted source
+        .then(async response => response.ok
+          ? this.set('content', await response.text())
+          : this.set('error', response.statusText)) // network request successful, but !response.ok
+        .catch(error => this.set('error', error)); // network request failed
+      return; // we don't return a fallback value
+    });
+
+    effect(() => {
+      const error = this.get('error');
+      if (!error) return;
+      this.querySelector('.loading').remove(); // remove placeholder for pending state
+      this.querySelector('.error').textContent = error;
+    });
+
+    effect(() => {
+      const content = this.get('content');
+      if (!content) return;
+      const shadow = this.shadowRoot || this.attachShadow({ mode: 'open' }); // we use shadow DOM to encapsulate styles
+      shadow.innerHTML = content; // UNSAFE!, use only trusted sources in 'src' attribute
+      this.querySelector('.loading').remove(); // remove placeholder for pending state
+      this.querySelector('.error').remove(); // won't be needed anymore as request was successful
+    });
+  }
+}
+LazyLoad.define('lazy-load');
+```
+
+The effect callbacks are executed twice: first doing nothing and then updating as the `Promise` resolves or rejects. In this simple example it would not necessary to pipe `'error'` and `'content'` states through the reactive chain. But this pattern allows you to use the states in other components, for example a `<toast-message>` component to display the error, or to post-process the response text for a derived state, like rendered HTML from Markdown or CSV.
 
 ### Context
 
@@ -250,7 +294,8 @@ The last option comes with a bit more library code (around 1.6 kB gzipped), but 
   </div>
 </my-counter>
 <script type="module">
-  import component, { asInteger } from './component';
+  import { component, asInteger } from './component';
+
   component('my-counter', { value: v => asInteger }, (el, my) => {
     my.first('.decrement').on('click', () => el.set('value', v => --v));
     my.first('.increment').on('click', () => el.set('value', v => ++v));
@@ -274,7 +319,7 @@ Where has the JavaScript gone? – It almost disappeared. To explain the magic:
 You can use the `ui()` function to create a wrapped reference to a DOM element:
 
 ```js
-import component, { ui } from './component';
+import { component, ui } from './component';
 
 component('my-counter', {}, (el, my) => {
   // third parameter of component is called in connectedCallback()
@@ -288,13 +333,13 @@ component('my-counter', {}, (el, my) => {
   my.first('.increment').on('click', () => el.set('value', v => ++v));
 
   // you can explicitly write your own effects ...
-  effect(enqueue => {
+  /* effect(enqueue => {
     const double = my.first('.double');
     const value = el.get('value');
     enqueue(count(), () => count().textContent = value);
     enqueue(double(), () => double().textContent = value * 2);
     enqueue(my(), () => my().classList.toggle('odd', value % 2));
-  });
+  }); */
 
   // ... or auto-create effects with UI reference methods
   count.text('value');

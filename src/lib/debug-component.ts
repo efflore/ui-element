@@ -38,4 +38,4 @@ const component = (
   return UIComponent;
 };
 
-export { component as default, UIElement, DebugElement, effect, ui, asBoolean, asInteger, asNumber, asString, asJSON };
+export { DebugElement as default, UIElement, effect, component, ui, asBoolean, asInteger, asNumber, asString, asJSON };

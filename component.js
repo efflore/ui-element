@@ -470,4 +470,4 @@ const component = (tag, attributeMap = {}, connect, disconnect) => {
     return UIComponent;
 };
 
-export { UIElement, asBoolean, asInteger, asJSON, asNumber, asString, component as default, effect, ui };
+export { asBoolean, asInteger, asJSON, asNumber, asString, component, UIElement as default, effect, ui };
