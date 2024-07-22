@@ -83,6 +83,14 @@
       </p>
     </hello-world>
   </greeting-configurator>
+  <lazy-load src="/test/mock/lazy-load.html" id="lazy-success">
+    <p class="loading" role="status">Loading...</p>
+    <p class="error" role="alert" aria-live="polite"></p>
+  </lazy-load>
+  <lazy-load src="/test/mock/404.html" id="lazy-error">
+    <p class="loading" role="status">Loading...</p>
+    <p class="error" role="alert" aria-live="polite"></p>
+  </lazy-load>
 
   <script type="module">
     import { runTests } from '@web/test-runner-mocha';
@@ -100,8 +108,7 @@
         this.set('heading', 'Hello from Internal State');
         effect(enqueue => {
           const title = this.querySelector('h1');
-          const heading = this.get('heading');
-          enqueue(title, () => title.textContent = heading);
+          enqueue(title, () => title.textContent = this.get('heading'));
         });
       }
 
@@ -123,19 +130,9 @@
         const badge = this.querySelector('span');
         const input = this.querySelector('input');
 
-        effect(enqueue => {
-          if (this.has('title')) {
-            const title = this.get('title');
-            enqueue(heading, () => heading.textContent = title);
-          }
-        });
+        effect(enqueue => this.has('title') && enqueue(heading, () => heading.textContent = this.get('title')));
 
-        effect(enqueue => {
-          if (this.has('count')) {
-            const count = this.get('count');
-            enqueue(badge, () => badge.textContent = count);
-          }
-        });
+        effect(enqueue => this.has('count') && enqueue(badge, () => badge.textContent = this.get('count')));
 
         effect(enqueue => {
           if (this.has('step')) {
@@ -147,19 +144,9 @@
           }
         });
 
-        effect(enqueue => {
-          if (this.has('value')) {
-            const value = this.get('value');
-            enqueue(input, () => input.setAttribute('value', value));
-          }
-        });
+        effect(enqueue => this.has('value') && enqueue(input, () => input.setAttribute('value', this.get('value'))));
 
-        effect(enqueue => {
-          if (this.has('selected')) {
-            const selected = this.get('selected');
-            enqueue(heading, () => heading.classList.toggle('selected', selected));
-          }
-        });
+        effect(enqueue => this.has('selected') && enqueue(heading, () => heading.classList.toggle('selected', this.get('selected'))));
       }
     }
     UpdatingComponent.define('updating-component');
@@ -184,15 +171,8 @@
         this.set('heading', title.textContent);
         this.set('text', paragraph.textContent);
 
-        effect(enqueue => {
-          const heading = this.get('heading');
-          heading && enqueue(title, () => title.textContent = heading);
-        });
-
-        effect(enqueue => {
-          const text = this.get('text');
-          text && enqueue(paragraph, () => paragraph.textContent = text);
-        });
+        effect(enqueue => this.has('heading') && enqueue(title, () => title.textContent = this.get('heading')));
+        effect(enqueue => this.has('text') && enqueue(paragraph, () => paragraph.textContent = this.get('text')));
       }
     }
     ChildComponent.define('child-component');
@@ -210,11 +190,9 @@
           const parityEl = this.querySelector('.parity');
           const doubleEl = this.querySelector('.double');
           const value = this.get('value');
-          const parity = value % 2 ? 'odd' : 'even';
-          const double = value * 2;
           enqueue(valueEl, () => valueEl.textContent = value);
-          enqueue(parityEl, () => parityEl.textContent = parity);
-          enqueue(doubleEl, () => doubleEl.textContent = double);
+          enqueue(parityEl, () => parityEl.textContent = value % 2 ? 'odd' : 'even');
+          enqueue(doubleEl, () => doubleEl.textContent = value * 2);
         });
       }
     }
@@ -243,15 +221,8 @@
         this.set('greeting', greetingEl.textContent, false);
         this.set('name', defaultName);
 
-        effect(enqueue => {
-          const greeting = this.get('greeting');
-          enqueue(greetingEl, () => greetingEl.textContent = greeting);
-        });
-
-        effect(enqueue => {
-          const name = this.get('name') || defaultName;
-          enqueue(nameEl, () => nameEl.textContent = name);
-        });
+        effect(enqueue => enqueue(greetingEl, () => greetingEl.textContent = this.get('greeting')));
+        effect(enqueue => enqueue(nameEl, () => nameEl.textContent = this.get('name') || defaultName));
       }
     }
     HelloWorld.define('hello-world');
@@ -275,6 +246,40 @@
       }
     }
     InputCheckbox.define('input-checkbox');
+
+    class LazyLoad extends UIElement {
+      connectedCallback() {
+        this.set('error', '');
+        this.set('content', () => {
+          fetch(this.getAttribute('src')) // TODO ensure 'src' attribute is a valid URL from a trusted source
+            .then(async response => {
+              await wait(1500); // we wait a bit, otherwise Promise is already fulfilled when test runs
+              return response.ok
+                ? this.set('content', await response.text())
+                : this.set('error', response.statusText);
+            })
+            .catch(error => this.set('error', error));
+          return; // we don't return a fallback value
+        });
+
+        effect(() => {
+          const error = this.get('error');
+          if (!error) return;
+          this.querySelector('.loading').remove(); // remove placeholder for pending state
+          this.querySelector('.error').textContent = error;
+        });
+
+        effect(() => {
+          const content = this.get('content');
+          if (!content) return;
+          const shadow = this.shadowRoot || this.attachShadow({ mode: 'open' }); // we use shadow DOM to encapsulate styles
+          shadow.innerHTML = content; // UNSAFE!, use only trusted sources in 'src' attribute
+          this.querySelector('.loading').remove(); // remove placeholder for pending state
+          this.querySelector('.error').remove(); // won't be needed anymore as request was successful
+        });
+      }
+    }
+    LazyLoad.define('lazy-load');
 
     runTests(() => {
 
@@ -637,6 +642,32 @@
             assert.equal(normalizeText(greeting.textContent), 'Hi Esther', 'Should update if use fullname is unchecked');
           });
 
+        });
+
+        describe('Lazy Load', function () {
+
+          it('should display loading status initially', function () {
+            const lazyComponent = document.getElementById('lazy-success');
+            assert.equal(normalizeText(lazyComponent.querySelector('.loading').textContent), 'Loading...');
+          });
+
+          it('should display lazy loaded content', async function () {
+            const lazyComponent = document.getElementById('lazy-success');
+            await wait(1600);
+            const shadow = lazyComponent.shadowRoot;
+            assert.isDefined(shadow, 'Should have a shadow root');
+            assert.equal(normalizeText(shadow.querySelector('p').textContent), 'Lazy loaded content', 'Should display lazy loaded content');
+            assert.equal(lazyComponent.querySelector('.loading'), null, 'Should no longer have a loading status');
+            assert.equal(lazyComponent.querySelector('.error'), null, 'Should no longer have an error container');
+          });
+
+          it('should display error message', async function () {
+            const lazyComponent = document.getElementById('lazy-error');
+            await wait(1600);
+            assert.equal(normalizeText(lazyComponent.querySelector('.error').textContent), 'Not Found', 'Should display error message');
+            assert.equal(lazyComponent.querySelector('.loading'), null, 'Should no longer have a loading status');
+            assert.equal(lazyComponent.shadowRoot, null, 'Should not have a shadow root');
+          });
         });
 
       });

@@ -1,8 +1,4 @@
-import UIElement, { type IUIElement, type UIStateMap } from '../ui-element';
-/**
- * @name UIElement DOM Utils
- * @version 0.7.0
- */
+import UIElement, { type UIStateMap } from '../ui-element';
 declare const DEV_MODE = true;
 /**
  * Add debug capabilities to UIElement classes
@@ -63,11 +59,18 @@ declare class DebugElement extends UIElement {
      * Wrap pass() to log passed signals to the console
      *
      * @since 0.7.0
-     * @param {IUIElement} element - UIElement to be passed to
+     * @param {UIElement} element - UIElement to be passed to
      * @param {UIStateMap} states - states to be passed to the element
      * @param {CustomElementRegistry} [registry=customElements] - custom element registry
      */
-    pass(element: IUIElement, states: UIStateMap, registry?: CustomElementRegistry): Promise<void>;
+    pass(element: UIElement, states: UIStateMap, registry?: CustomElementRegistry): Promise<void>;
+    /**
+     * Add event listeners to UIElement and sub-elements to auto-highlight targets when hovering or focusing on elements with given attribute
+     *
+     * @since 0.7.0
+     * @param {string} [className=EFFECT_CLASS] - CSS class to be added to highlighted targets
+     */
+    highlight(className?: string): void;
     /**
      * Log messages in debug mode
      *

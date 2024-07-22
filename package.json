@@ -1,15 +1,15 @@
 {
   "name": "@efflore/ui-element",
-  "version": "0.7.1",
+  "version": "0.7.2",
   "description": "UIElement - minimal reactive framework based on Web Components",
   "main": "index.min.js",
   "types": "index.d.ts",
   "scripts": {
-    "build": "npm run build:rollup && npm run build:minify && npm run build:cause-effect && npm run build:ui-component",
+    "build": "npm run build:rollup && npm run build:minify && npm run build:cause-effect && npm run build:component",
     "build:rollup": "rollup -c",
     "build:minify": "terser index.js -c -m -o index.min.js --module",
     "build:cause-effect": "terser cause-effect.js -c -m -o cause-effect.min.js --module",
-    "build:ui-component": "terser ui-component.js -c -m -o ui-component.min.js --module",
+    "build:component": "terser component.js -c -m -o component.min.js --module",
     "lint": "npx eslint src/**/*.ts",
     "test": "run-s test:setup test:ci",
     "test:setup": "npx playwright install-deps",

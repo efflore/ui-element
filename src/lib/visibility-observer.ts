@@ -1,4 +1,4 @@
-import type IUIElement from '../ui-element';
+import type UIElement from '../ui-element';
 
 const VISIBILITY_STATE = 'visible';
 
@@ -8,14 +8,14 @@ class VisibilityObserver {
   /**
    * Set up IntersectionObserver for UIElement visibility state
    * 
-   * @param {UIElement} element 
+   * @param {UIElement} host - host UIElement for the observer
    */
-  constructor(element: IUIElement) {
-    element.set(VISIBILITY_STATE, false);
+  constructor(host: UIElement) {
+    host.set(VISIBILITY_STATE, false);
 
     this.observer = new IntersectionObserver(([entry]) => {
-      element.set(VISIBILITY_STATE, entry.isIntersecting);
-    }).observe(element);
+      host.set(VISIBILITY_STATE, entry.isIntersecting);
+    }).observe(host);
   }
 
   disconnect() {

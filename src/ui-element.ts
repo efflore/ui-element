@@ -26,11 +26,11 @@ type UIContextMap = Record<PropertyKey, UIContextParser | UIMappedContextParser>
 
 type UIStateContext = Context<PropertyKey, UIState<unknown>>;
 
-interface IUIElement extends Partial<HTMLElement> {
+interface UIElement extends HTMLElement {
   attributeMap: UIAttributeMap;
   contextMap: UIContextMap;
   connectedCallback(): void;
-  disconnectedCallback?(): void;
+  disconnectedCallback(): void;
   attributeChangedCallback(name: string, old: string | undefined, value: string | undefined): void;
   has(key: PropertyKey): boolean;
   get(key: PropertyKey): unknown;
@@ -63,7 +63,7 @@ const getArrayMapping = (
  * 
  * @class UIElement
  * @extends HTMLElement
- * @type {IUIElement}
+ * @type {UIElement}
  */
 class UIElement extends HTMLElement {
 
@@ -224,7 +224,7 @@ class UIElement extends HTMLElement {
    * @param {CustomElementRegistry} [registry=customElements] - custom element registry to be used; defaults to `customElements`
    */
   async pass(
-    element: IUIElement,
+    element: UIElement,
     states: UIStateMap,
     registry: CustomElementRegistry = customElements
   ): Promise<void> {
@@ -254,4 +254,4 @@ class UIElement extends HTMLElement {
 
 }
 
-export { type IUIElement, type UIStateMap, type UIAttributeMap, type UIContextMap, UIElement as default };
+export { type UIStateMap, type UIAttributeMap, type UIContextMap, UIElement as default };

@@ -1,12 +1,12 @@
-import type IUIElement from '../ui-element';
+import type UIElement from '../ui-element';
 declare class VisibilityObserver {
     observer: IntersectionObserver | void;
     /**
      * Set up IntersectionObserver for UIElement visibility state
      *
-     * @param {UIElement} element
+     * @param {UIElement} host - host UIElement for the observer
      */
-    constructor(element: IUIElement);
+    constructor(host: UIElement);
     disconnect(): void;
 }
 export default VisibilityObserver;

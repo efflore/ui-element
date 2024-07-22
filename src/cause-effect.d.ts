@@ -1,8 +1,12 @@
-type UIDOMInstructionSet = Set<() => void>;
 type UIEffect = {
     (): void;
-    targets?: Map<Element, UIDOMInstructionSet>;
+    run(): void;
+    targets?: Map<Element, Set<() => void>>;
 };
+interface UIComputed<T> extends UIEffect {
+    (): T;
+    effects: Set<UIEffect>;
+}
 type UIState<T> = {
     (): T;
     effects: Set<UIEffect>;
@@ -38,9 +42,10 @@ declare const cause: (value: any) => UIState<any>;
  *
  * @since 0.1.0
  * @param {() => any} fn - existing state to derive from
- * @returns {() => any} derived state
+ * @param {boolean} [memo=false] - whether to use memoization
+ * @returns {UIComputed<any>} derived state
  */
-declare const derive: (fn: () => any) => (() => any);
+declare const derive: (fn: () => any, memo?: boolean) => UIComputed<any>;
 /**
  * Define what happens when a reactive state changes
  *
@@ -48,4 +53,4 @@ declare const derive: (fn: () => any) => (() => any);
  * @param {UIEffectCallback} fn - callback function to be executed when a state changes
  */
 declare const effect: (fn: UIEffectCallback) => void;
-export { type UIState, isFunction, isState, cause, derive, effect };
+export { type UIState, type UIDOMInstructionQueue, isFunction, isState, cause, derive, effect };
