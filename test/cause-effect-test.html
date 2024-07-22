@@ -30,17 +30,17 @@
 
           it('should be boolean', function () {
             const state = cause(false);
-            assert.isBoolean(state(), 'should be boolean with initial value false');
+            assert.isBoolean(state(), 'should be boolean');
           });
 
           it('should set initial value to false', function () {
             const state = cause(false);
-            assert.isFalse(state(), 'should be false with initial value false');
+            assert.isFalse(state(), 'should have initial value false');
           });
 
           it('should set initial value to true', function () {
             const state = cause(true);
-            assert.isTrue(state(), 'should be true with initial value true');
+            assert.isTrue(state(), 'should have initial value true');
           });
 
           it('should set new value with .set(true)', function () {
@@ -61,12 +61,12 @@
 
           it('should be number', function () {
             const state = cause(0);
-            assert.isNumber(state(), 'should be number with initial value 0');
+            assert.isNumber(state(), 'should be number');
           });
 
           it('should set initial value to 0', function () {
             const state = cause(0);
-            assert.equal(state(), 0, 'should be 0 with initial value 0');
+            assert.equal(state(), 0, 'should have initial value 0');
           });
 
           it('should set new value with .set(42)', function () {
@@ -87,12 +87,12 @@
 
           it('should be string', function () {
             const state = cause('foo');
-            assert.isString(state(), 'should be string with initial value "foo"');
+            assert.isString(state(), 'should be string');
           });
 
           it('should set initial value to "foo"', function () {
             const state = cause('foo');
-            assert.equal(state(), 'foo', 'should be "foo" with initial value "foo"');
+            assert.equal(state(), 'foo', 'should have initial value "foo"');
           });
 
           it('should set new value with .set("bar")', function () {
@@ -114,13 +114,36 @@
           it('should be a function', function () {
             const x = 42;
             const state = cause(() => x * 2);
-            assert.isFunction(state(), 'should be function with initial value () => x * 2');
+            assert.isFunction(state(), 'should be function');
           });
 
           it('should be result of function', function () {
             const x = 42;
             const state = cause(() => x * 2);
             assert.equal(state().call(), 84, 'should be 84 with initial value () => x * 2 and x = 42');
+          });
+
+          it('should be result of async function after promise is resolved', async function () {
+            const x = 42;
+            const state = cause(() => {
+              new Promise(resolve => setTimeout(() => resolve(state.set(x * 2)), 100));
+              return;
+            });
+            assert.isUndefined(state().call(), 'should be undefined while promise is pending with promise resolver () => x * 2 and x = 42');
+            await wait(100);
+            assert.equal(state(), 84, 'should be 84 after a delay with resolved promise for () => x * 2 and x = 42');
+          });
+
+          it('should set error state in async function after promise is rejected', async function () {
+            const x = 42;
+            const error = cause();
+            const state = cause(() => {
+              new Promise((resolve, reject) => setTimeout(() => reject('error occurred')), 100).catch(reason => error.set(reason));
+              return;
+            });
+            assert.isUndefined(state().call(), 'should be undefined while promise is pending');
+            await wait(100);
+            assert.equal(error(), 'error occurred', 'should set error message after a delay with rejected promise');
           });
 
           it('should be result of function dependent on another signal', function () {
@@ -152,45 +175,171 @@
 
         });
 
+        describe('Array cause', function () {
+
+          it('should be array', function () {
+            const state = cause([1, 2, 3]);
+            assert.isArray(state(), 'should be array');
+          });
+
+          it('should set initial value to [1, 2, 3]', function () {
+            const state = cause([1, 2, 3]);
+            assert.deepEqual(state(), [1, 2, 3], 'should be [1, 2, 3] with initial value [1, 2, 3]');
+          });
+
+          it('should set new value with .set([4, 5, 6])', function () {
+            const state = cause([1, 2, 3]);
+            state.set([4, 5, 6]);
+            assert.deepEqual(state(), [4, 5, 6], 'should be [4, 5, 6] with any inital value');
+          });
+
+          it('should reflect current value of array after modification', function () {
+            const array = [1, 2, 3];
+            const state = cause(array);
+            array.push(4); // don't do this! the result will be correct, but we can't trigger effects
+            assert.deepEqual(state(), [1, 2, 3, 4], 'should be [1, 2, 3, 4] with initial value [1, 2, 3]');
+          });
+
+          it('should set new value with .set([...array, 4])', function () {
+            const array = [1, 2, 3];
+            const state = cause(array);
+            state.set([...array, 4]); // use destructuring instead!
+            assert.deepEqual(state(), [1, 2, 3, 4], 'should be [1, 2, 3, 4] with initial value [1, 2, 3]');
+          });
+
+        });
+
+        describe('Object cause', function () {
+
+          it('should be object', function () {
+            const state = cause({ a: 'a', b: 1 });
+            assert.isObject(state(), 'should be object');
+          });
+
+          it('should set initial value to { a: "a", b: 1 }', function () {
+            const state = cause({ a: 'a', b: 1 });
+            assert.deepEqual(state(), { a: 'a', b: 1 }, 'should be { a: "a", b: 1 } with initial value { a: "a", b: 1 }');
+          });
+
+          it('should set new value with .set({ c: true })', function () {
+            const state = cause({ a: 'a', b: 1 });
+            state.set({ c: true });
+            assert.deepEqual(state(), { c: true }, 'should be { c: true } with any inital value');
+          });
+
+          it('should reflect current value of object after modification', function () {
+            const obj = { a: 'a', b: 1 };
+            const state = cause(obj);
+            obj.c = true; // don't do this! the result will be correct, but we can't trigger effects
+            assert.deepEqual(state(), { a: 'a', b: 1, c: true }, 'should be { a: "a", b: 1, c: true } with initial value { a: "a", b: 1 }');
+          });
+
+          it('should set new value with .set({...obj, c: true})', function () {
+            const obj = { a: 'a', b: 1 };
+            const state = cause(obj);
+            state.set({...obj, c: true}); // use destructuring instead!
+            assert.deepEqual(state(), { a: 'a', b: 1, c: true }, 'should be { a: "a", b: 1, c: true } with initial value { a: "a", b: 1 }');
+          });
+
+        });
+
       });
 
       describe('Derive', function () {
 
         it('should compute a function', function() {
-          const a = 1;
-          const b = 2;
-          const computed = derive(() => a + b);
+          const computed = derive(() => 1 + 2);
           assert.equal(computed(), 3);
         });
 
         it('should compute function dependent on a signal', function() {
-          const a = 1;
           const state = cause(42);
-          const computed = derive(() => a + state());
+          const computed = derive(() => 1 + state());
           assert.equal(computed(), 43);
         });
 
+        it('should be added to state.effects', function () {
+          const state = cause();
+          const computed = derive(() => 1 + state());
+          effect(() => computed());
+          assert.equal(state.effects.size, 1);
+          const computed2 = derive(() => 2 + state());
+          effect(() => computed2());
+          assert.equal(state.effects.size, 2);
+          effect(() => computed() + computed2());
+          assert.equal(state.effects.size, 2);
+        });
+
         it('should compute function dependent on an updated signal', function() {
-          const a = 1;
           const state = cause(42);
-          const computed = derive(() => a + state());
+          const computed = derive(() => 1 + state());
           state.set(24);
           assert.equal(computed(), 25);
         });
 
+        it('should compute function dependent on an async signal', async function() {
+          const status = cause('unset');
+          const state = cause(() => {
+            new Promise(resolve => {
+              status.set('pending');
+              setTimeout(() => resolve(state.set(42)), 100);
+            }).then(() => status.set('success'));
+            return;
+          });
+          const computed = derive(() => {
+            const asyncState = state();
+            if (typeof asyncState === 'function') {
+              asyncState();
+              return;
+            }
+            return 1 + asyncState;
+          });
+          assert.isUndefined(computed(), 'should be undefined while pending');
+          assert.equal(status(), 'pending');
+          await wait(100);
+          assert.equal(computed(), 43, 'should be 43 after promise is resolved');
+          assert.equal(status(), 'success');
+        });
+
+        it('should handle errors from an async signal gracefully', async function() {
+          const status = cause('unset');
+          const error = cause();
+          const state = cause(() => {
+            new Promise((resolve, reject) => {
+              status.set('pending');
+              setTimeout(() => reject('error occurred'), 100);
+            }).catch(reason => {
+              status.set('error');
+              error.set(reason);
+            });
+            return;
+          });
+          const computed = derive(() => {
+            const asyncState = state();
+            if (typeof asyncState === 'function') {
+              asyncState();
+              return;
+            }
+            return 1 + asyncState;
+          });
+          assert.isUndefined(computed(), 'should be undefined while pending');
+          assert.equal(status(), 'pending');
+          await wait(100);
+          assert.equal(error(), 'error occurred', 'should set error message after promise is rejected');
+          assert.equal(status(), 'error');
+        });
+
         it('should compute function dependent on a chain of computed states dependent on a signal', function() {
-          const a = 1;
           const state = cause(42);
-          const computed1 = derive(() => a + state());
+          const computed1 = derive(() => 1 + state());
           const computed2 = derive(() => computed1() * 2);
           const computed3 = derive(() => computed2() + 1);
           assert.equal(computed3(), 87);
         });
 
         it('should compute function dependent on a chain of computed states dependent on an updated signal', function() {
-          const a = 1;
           const state = cause(42);
-          const computed1 = derive(() => a + state());
+          const computed1 = derive(() => 1 + state());
           const computed2 = derive(() => computed1() * 2);
           const computed3 = derive(() => computed2() + 1);
           state.set(24);
@@ -256,17 +405,36 @@
           const b = derive(() => {
             count++;
             return a();
-          });
+          }, true); // turn memoization on
           assert.equal(b(), 'foo');
           assert.equal(count, 1);
           x.set('aa');
           assert.equal(b(), 'foo');
-          // assert.equal(count, 1); // this will fail with our simple signals algorithm
+          assert.equal(count, 1);
         });
 
       });
 
       describe('Effect', function () {
+
+        it('should be added to state.effects', function () {
+          const state = cause();
+          effect(() => state());
+          assert.equal(state.effects.size, 1);
+          effect(() => state());
+          assert.equal(state.effects.size, 2);
+        });
+
+        it('should be added to to computed.effects', function () {
+          const state = cause();
+          const computed = derive(() => 1 + state());
+          effect(() => computed());
+          assert.equal(computed.effects.size, 1);
+          const computed2 = derive(() => 2 + state());
+          effect(() => computed() + computed2());
+          assert.equal(computed.effects.size, 2);
+          assert.equal(computed2.effects.size, 1);
+        });
 
         it('should be triggered after a state change', function() {
           const state = cause('foo');

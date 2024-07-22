@@ -29,7 +29,7 @@
         };
       },
       computed: fn => {
-        const c = derive(fn);
+        const c = derive(fn, true);
         return { read: () => c() };
       },
       effect: fn => effect(fn),
@@ -409,9 +409,9 @@
             framework.effect(() => res.push(hard(G.read(), "H")));
             framework.effect(() => res.push(G.read()), "I");
             framework.effect(() => res.push(hard(F.read(), "J")));
-            // framework.effect(() => res[0] = hard(G.read(), "H"));
-            // framework.effect(() => res[1] = G.read(), "I");
-            // framework.effect(() => res[2] = hard(F.read(), "J"));
+            framework.effect(() => res[0] = hard(G.read(), "H"));
+            framework.effect(() => res[1] = G.read(), "I");
+            framework.effect(() => res[2] = hard(F.read(), "J"));
 
             return (i) => {
               res.length = 0;

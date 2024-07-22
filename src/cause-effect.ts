@@ -1,11 +1,15 @@
 /* === Types === */
 
-type UIDOMInstructionSet = Set<() => void>;
-
 type UIEffect = {
   (): void;
-  targets?: Map<Element, UIDOMInstructionSet>
+  run(): void;
+  targets?: Map<Element, Set<() => void>>
 };
+
+interface UIComputed<T> extends UIEffect {
+  (): T;
+  effects: Set<UIEffect>;
+}
 
 type UIState<T> = {
   (): T;
@@ -26,6 +30,16 @@ type UIEffectCallback = (enqueue: UIDOMInstructionQueue) => UIMaybeCleanup;
 
 // hold the currently active effect
 let active: UIEffect | undefined;
+
+/**
+ * Run all effects in the provided set
+ * 
+ * @param {Set<UIEffects>} effects 
+ */
+const autorun = (effects: Set<UIEffect>) => {
+  for (const effect of effects)
+    effect.run();
+}
 
 /* === Exported functions === */
 
@@ -63,10 +77,7 @@ const cause = (value: any): UIState<any> => {
     value = isFunction(updater) && !isState(updater)
       ? updater(old)
       : updater;
-    if (!Object.is(value, old)) {
-      for (const effect of state.effects)
-        effect();
-    }
+    !Object.is(value, old) && autorun(state.effects);
   };
   return state;
 };
@@ -76,16 +87,27 @@ const cause = (value: any): UIState<any> => {
  * 
  * @since 0.1.0
  * @param {() => any} fn - existing state to derive from
- * @returns {() => any} derived state
+ * @param {boolean} [memo=false] - whether to use memoization
+ * @returns {UIComputed<any>} derived state
  */
-const derive = (fn: () => any): (() => any) => {
+const derive = (fn: () => any, memo: boolean = false): UIComputed<any> => {
+  let value: any;
+  let dirty = true;
   const computed = () => {
+    active && computed.effects.add(active);
+    if (memo && !dirty) return value;
     const prev = active;
     active = computed;
-    const value = fn();
+    value = fn();
+    dirty = false;
     active = prev;
     return value;
   };
+  computed.effects = new Set<UIEffect>(); // set of listeners
+  computed.run = () => {
+    dirty = true;
+    memo && autorun(computed.effects);
+  }
   return computed;
 };
 
@@ -96,7 +118,7 @@ const derive = (fn: () => any): (() => any) => {
  * @param {UIEffectCallback} fn - callback function to be executed when a state changes
  */
 const effect = (fn: UIEffectCallback) => {
-  const targets = new Map<Element, UIDOMInstructionSet>();
+  const targets = new Map<Element, Set<() => void>>();
   const next = () => {
     const prev = active;
     active = next;
@@ -107,17 +129,16 @@ const effect = (fn: UIEffectCallback) => {
       !targets.has(element) && targets.set(element, new Set<() => void>());
       targets.get(element).add(domFn);
     });
+    for (const domFns of targets.values()) {
+      for (const domFn of domFns)
+        domFn();
+    }   
     active = prev;
-    (targets.size || cleanup) && queueMicrotask(() => {
-      for (const domFns of targets.values()) {
-        for (const domFn of domFns)
-          domFn();
-      }   
-      isFunction(cleanup) && cleanup();
-    });
+    isFunction(cleanup) && queueMicrotask(cleanup);
   };
+  next.run = () => next();
   next.targets = targets;
   next();
 }
 
-export { type UIState, isFunction, isState, cause, derive, effect };
+export { type UIState, type UIDOMInstructionQueue, isFunction, isState, cause, derive, effect };

@@ -2,6 +2,15 @@
 /* === Internal === */
 // hold the currently active effect
 let active;
+/**
+ * Run all effects in the provided set
+ *
+ * @param {Set<UIEffects>} effects
+ */
+const autorun = (effects) => {
+    for (const effect of effects)
+        effect.run();
+};
 /* === Exported functions === */
 /**
  * Check if a given variable is a function
@@ -35,10 +44,7 @@ const cause = (value) => {
         value = isFunction(updater) && !isState(updater)
             ? updater(old)
             : updater;
-        if (!Object.is(value, old)) {
-            for (const effect of state.effects)
-                effect();
-        }
+        !Object.is(value, old) && autorun(state.effects);
     };
     return state;
 };
@@ -57,15 +63,14 @@ const effect = (fn) => {
             !targets.has(element) && targets.set(element, new Set());
             targets.get(element).add(domFn);
         });
+        for (const domFns of targets.values()) {
+            for (const domFn of domFns)
+                domFn();
+        }
         active = prev;
-        (targets.size || cleanup) && queueMicrotask(() => {
-            for (const domFns of targets.values()) {
-                for (const domFn of domFns)
-                    domFn();
-            }
-            isFunction(cleanup) && cleanup();
-        });
+        isFunction(cleanup) && queueMicrotask(cleanup);
     };
+    next.run = () => next();
     next.targets = targets;
     next();
 };
@@ -122,7 +127,7 @@ const getArrayMapping = (value, defaultKey) => {
  *
  * @class UIElement
  * @extends HTMLElement
- * @type {IUIElement}
+ * @type {UIElement}
  */
 class UIElement extends HTMLElement {
     /**
@@ -283,11 +288,17 @@ class UIElement extends HTMLElement {
     }
 }
 
+/* === Internal === */
+/**
+ * Returns a finite number or undefined
+ */
+const finiteNumber = (value) => Number.isFinite(value) && value;
+/* === Exported functions === */
 /**
  * Parse a boolean attribute as an actual boolean value
  *
  * @since 0.7.0
- * @param {string|undefined} value
+ * @param {string | undefined} value
  * @returns {boolean}
  */
 const asBoolean = (value) => typeof value === 'string';
@@ -295,18 +306,18 @@ const asBoolean = (value) => typeof value === 'string';
  * Parse an attribute as a number forced to integer
  *
  * @since 0.7.0
- * @param {string} value
- * @returns {number}
+ * @param {string | undefined} value
+ * @returns {number | undefined}
  */
-const asInteger = (value) => parseInt(value, 10);
+const asInteger = (value) => finiteNumber(parseInt(value, 10));
 /**
  * Parse an attribute as a number
  *
  * @since 0.7.0
- * @param {string} value
- * @returns {number}
+ * @param {string | undefined} value
+ * @returns {number | undefined}
  */
-const asNumber = (value) => parseFloat(value);
+const asNumber = (value) => finiteNumber(parseFloat(value));
 /**
  * Parse an attribute as a string
  *
@@ -315,13 +326,15 @@ const asNumber = (value) => parseFloat(value);
  * @returns {string}
  */
 const asString = (value) => value;
+/**
+ * Parse an attribute as a JSON serialized object
+ *
+ * @since 0.7.2
+ * @param {string} value
+ * @returns {Record<string, unknown>}
+ */
+const asJSON = (value) => JSON.parse(value);
 
-/* === Constants === */
-const TEXT_SUFFIX = 'text';
-const PROP_SUFFIX = 'prop';
-const ATTR_SUFFIX = 'attr';
-const CLASS_SUFFIX = 'class';
-const STYLE_SUFFIX = 'style';
 /* Internal functions === */
 /**
  * Check if a given variable is an element which can have a style property
@@ -329,13 +342,19 @@ const STYLE_SUFFIX = 'style';
  * @param {Element} node - element to check if it is styleable
  * @returns {boolean} true if the node is styleable
  */
-const isStylable = (node) => node instanceof HTMLElement
-    || node instanceof SVGElement
-    || node instanceof MathMLElement;
+const isStylable = (node) => {
+    for (const type of [HTMLElement, SVGElement, MathMLElement]) {
+        if (node instanceof type) {
+            return true;
+        }
+    }
+    return false;
+};
 /* === Exported function === */
 /**
  * Check if a given variable is defined
  *
+ * @since 0.7.0
  * @param {unknown} value - variable to check if it is defined
  * @returns {boolean} true if supplied parameter is defined
  */
@@ -343,141 +362,86 @@ const isDefined = (value) => typeof value !== 'undefined';
 /**
  * Wrapper around a native DOM element for DOM manipulation
  *
- * @param {Element} element - native DOM element to wrap
+ * @since 0.7.2
+ * @param {UIElement} host - host UIElement for the UIRef instance
+ * @param {Element} node - native DOM element to wrap
  * @returns {UIRef} - UIRef instance for the given element
  */
-const uiRef = (element) => {
-    const root = element.shadowRoot || element;
-    const el = () => element;
+const ui = (host, node = host) => {
+    const root = host.shadowRoot || host;
+    const autoEffect = (stateKey, fallback, setter) => {
+        if (!node)
+            return;
+        host.set(stateKey, fallback, false);
+        effect((q) => host.has(stateKey) && q(node, setter));
+    };
+    // return native DOM element
+    const el = () => node;
+    // return first matching selector as UIRef or undefined
     el.first = (selector) => {
-        const node = root.querySelector(selector);
-        return node && uiRef(node);
+        const match = root.querySelector(selector);
+        return match && ui(host, match);
     };
-    el.all = (selector) => Array.from(root.querySelectorAll(selector)).map(node => uiRef(node));
-    el[TEXT_SUFFIX] = {
-        get: () => element.textContent?.trim() || '',
-        set: (content) => {
-            Array.from(element.childNodes)
-                .filter(node => node.nodeType !== Node.COMMENT_NODE)
-                .forEach(node => node.remove());
-            element.append(document.createTextNode(content));
-        }
+    // return all matching selectors as UIRef array
+    el.all = (selector) => Array.from(root.querySelectorAll(selector)).map(match => ui(host, match));
+    el.on = (event, handler) => {
+        node && node.addEventListener(event, handler);
+        return el;
     };
-    el[PROP_SUFFIX] = {
-        get: (key) => element[key],
-        set: (key, value) => (element[key] = value)
+    el.off = (event, handler) => {
+        node && node.removeEventListener(event, handler);
+        return el;
     };
-    el[ATTR_SUFFIX] = {
-        get: (name) => element.getAttribute(name),
-        set: (name, value) => (typeof value === 'boolean')
-            ? element.toggleAttribute(name, value)
-            : isDefined(value)
-                ? element.setAttribute(name, value)
-                : element.removeAttribute(name)
+    // set text content of the element while preserving comments
+    el.setText = (content) => {
+        if (!node)
+            return;
+        Array.from(node.childNodes)
+            .filter(match => match.nodeType !== Node.COMMENT_NODE)
+            .forEach(match => match.remove());
+        node.append(document.createTextNode(content));
     };
-    el[CLASS_SUFFIX] = {
-        get: (token) => element.classList.contains(token),
-        set: (token, force) => element.classList.toggle(token, force)
-    };
-    isStylable(element) && (el[STYLE_SUFFIX] = {
-        get: (prop) => element.style.getPropertyValue(prop),
-        set: (prop, value) => isDefined(value)
-            ? element.style.setProperty(prop, value)
-            : element.style.removeProperty(prop)
-    });
-    return el;
-};
-
-/* === Constants === */
-const SELECTOR_PREFIX = 'data';
-/* === Exported function === */
-/**
- * Loop through all elements with the given attribute and call the provided callback function
- *
- * @since 0.7.0
- * @param {Element} el - UIElement to iterate over
- * @param {string} suffix - attribute name suffix to look for
- * @param {(node: Element, value: string) => void} callback - callback function to be called for each element
- */
-const autoApply = (el, suffix, callback) => {
-    const attr = `${SELECTOR_PREFIX}-${el.localName}-${suffix}`;
-    const apply = (node) => {
-        callback(node, node.getAttribute(attr));
-        node.removeAttribute(attr);
-    };
-    el.hasAttribute(attr) && apply(el);
-    for (const node of el.querySelectorAll(`[${attr}]`))
-        apply(node);
-};
-
-/* === Exported functions === */
-/**
- * Automatically apply effects to UIElement and sub-elements based on its attributes
- *
- * @since 0.6.0
- * @param {UIElement} el - UIElement to apply effects to
- */
-const autoEffects = (el) => {
-    [TEXT_SUFFIX, PROP_SUFFIX, ATTR_SUFFIX, CLASS_SUFFIX, STYLE_SUFFIX].forEach(suffix => {
-        const textCallback = (node, value) => {
-            const key = value.trim();
-            const obj = uiRef(node)[suffix];
-            const fallback = obj.get();
-            el.set(key, fallback, false);
-            effect(enqueue => {
-                if (el.has(key)) {
-                    const content = el.get(key);
-                    enqueue(node, () => obj.set(isDefined(content)
-                        ? content
-                        : fallback));
-                }
-            });
-        };
-        const keyValueCallback = (node, v) => {
-            const splitted = (str, separator) => str.split(separator).map(s => s.trim());
-            splitted(v, ';').forEach((value) => {
-                const [name, key = name] = splitted(value, ':');
-                const obj = uiRef(node)[suffix];
-                el.set(key, obj.get(), false);
-                effect(enqueue => {
-                    if (el.has(key)) {
-                        const value = el.get(key);
-                        enqueue(node, () => obj.set(name, value));
-                    }
-                });
-            });
-        };
-        autoApply(el, suffix, suffix === TEXT_SUFFIX ? textCallback : keyValueCallback);
-    });
-};
-
-/* === Constants === */
-const HOVER_SUFFIX = 'hover';
-const FOCUS_SUFFIX = 'focus';
-const EFFECT_CLASS = 'ui-effect';
-/* === Exported function === */
-/**
- * Add event listeners to UIElement and sub-elements to auto-highlight targets when hovering or focusing on elements with given attribute
- *
- * @since 0.7.0
- * @param {UIElement} el - UIElement to apply event listeners to
- * @param {string} [className=EFFECT_CLASS] - CSS class to be added to highlighted targets
- */
-const highlightTargets = (el, className = EFFECT_CLASS) => {
-    [HOVER_SUFFIX, FOCUS_SUFFIX].forEach(suffix => {
-        const [onOn, onOff] = suffix === HOVER_SUFFIX
-            ? ['mouseenter', 'mouseleave']
-            : ['focus', 'blur'];
-        autoApply(el, suffix, (node, value) => {
-            const key = value.trim();
-            const on = (type, force) => node.addEventListener(type, () => {
-                for (const target of el.targets(key))
-                    target.classList.toggle(className, force);
-            });
-            on(onOn, true);
-            on(onOff, false);
+    // sync text content of the element with given state by key
+    el.text = (stateKey) => {
+        const fallback = node?.textContent || '';
+        autoEffect(stateKey, fallback, () => {
+            const content = host.get(stateKey);
+            el.setText(isDefined(content) ? String(content) : fallback);
         });
-    });
+        return el;
+    };
+    // sync given property of the element with given state by key
+    el.prop = (key, stateKey = key) => {
+        autoEffect(stateKey, node[key], () => el[key] = host.get(stateKey));
+        return el;
+    };
+    // sync given attribute of the element with given state by key
+    el.attr = (name, stateKey = name) => {
+        autoEffect(stateKey, node.getAttribute(name), () => {
+            const value = host.get(stateKey);
+            isDefined(value) ? node.setAttribute(name, String(value)) : node.removeAttribute(name);
+        });
+        return el;
+    };
+    // sync given boolean attribute of the element with given state by key
+    el.bool = (name, stateKey = name) => {
+        autoEffect(stateKey, node.hasAttribute(name), () => node.toggleAttribute(name, !!host.get(stateKey)));
+        return el;
+    };
+    // sync given class of the element with given state by key
+    el.class = (token, stateKey = token) => {
+        autoEffect(stateKey, node.classList.contains(token), () => node.classList.toggle(token, !!host.get(stateKey)));
+        return el;
+    };
+    // sync given style property of the element with given state by key
+    el.style = (prop, stateKey = prop) => {
+        isStylable(node)
+            ? autoEffect(stateKey, node.style.getPropertyValue(prop), () => node.style.setProperty(prop, String(host.get(stateKey))))
+            : console.warn('Cannot sync style property', prop, 'on non-stylable element');
+        return el;
+    };
+    // return UIRef instance
+    return el;
 };
 
 /**
@@ -486,19 +450,17 @@ const highlightTargets = (el, className = EFFECT_CLASS) => {
  * @since 0.7.0
  * @param {string} tag - custom element tag name
  * @param {UIAttributeMap} attributeMap - object of observed attributes and their corresponding state keys and parser functions
- * @param {(connect: IUIElement) => void} connect - callback to be called when the element is connected to the DOM
- * @param {(disconnect: IUIElement) => void} disconnect - callback to be called when the element is disconnected from the DOM
+ * @param {(host: UIElement, my: UIRef) => void} connect - callback to be called when the element is connected to the DOM
+ * @param {(host: UIElement) => void} disconnect - callback to be called when the element is disconnected from the DOM
  * @returns {typeof FxComponent} - custom element class
  */
-const uiComponent = (tag, attributeMap = {}, connect, disconnect) => {
+const component = (tag, attributeMap = {}, connect, disconnect) => {
     const UIComponent = class extends UIElement {
         static observedAttributes = Object.keys(attributeMap);
         attributeMap = attributeMap;
         connectedCallback() {
             super.connectedCallback();
-            connect && connect(this);
-            autoEffects(this);
-            highlightTargets(this);
+            connect && connect(this, ui(this));
         }
         disconnectedCallback() {
             disconnect && disconnect(this);
@@ -508,4 +470,4 @@ const uiComponent = (tag, attributeMap = {}, connect, disconnect) => {
     return UIComponent;
 };
 
-export { UIElement, asBoolean, asInteger, asNumber, asString, uiComponent as default, effect, uiRef };
+export { asBoolean, asInteger, asJSON, asNumber, asString, component, UIElement as default, effect, ui };
