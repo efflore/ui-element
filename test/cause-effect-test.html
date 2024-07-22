@@ -248,29 +248,36 @@
       describe('Derive', function () {
 
         it('should compute a function', function() {
-          const a = 1;
-          const b = 2;
-          const computed = derive(() => a + b);
+          const computed = derive(() => 1 + 2);
           assert.equal(computed(), 3);
         });
 
         it('should compute function dependent on a signal', function() {
-          const a = 1;
           const state = cause(42);
-          const computed = derive(() => a + state());
+          const computed = derive(() => 1 + state());
           assert.equal(computed(), 43);
         });
 
+        it('should be added to state.effects', function () {
+          const state = cause();
+          const computed = derive(() => 1 + state());
+          effect(() => computed());
+          assert.equal(state.effects.size, 1);
+          const computed2 = derive(() => 2 + state());
+          effect(() => computed2());
+          assert.equal(state.effects.size, 2);
+          effect(() => computed() + computed2());
+          assert.equal(state.effects.size, 2);
+        });
+
         it('should compute function dependent on an updated signal', function() {
-          const a = 1;
           const state = cause(42);
-          const computed = derive(() => a + state());
+          const computed = derive(() => 1 + state());
           state.set(24);
           assert.equal(computed(), 25);
         });
 
         it('should compute function dependent on an async signal', async function() {
-          const a = 1;
           const status = cause('unset');
           const state = cause(() => {
             new Promise(resolve => {
@@ -282,10 +289,10 @@
           const computed = derive(() => {
             const asyncState = state();
             if (typeof asyncState === 'function') {
-              asyncState.call();
+              asyncState();
               return;
             }
-            return a + asyncState;
+            return 1 + asyncState;
           });
           assert.isUndefined(computed(), 'should be undefined while pending');
           assert.equal(status(), 'pending');
@@ -295,7 +302,6 @@
         });
 
         it('should handle errors from an async signal gracefully', async function() {
-          const a = 1;
           const status = cause('unset');
           const error = cause();
           const state = cause(() => {
@@ -311,10 +317,10 @@
           const computed = derive(() => {
             const asyncState = state();
             if (typeof asyncState === 'function') {
-              asyncState.call();
+              asyncState();
               return;
             }
-            return a + asyncState;
+            return 1 + asyncState;
           });
           assert.isUndefined(computed(), 'should be undefined while pending');
           assert.equal(status(), 'pending');
@@ -324,18 +330,16 @@
         });
 
         it('should compute function dependent on a chain of computed states dependent on a signal', function() {
-          const a = 1;
           const state = cause(42);
-          const computed1 = derive(() => a + state());
+          const computed1 = derive(() => 1 + state());
           const computed2 = derive(() => computed1() * 2);
           const computed3 = derive(() => computed2() + 1);
           assert.equal(computed3(), 87);
         });
 
         it('should compute function dependent on a chain of computed states dependent on an updated signal', function() {
-          const a = 1;
           const state = cause(42);
-          const computed1 = derive(() => a + state());
+          const computed1 = derive(() => 1 + state());
           const computed2 = derive(() => computed1() * 2);
           const computed3 = derive(() => computed2() + 1);
           state.set(24);
@@ -401,17 +405,36 @@
           const b = derive(() => {
             count++;
             return a();
-          });
+          }, true); // turn memoization on
           assert.equal(b(), 'foo');
           assert.equal(count, 1);
           x.set('aa');
           assert.equal(b(), 'foo');
-          // assert.equal(count, 1); // this will fail with our simple signals algorithm
+          assert.equal(count, 1);
         });
 
       });
 
       describe('Effect', function () {
+
+        it('should be added to state.effects', function () {
+          const state = cause();
+          effect(() => state());
+          assert.equal(state.effects.size, 1);
+          effect(() => state());
+          assert.equal(state.effects.size, 2);
+        });
+
+        it('should be added to to computed.effects', function () {
+          const state = cause();
+          const computed = derive(() => 1 + state());
+          effect(() => computed());
+          assert.equal(computed.effects.size, 1);
+          const computed2 = derive(() => 2 + state());
+          effect(() => computed() + computed2());
+          assert.equal(computed.effects.size, 2);
+          assert.equal(computed2.effects.size, 1);
+        });
 
         it('should be triggered after a state change', function() {
           const state = cause('foo');

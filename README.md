@@ -246,11 +246,7 @@ It consists of three functions:
 - `derive()` returns a getter function for the current value of the derived computation
 - `effect()` accepts a callback function to be exectuted when used signals change
 
-Cause & Effect is possibly the simplest way to turn JavaScript into a reactive language – with just 349 bytes gezipped code. Unlike the [TC39 Signals Proposal](https://github.com/tc39/proposal-signals), Cause & Effect uses a much simpler approach, effectively just decorator functions around signal getters and setters. All work is done synchronously and eagerly. As long as your computed functions are pure and DOM side effects are kept to a minimum, this should pose no issues and is even faster than doing all the checks and memoization in the more sophisticated push-then-pull approach of the Signals Proposal.
-
-If you however want to use side-effects or expensive work in computed function or updating / rendering in the DOM in effects takes longer than an animation frame, you might encounter glitches. If that's what you are doing, you are better off with a mature, full-fledged JavaScript framework.
-
-That said, we plan to offer a `UIElement` version with the Signals Proposal Polyfill instead of Cause & Effect in future versions as a drop-in replacement with the same API. As the Signals Proposal is still in early stage and they explicitely warn not to use the polyfill in production, we decided to do that not yet.
+Cause & Effect is possibly the simplest way to turn JavaScript into a reactive language – with just 385 bytes gezipped code. By default, Cause & Effect doesn't do any memoization for derived signals but recalculates their current value each time. Contrary to general expectations, this seems to be faster in most cases. If you however are performing expensive work in computed signals or rely on count of the execution times, you should turn memoization on, by setting the second parameter of `derive()` to `true`.
 
 #### Usage Example
 

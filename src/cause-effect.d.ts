@@ -42,9 +42,10 @@ declare const cause: (value: any) => UIState<any>;
  *
  * @since 0.1.0
  * @param {() => any} fn - existing state to derive from
+ * @param {boolean} [memo=false] - whether to use memoization
  * @returns {UIComputed<any>} derived state
  */
-declare const derive: (fn: () => any) => UIComputed<any>;
+declare const derive: (fn: () => any, memo?: boolean) => UIComputed<any>;
 /**
  * Define what happens when a reactive state changes
  *

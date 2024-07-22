@@ -53,18 +53,28 @@ const cause = (value) => {
  *
  * @since 0.1.0
  * @param {() => any} fn - existing state to derive from
+ * @param {boolean} [memo=false] - whether to use memoization
  * @returns {UIComputed<any>} derived state
  */
-const derive = (fn) => {
+const derive = (fn, memo = false) => {
+    let value;
+    let dirty = true;
     const computed = () => {
+        active && computed.effects.add(active);
+        if (memo && !dirty)
+            return value;
         const prev = active;
         active = computed;
-        const value = fn();
+        value = fn();
+        dirty = false;
         active = prev;
         return value;
     };
     computed.effects = new Set(); // set of listeners
-    computed.run = () => autorun(computed.effects);
+    computed.run = () => {
+        dirty = true;
+        memo && autorun(computed.effects);
+    };
     return computed;
 };
 /**

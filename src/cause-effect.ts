@@ -83,57 +83,31 @@ const cause = (value: any): UIState<any> => {
 };
 
 /**
- * Create an asyc request queue
- */
-const queue = () => {
-  const actions: Array<{
-    fn: () => Promise<any>,
-    resolve: (value: unknown) => void,
-    reject?: (error: Error) => void
-  }> = [];
-  let pending = false;
-  const dequeue = async () => {
-    if (pending) return;
-    const action = actions.shift();
-    if (!action) return;
-    try {
-      pending = true;
-      const result = await action.fn();
-      pending = false;
-      action.resolve(result);
-    } catch (error) {
-      pending = false;
-      action.reject(error);
-    } finally {
-      dequeue();
-    }
-  };
-  const enqueue = (fn: () => Promise<any>) => {
-    return new Promise((resolve, reject) => {
-      actions.push({ fn, resolve, reject });
-      dequeue();
-    });
-  };
-  return enqueue;
-};
-
-/**
  * Create a derived state from an existing state
  * 
  * @since 0.1.0
  * @param {() => any} fn - existing state to derive from
+ * @param {boolean} [memo=false] - whether to use memoization
  * @returns {UIComputed<any>} derived state
  */
-const derive = (fn: () => any): UIComputed<any> => {
+const derive = (fn: () => any, memo: boolean = false): UIComputed<any> => {
+  let value: any;
+  let dirty = true;
   const computed = () => {
+    active && computed.effects.add(active);
+    if (memo && !dirty) return value;
     const prev = active;
     active = computed;
-    const value = fn();
+    value = fn();
+    dirty = false;
     active = prev;
     return value;
   };
   computed.effects = new Set<UIEffect>(); // set of listeners
-  computed.run = () => autorun(computed.effects);
+  computed.run = () => {
+    dirty = true;
+    memo && autorun(computed.effects);
+  }
   return computed;
 };
 
