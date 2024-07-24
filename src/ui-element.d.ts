@@ -1,11 +1,11 @@
 import { type UIState } from "./cause-effect";
-type UIAttributeParser = ((value: unknown | undefined, element?: HTMLElement, old?: unknown | undefined) => unknown) | undefined;
+type UIAttributeParser = ((value: string | undefined, element?: HTMLElement, old?: string | undefined) => unknown);
 type UIMappedAttributeParser = [PropertyKey, UIAttributeParser];
 type UIAttributeMap = Record<string, UIAttributeParser | UIMappedAttributeParser>;
 type UIStateMap = Record<PropertyKey, PropertyKey | UIState<unknown>>;
-type UIContextParser = ((value: unknown | undefined, element?: HTMLElement) => unknown) | undefined;
-type UIMappedContextParser = [PropertyKey, UIContextParser];
-type UIContextMap = Record<PropertyKey, UIContextParser | UIMappedContextParser>;
+type UIContextParser = ((value: unknown | undefined, element?: HTMLElement) => unknown);
+type UIMappedContextParser = [string, UIContextParser];
+type UIContextMap = Record<string, UIContextParser | UIMappedContextParser>;
 interface UIElement extends HTMLElement {
     attributeMap: UIAttributeMap;
     contextMap: UIContextMap;
@@ -13,8 +13,8 @@ interface UIElement extends HTMLElement {
     disconnectedCallback(): void;
     attributeChangedCallback(name: string, old: string | undefined, value: string | undefined): void;
     has(key: PropertyKey): boolean;
-    get(key: PropertyKey): unknown;
-    set(key: PropertyKey, value: unknown | UIState<unknown>, update?: boolean): void;
+    get<V>(key: PropertyKey): V;
+    set<V>(key: PropertyKey, value: V | ((old: V | undefined) => V) | UIState<V>, update?: boolean): void;
     delete(key: PropertyKey): boolean;
     pass(element: UIElement, states: UIStateMap, registry?: CustomElementRegistry): Promise<void>;
     targets(key: PropertyKey): Set<Element>;

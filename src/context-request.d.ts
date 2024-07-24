@@ -6,8 +6,8 @@
  *  Context type brands the key type with the `__context__` property that
  * carries the type of the value the context references.
  */
-type Context<KeyType, ValueType> = KeyType & {
-    __context__: ValueType;
+type Context<K, V> = K & {
+    __context__: V;
 };
 /**
  * An unknown context type
@@ -21,7 +21,7 @@ type ContextType<T extends UnknownContext> = T extends Context<infer _, infer V>
  * A callback which is provided by a context requester and is called with the value satisfying the request.
  * This callback can be called multiple times by context providers as the requested value is changed.
  */
-type ContextCallback<ValueType> = (value: ValueType, unsubscribe?: () => void) => void;
+type ContextCallback<V> = (value: V, unsubscribe?: () => void) => void;
 declare global {
     interface HTMLElementEventMap {
         /**
@@ -60,5 +60,5 @@ declare class ContextRequestEvent<T extends UnknownContext> extends Event {
 /**
  * A function which creates a Context value object
  */
-declare const createContext: <ValueType>(key: unknown) => Context<typeof key, ValueType>;
-export { type Context, CONTEXT_REQUEST, ContextRequestEvent, createContext };
+declare const createContext: <V>(key: unknown) => Context<typeof key, V>;
+export { type Context, type UnknownContext, CONTEXT_REQUEST, ContextRequestEvent, createContext };

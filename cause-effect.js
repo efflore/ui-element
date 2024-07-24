@@ -31,7 +31,7 @@ const isState = (value) => isFunction(value) && isFunction(value.set);
  *
  * @since 0.1.0
  * @param {any} value - initial value of the state; may be a function for derived state
- * @returns {UIState} getter function for the current value with a `set` method to update the value
+ * @returns {UIState<T>} getter function for the current value with a `set` method to update the value
  */
 const cause = (value) => {
     const state = () => {
@@ -52,9 +52,9 @@ const cause = (value) => {
  * Create a derived state from an existing state
  *
  * @since 0.1.0
- * @param {() => any} fn - existing state to derive from
+ * @param {() => T} fn - existing state to derive from
  * @param {boolean} [memo=false] - whether to use memoization
- * @returns {UIComputed<any>} derived state
+ * @returns {UIComputed<T>} derived state
  */
 const derive = (fn, memo = false) => {
     let value;

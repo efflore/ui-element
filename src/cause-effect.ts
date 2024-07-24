@@ -1,9 +1,9 @@
 /* === Types === */
 
-type UIEffect = {
+interface UIEffect {
   (): void;
   run(): void;
-  targets?: Map<Element, Set<() => void>>
+  targets?: Map<Element, Set<() => void>>;
 };
 
 interface UIComputed<T> extends UIEffect {
@@ -11,7 +11,7 @@ interface UIComputed<T> extends UIEffect {
   effects: Set<UIEffect>;
 }
 
-type UIState<T> = {
+interface UIState<T> {
   (): T;
   effects: Set<UIEffect>;
   set(value: unknown): void;
@@ -64,10 +64,10 @@ const isState = (value: unknown): value is UIState<unknown> => isFunction(value)
  * 
  * @since 0.1.0
  * @param {any} value - initial value of the state; may be a function for derived state
- * @returns {UIState} getter function for the current value with a `set` method to update the value
+ * @returns {UIState<T>} getter function for the current value with a `set` method to update the value
  */
-const cause = (value: any): UIState<any> => {
-  const state = () => { // getter function
+const cause = <T>(value: any): UIState<T> => {
+  const state: UIState<T> = () => { // getter function
     active && state.effects.add(active);
     return value;
   };
@@ -86,12 +86,12 @@ const cause = (value: any): UIState<any> => {
  * Create a derived state from an existing state
  * 
  * @since 0.1.0
- * @param {() => any} fn - existing state to derive from
+ * @param {() => T} fn - existing state to derive from
  * @param {boolean} [memo=false] - whether to use memoization
- * @returns {UIComputed<any>} derived state
+ * @returns {UIComputed<T>} derived state
  */
-const derive = (fn: () => any, memo: boolean = false): UIComputed<any> => {
-  let value: any;
+const derive = <T>(fn: () => T, memo: boolean = false): UIComputed<T> => {
+  let value: T;
   let dirty = true;
   const computed = () => {
     active && computed.effects.add(active);
@@ -127,7 +127,7 @@ const effect = (fn: UIEffectCallback) => {
       domFn: () => void
     ): void => {
       !targets.has(element) && targets.set(element, new Set<() => void>());
-      targets.get(element).add(domFn);
+      targets.get(element)?.add(domFn);
     });
     for (const domFns of targets.values()) {
       for (const domFn of domFns)
@@ -141,4 +141,4 @@ const effect = (fn: UIEffectCallback) => {
   next();
 }
 
-export { type UIState, type UIDOMInstructionQueue, isFunction, isState, cause, derive, effect };
+export { type UIState, type UIComputed, type UIEffect, type UIDOMInstructionQueue, isFunction, isState, cause, derive, effect };

@@ -9,7 +9,7 @@
  *  Context type brands the key type with the `__context__` property that
  * carries the type of the value the context references.
  */
-type Context<KeyType, ValueType> = KeyType & {__context__: ValueType};
+type Context<K, V> = K & {__context__: V};
 
 /**
  * An unknown context type
@@ -26,8 +26,8 @@ type ContextType<T extends UnknownContext> =
  * A callback which is provided by a context requester and is called with the value satisfying the request.
  * This callback can be called multiple times by context providers as the requested value is changed.
  */
-type ContextCallback<ValueType> = (
-  value: ValueType,
+type ContextCallback<V> = (
+  value: V,
   unsubscribe?: () => void
 ) => void;
 
@@ -79,7 +79,6 @@ class ContextRequestEvent<T extends UnknownContext> extends Event {
 /**
  * A function which creates a Context value object
  */
-const createContext = <ValueType>(key: unknown) =>
-  key as Context<typeof key, ValueType>;
+const createContext = <V>(key: unknown) => key as Context<typeof key, V>;
 
-export { type Context, CONTEXT_REQUEST, ContextRequestEvent, createContext };
+export { type Context, type UnknownContext, CONTEXT_REQUEST, ContextRequestEvent, createContext };
