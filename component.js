@@ -212,7 +212,7 @@ class UIElement extends HTMLElement {
      *
      * @since 0.2.0
      * @param {PropertyKey} key - state to get value from
-     * @returns {unknown} current value of state; undefined if state does not exist
+     * @returns {T | undefined} current value of state; undefined if state does not exist
      */
     get(key) {
         const unwrap = (value) => isFunction(value) ? unwrap(value()) : value;
@@ -223,7 +223,7 @@ class UIElement extends HTMLElement {
      *
      * @since 0.2.0
      * @param {PropertyKey} key - state to set value to
-     * @param {V | ((old: V | undefined) => V) | UIState<V>} value - initial or new value; may be a function (gets old value as parameter) to be evaluated when value is retrieved
+     * @param {T | ((old: T | undefined) => T) | UIState<T>} value - initial or new value; may be a function (gets old value as parameter) to be evaluated when value is retrieved
      * @param {boolean} [update=true] - if `true` (default), the state is updated; if `false`, just return existing value
      */
     set(key, value, update = true) {
@@ -279,53 +279,6 @@ class UIElement extends HTMLElement {
         return targets;
     }
 }
-
-/* === Internal === */
-/**
- * Returns a finite number or undefined
- */
-const finiteNumber = (value) => Number.isFinite(value) && value;
-/* === Exported functions === */
-/**
- * Parse a boolean attribute as an actual boolean value
- *
- * @since 0.7.0
- * @param {string | undefined} value
- * @returns {boolean}
- */
-const asBoolean = (value) => typeof value === 'string';
-/**
- * Parse an attribute as a number forced to integer
- *
- * @since 0.7.0
- * @param {string | undefined} value
- * @returns {number | undefined}
- */
-const asInteger = (value) => finiteNumber(parseInt(value, 10));
-/**
- * Parse an attribute as a number
- *
- * @since 0.7.0
- * @param {string | undefined} value
- * @returns {number | undefined}
- */
-const asNumber = (value) => finiteNumber(parseFloat(value));
-/**
- * Parse an attribute as a string
- *
- * @since 0.7.0
- * @param {string} value
- * @returns {string}
- */
-const asString = (value) => value;
-/**
- * Parse an attribute as a JSON serialized object
- *
- * @since 0.7.2
- * @param {string} value
- * @returns {Record<string, unknown>}
- */
-const asJSON = (value) => JSON.parse(value);
 
 /* Internal functions === */
 /**
@@ -434,6 +387,66 @@ const ui = (host, node = host) => {
     };
     // return UIRef instance
     return el;
+};
+
+/* === Internal === */
+/**
+ * Returns a finite number or undefined
+ *
+ * @param {number} value
+ * @returns {number | undefined}
+ */
+const toFinite = (value) => Number.isFinite(value) ? value : undefined;
+/* === Exported functions === */
+/**
+ * Parse a boolean attribute as an actual boolean value
+ *
+ * @since 0.7.0
+ * @param {string | undefined} value
+ * @returns {boolean}
+ */
+const asBoolean = (value) => typeof value === 'string';
+/**
+ * Parse an attribute as a number forced to integer
+ *
+ * @since 0.7.0
+ * @param {string | undefined} value
+ * @returns {number | undefined}
+ */
+const asInteger = (value) => toFinite(parseInt(value, 10));
+/**
+ * Parse an attribute as a number
+ *
+ * @since 0.7.0
+ * @param {string | undefined} value
+ * @returns {number | undefined}
+ */
+const asNumber = (value) => toFinite(parseFloat(value));
+/**
+ * Parse an attribute as a string
+ *
+ * @since 0.7.0
+ * @param {string | undefined} value
+ * @returns {string | undefined}
+ */
+const asString = (value) => isDefined(value) ? value : undefined;
+/**
+ * Parse an attribute as a JSON serialized object
+ *
+ * @since 0.7.2
+ * @param {string | undefined} value
+ * @returns {Record<string, unknown> | undefined}
+ */
+const asJSON = (value) => {
+    let result;
+    try {
+        result = JSON.parse(value);
+    }
+    catch (error) {
+        console.error(error);
+        result = undefined;
+    }
+    return result;
 };
 
 /**

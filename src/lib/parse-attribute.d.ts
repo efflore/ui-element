@@ -21,21 +21,21 @@ declare const asInteger: (value: string | undefined) => number | undefined;
  * @param {string | undefined} value
  * @returns {number | undefined}
  */
-declare const asNumber: (value: string | undefined) => number;
+declare const asNumber: (value: string | undefined) => number | undefined;
 /**
  * Parse an attribute as a string
  *
  * @since 0.7.0
- * @param {string} value
- * @returns {string}
+ * @param {string | undefined} value
+ * @returns {string | undefined}
  */
-declare const asString: (value: string) => string;
+declare const asString: (value: string | undefined) => string | undefined;
 /**
  * Parse an attribute as a JSON serialized object
  *
  * @since 0.7.2
- * @param {string} value
- * @returns {Record<string, unknown>}
+ * @param {string | undefined} value
+ * @returns {Record<string, unknown> | undefined}
  */
-declare const asJSON: (value: string) => Record<string, unknown>;
+declare const asJSON: (value: string | undefined) => Record<string, unknown> | undefined;
 export { asBoolean, asInteger, asNumber, asString, asJSON };

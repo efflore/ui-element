@@ -97,7 +97,7 @@ class UIElement extends HTMLElement {
   contextMap: UIContextMap = {};
 
   // @private hold states – use `has()`, `get()`, `set()` and `delete()` to access and modify
-  #states = new Map<PropertyKey, UIState<unknown>>();
+  #states = new Map<PropertyKey, UIState<any>>();
 
   /**
    * Native callback function when an observed attribute of the custom element changes
@@ -159,10 +159,10 @@ class UIElement extends HTMLElement {
    *
    * @since 0.2.0
    * @param {PropertyKey} key - state to get value from
-   * @returns {unknown} current value of state; undefined if state does not exist
+   * @returns {T | undefined} current value of state; undefined if state does not exist
    */
-  get(key: PropertyKey) {
-    const unwrap = (value: unknown | (() => unknown) | UIState<unknown>): unknown => 
+  get<T>(key: PropertyKey): T | undefined {
+    const unwrap = (value: T | undefined | (() => T) | UIState<T>): T | undefined => 
       isFunction(value) ? unwrap(value()) : value;
     return unwrap(this.#states.get(key));
   }
@@ -172,12 +172,12 @@ class UIElement extends HTMLElement {
    * 
    * @since 0.2.0
    * @param {PropertyKey} key - state to set value to
-   * @param {V | ((old: V | undefined) => V) | UIState<V>} value - initial or new value; may be a function (gets old value as parameter) to be evaluated when value is retrieved
+   * @param {T | ((old: T | undefined) => T) | UIState<T>} value - initial or new value; may be a function (gets old value as parameter) to be evaluated when value is retrieved
    * @param {boolean} [update=true] - if `true` (default), the state is updated; if `false`, just return existing value
    */
-  set<V>(
+  set<T>(
     key: PropertyKey,
-    value: V | ((old: V | undefined) => V) | UIState<V>,
+    value: T | ((old: T | undefined) => T) | UIState<T>,
     update: boolean = true
   ): void {
     if (this.#states.has(key)) {

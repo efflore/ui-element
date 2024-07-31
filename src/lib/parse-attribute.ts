@@ -1,9 +1,14 @@
+import { isDefined } from './ui';
+
 /* === Internal === */
 
 /**
  * Returns a finite number or undefined
+ * 
+ * @param {number} value
+ * @returns {number | undefined}
  */
-const finiteNumber = (value: number): number | undefined => Number.isFinite(value) && value;
+const toFinite = (value: number): number | undefined => Number.isFinite(value) ? value : undefined;
 
 /* === Exported functions === */
 
@@ -23,7 +28,7 @@ const asBoolean = (value: string | undefined): boolean => typeof value === 'stri
  * @param {string | undefined} value 
  * @returns {number | undefined}
  */
-const asInteger = (value: string | undefined): number | undefined => finiteNumber(parseInt(value, 10));
+const asInteger = (value: string | undefined): number | undefined => toFinite(parseInt(value, 10));
 
 /**
  * Parse an attribute as a number
@@ -32,24 +37,33 @@ const asInteger = (value: string | undefined): number | undefined => finiteNumbe
  * @param {string | undefined} value 
  * @returns {number | undefined}
  */
-const asNumber = (value: string | undefined): number => finiteNumber(parseFloat(value));
+const asNumber = (value: string | undefined): number | undefined => toFinite(parseFloat(value));
 
 /**
  * Parse an attribute as a string
  * 
  * @since 0.7.0
- * @param {string} value
- * @returns {string}
+ * @param {string | undefined} value
+ * @returns {string | undefined}
  */
-const asString = (value: string): string => value;
+const asString = (value: string | undefined): string | undefined => isDefined(value) ? value : undefined;
 
 /**
  * Parse an attribute as a JSON serialized object
  * 
  * @since 0.7.2
- * @param {string} value
- * @returns {Record<string, unknown>}
+ * @param {string | undefined} value
+ * @returns {Record<string, unknown> | undefined}
  */
-const asJSON = (value: string): Record<string, unknown> => JSON.parse(value);
+const asJSON = (value: string | undefined): Record<string, unknown> | undefined => {
+  let result: Record<string, unknown> | undefined;
+  try {
+    result = JSON.parse(value);
+  } catch (error) {
+    console.error(error);
+    result = undefined;
+  }
+  return result;
+}
 
 export { asBoolean, asInteger, asNumber, asString, asJSON };

@@ -212,7 +212,7 @@ class UIElement extends HTMLElement {
      *
      * @since 0.2.0
      * @param {PropertyKey} key - state to get value from
-     * @returns {unknown} current value of state; undefined if state does not exist
+     * @returns {T | undefined} current value of state; undefined if state does not exist
      */
     get(key) {
         const unwrap = (value) => isFunction(value) ? unwrap(value()) : value;
@@ -223,7 +223,7 @@ class UIElement extends HTMLElement {
      *
      * @since 0.2.0
      * @param {PropertyKey} key - state to set value to
-     * @param {V | ((old: V | undefined) => V) | UIState<V>} value - initial or new value; may be a function (gets old value as parameter) to be evaluated when value is retrieved
+     * @param {T | ((old: T | undefined) => T) | UIState<T>} value - initial or new value; may be a function (gets old value as parameter) to be evaluated when value is retrieved
      * @param {boolean} [update=true] - if `true` (default), the state is updated; if `false`, just return existing value
      */
     set(key, value, update = true) {
