@@ -9,18 +9,18 @@
  *  Context type brands the key type with the `__context__` property that
  * carries the type of the value the context references.
  */
-type Context<K, V> = K & {__context__: V};
+type Context<K, V> = K & {__context__: V}
 
 /**
  * An unknown context type
  */
-type UnknownContext = Context<unknown, unknown>;
+type UnknownContext = Context<unknown, unknown>
 
 /**
  * A helper type which can extract a Context value type from a Context type
  */
 type ContextType<T extends UnknownContext> =
-  T extends Context<infer _, infer V> ? V : never;
+  T extends Context<infer _, infer V> ? V : never
 
 /**
  * A callback which is provided by a context requester and is called with the value satisfying the request.
@@ -29,7 +29,7 @@ type ContextType<T extends UnknownContext> =
 type ContextCallback<V> = (
   value: V,
   unsubscribe?: () => void
-) => void;
+) => void
 
 declare global {
   interface HTMLElementEventMap {
@@ -37,13 +37,13 @@ declare global {
      * A 'context-request' event can be emitted by any element which desires
      * a context value to be injected by an external provider.
      */
-    'context-request': ContextRequestEvent<Context<unknown, unknown>>;
+    'context-request': ContextRequestEvent<Context<unknown, unknown>>
   }
 }
 
 /* === Constants === */
 
-const CONTEXT_REQUEST = 'context-request';
+const CONTEXT_REQUEST = 'context-request'
 
 /* === Exported class === */
 
@@ -72,13 +72,13 @@ class ContextRequestEvent<T extends UnknownContext> extends Event {
     public readonly callback: ContextCallback<ContextType<T>>,
     public readonly subscribe: boolean = false
   ) {
-    super(CONTEXT_REQUEST, { bubbles: true, composed: true });
+    super(CONTEXT_REQUEST, { bubbles: true, composed: true })
   }
 }
 
 /**
  * A function which creates a Context value object
  */
-const createContext = <V>(key: unknown) => key as Context<typeof key, V>;
+const createContext = <V>(key: unknown) => key as Context<typeof key, V>
 
-export { type Context, type UnknownContext, CONTEXT_REQUEST, ContextRequestEvent, createContext };
+export { type Context, type UnknownContext, CONTEXT_REQUEST, ContextRequestEvent, createContext }

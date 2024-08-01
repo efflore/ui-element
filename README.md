@@ -2,7 +2,7 @@
 
 UIElement - the "look ma, no JS framework!" library bringing signals-based reactivity to vanilla Web Components
 
-Version 0.7.2
+Version 0.7.3
 
 ## What is UIElement?
 
@@ -174,10 +174,10 @@ class MotionContext extends UIElement {
   connectedCallback() {
     const mql = matchMedia('(prefers-reduced-motion)');
     this.set('reduced-motion', mql.matches);
+    super.connectedCallback();
     mql.onchange = e => this.set('reduced-motion', e.matches);
   }
 }
-
 MotionContext.define('motion-context');
 ```
 
@@ -190,16 +190,16 @@ class MyAnimation extends UIElement {
   static consumedContexts = ['reduced-motion'];
 
   connectedCallback() {
+    super.connectedCallback();
     effect(() => this.get('reduced-motion') ? subtleFadeIn() : pulsateAndMoveAround());
   }
 }
-
 MyAnimation.define('my-animation');
 ```
 
 ### Scheduling and Cleanup
 
-If you use `effect()` with a callback function like `() => doMyEffectWork()`, it will do all work synchronously in the tracking phase of the effect. That might not be ideal for several reasons:
+If you use `effect()` with a callback function like `() => doMyEffectWork()`, it will do all work synchronously. That might not be ideal for several reasons:
 
 - If effect work is expensive and takes more time than a single tick, not all DOM updates of the effect might happen concurrently.
 - If you `set()` a signal which is used in the effect, you risk producing an infite loop.
@@ -246,7 +246,7 @@ It consists of three functions:
 - `derive()` returns a getter function for the current value of the derived computation
 - `effect()` accepts a callback function to be exectuted when used signals change
 
-Cause & Effect is possibly the simplest way to turn JavaScript into a reactive language – with just 385 bytes gezipped code. By default, Cause & Effect doesn't do any memoization for derived signals but recalculates their current value each time. Contrary to general expectations, this seems to be faster in most cases. If you however are performing expensive work in computed signals or rely on count of the execution times, you should turn memoization on, by setting the second parameter of `derive()` to `true`.
+Cause & Effect is possibly the simplest way to turn JavaScript into a reactive language – with just 385 bytes gezipped code. By default, Cause & Effect doesn't do any memoization for derived signals but recalculates their current values each time. Contrary to general expectations, this seems to be faster in most cases. If you however are performing expensive work in computed signals or rely on the count of execution times, you should turn memoization on, by setting the second parameter of `derive()` to `true`.
 
 #### Usage Example
 
@@ -293,6 +293,8 @@ The last option comes with a bit more library code (around 1.6 kB gzipped), but 
   import { component, asInteger } from './component';
 
   component('my-counter', { value: v => asInteger }, (el, my) => {
+    // `el` is `this` of your custom element
+    // `my` is a UI reference of your custom element
     my.first('.decrement').on('click', () => el.set('value', v => --v));
     my.first('.increment').on('click', () => el.set('value', v => ++v));
     my.first('span').text('value');
@@ -320,7 +322,7 @@ import { component, ui } from './component';
 component('my-counter', {}, (el, my) => {
   // third parameter of component is called in connectedCallback()
   // `el` is `this` of your custom element
-  // `my` is a UI reference function to the element with convenience methods to query sub-elements, bind events, and auto-create effects
+  // `my` is a UI reference of your custom the element with convenience methods to query sub-elements, bind events, and auto-create effects
 
   // console.log(my()); // calling the UI reference returns the native DOM element
   const count = my.first('.count'); // first does querySelector and returns a UI reference
@@ -348,12 +350,14 @@ component('my-counter', {}, (el, my) => {
 
 On `UI` reference objects you can call these utility methods:
 
-- `ref.text()` preserves comment nodes in contrast to `element.textContent` assignments
-- `ref.prop()` sets or deletes a property on an element
-- `ref.attr()` sets or removes an attribute on an element
-- `ref.bool()` toggles a boolean attribute on an element
-- `ref.class()` adds or removes a class on an element
-- `ref.style()` sets or removes a style property on an element
+- `ref()` returns the native element
+- `ref.setText()` replaces text content of element while preserving comment nodes; to be used in effects
+- `ref.text()` auto-effect to replace text content while preserving comment nodes in contrast to `element.textContent` assignments
+- `ref.prop()` auto-effect to set or delete a property on an element
+- `ref.attr()` auto-effect to set or remove an attribute on an element
+- `ref.bool()` auto-effect to toggle a boolean attribute on an element
+- `ref.class()` auto-effect to add or remove a class on an element
+- `ref.style()` auto-effect to set or remove a style property on an element
 
 [Source](./component.js)
 

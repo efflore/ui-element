@@ -114,18 +114,26 @@
     });
 
     component('updating-component', {
-      heading: ['title'],
-      count: asInteger,
-      step: asNumber,
-      value: (v, el) => Number.isInteger(el.get('step')) ? parseInt(v, 10) : parseFloat(v),
-      selected: asBoolean,
-    }, (el, my) => {
+      attributeMap: {
+        heading: ['title'],
+        count: asInteger,
+        step: asNumber,
+        value: (v, el) => Number.isInteger(el.get('step')) ? parseInt(v, 10) : parseFloat(v),
+        selected: asBoolean,
+      }
+    },
+    (el, my) => {
       my.first('h1')?.text('title').class('selected');
       my.first('p span')?.text('count');
       my.first('input')?.attr('value').attr('step');
     });
 
-    component('parent-component', { heading: asString }, (el, my) => {
+    component('parent-component', {
+      attributeMap: {
+        heading: asString
+      }
+    },
+    (el, my) => {
       el.pass(my.first('child-component')(), {
         heading: 'heading',
         text: () => el.get('heading').toUpperCase(),
@@ -137,7 +145,12 @@
       my.first('p')?.text('text');
     });
 
-    component('my-counter', { value: asInteger }, (el, my) => {
+    component('my-counter', {
+      attributeMap: {
+        value: asInteger
+      }
+    },
+    (el, my) => {
       el.set('parity', () => el.get('value') % 2 ? 'odd' : 'even');
       el.set('double', () => el.get('value') * 2);
       my.first('.decrement')?.on('click', () => el.set('value', v => --v));
@@ -158,7 +171,12 @@
       });
     });
 
-    component('hello-world', { greeting: asString }, (el, my) => {
+    component('hello-world', {
+      attributeMap: {
+        greeting: asString
+      }
+    },
+    (el, my) => {
       my.first('.greeting')?.text('greeting');
       my.first('.name')?.text('name');
     });

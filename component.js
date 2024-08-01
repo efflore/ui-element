@@ -13,12 +13,20 @@ const autorun = (effects) => {
 };
 /* === Exported functions === */
 /**
+ * Check if a given variable is a given JavaScript primitive type
+ *
+ * @param {string} type - JavaScript primitive type to check against
+ * @param {unknown} value - variable to check if it is of the given JavaScript primitive type
+ * @returns {boolean} true if supplied parameter is of the given JavaScript primitive type
+ */
+const is = (type, value) => typeof value === type;
+/**
  * Check if a given variable is a function
  *
  * @param {unknown} fn - variable to check if it is a function
  * @returns {boolean} true if supplied parameter is a function
  */
-const isFunction = (fn) => typeof fn === 'function';
+const isFunction = (fn) => is('function', fn);
 /**
  * Check if a given variable is a reactive state
  *
@@ -112,13 +120,21 @@ class ContextRequestEvent extends Event {
 
 /* === Internal function === */
 /**
- * Parse a attribute or context mapping value into a key-value pair
+ * Normalize a attribute or context map value as a key/value pair
  *
  * @param {[PropertyKey, T] | T} value
  * @param {PropertyKey} defaultKey
  * @returns {[PropertyKey, T]}
  */
-const getArrayMapping = (value, defaultKey) => Array.isArray(value) ? value : [defaultKey, (isFunction(value) ? value : (v) => v)];
+const arrayMap = (value, defaultKey) => Array.isArray(value) ? value : [defaultKey, (isFunction(value) ? value : (v) => v)];
+/* === Exported functions === */
+/**
+ * Check if a given value is a string
+ *
+ * @param {unknown} value - value to check if it is a string
+ * @returns {boolean} true if supplied parameter is a string
+ */
+const isString = (value) => is('string', value);
 /* === Default export === */
 /**
  * Base class for reactive custom elements
@@ -128,6 +144,8 @@ const getArrayMapping = (value, defaultKey) => Array.isArray(value) ? value : [d
  * @type {UIElement}
  */
 class UIElement extends HTMLElement {
+    static consumedContexts;
+    static providedContexts;
     /**
      * Define a custom element in the custom element registry
      *
@@ -168,22 +186,21 @@ class UIElement extends HTMLElement {
     attributeChangedCallback(name, old, value) {
         if (value === old)
             return;
-        const [key, fn] = getArrayMapping(this.attributeMap[name], name);
+        const [key, fn] = arrayMap(this.attributeMap[name], name);
         this.set(key, isFunction(fn) ? fn(value, this, old) : value);
     }
     connectedCallback() {
-        const proto = Object.getPrototypeOf(this);
+        const proto = this.constructor;
         // context consumer
+        const consumed = proto.consumedContexts || [];
+        for (const context of consumed)
+            isString(context) && this.set(context, undefined);
         setTimeout(() => {
-            proto.consumedContexts?.forEach((context) => {
-                const event = new ContextRequestEvent(context, (value) => {
-                    if (typeof context !== 'string')
-                        return;
-                    const [key, fn] = getArrayMapping(this.contextMap[context], context);
+            for (const context of consumed)
+                isString(context) && this.dispatchEvent(new ContextRequestEvent(context, (value) => {
+                    const [key, fn] = arrayMap(this.contextMap[context], context);
                     this.set(key || context, isFunction(fn) ? fn(value, this) : value);
-                });
-                this.dispatchEvent(event);
-            });
+                }));
         });
         // context provider: listen to context request events
         const provided = proto.providedContexts || [];
@@ -191,7 +208,7 @@ class UIElement extends HTMLElement {
             return;
         this.addEventListener(CONTEXT_REQUEST, (e) => {
             const { context, callback } = e;
-            if (!(typeof context === 'string') || !provided.includes(context) || !isFunction(callback))
+            if (!isString(context) || !provided.includes(context) || !isFunction(callback))
                 return;
             e.stopPropagation();
             callback(this.#states.get(context));
@@ -289,9 +306,8 @@ class UIElement extends HTMLElement {
  */
 const isStylable = (node) => {
     for (const type of [HTMLElement, SVGElement, MathMLElement]) {
-        if (node instanceof type) {
+        if (node instanceof type)
             return true;
-        }
     }
     return false;
 };
@@ -303,7 +319,7 @@ const isStylable = (node) => {
  * @param {unknown} value - variable to check if it is defined
  * @returns {boolean} true if supplied parameter is defined
  */
-const isDefined = (value) => typeof value !== 'undefined';
+const isDefined = (value) => !is('undefined', value) && value !== null;
 /**
  * Wrapper around a native DOM element for DOM manipulation
  *
@@ -405,7 +421,7 @@ const toFinite = (value) => Number.isFinite(value) ? value : undefined;
  * @param {string | undefined} value
  * @returns {boolean}
  */
-const asBoolean = (value) => typeof value === 'string';
+const asBoolean = (value) => isString(value);
 /**
  * Parse an attribute as a number forced to integer
  *
@@ -449,25 +465,46 @@ const asJSON = (value) => {
     return result;
 };
 
+/* === Internal functions === */
 /**
- * Create a UIElement (or DebugElement in DEV_MODE) subclass for a custom element tag
+ * Check if a given value is an object
+ *
+ * @param {unknown} value - value to check if it is an object
+ * @returns {boolean} true if supplied parameter is an object
+ */
+const isObject = (value) => isDefined(value) && is('object', value);
+/**
+ * Retrieve all enumarable keys from an object as an array; defaults to an empty array
+ *
+ * @param {unknown} obj - object to retrieve keys from
+ * @returns {string[]} - array of enumarable keys
+ */
+const fromKeys = (obj) => isObject(obj) ? Object.keys(obj) : [];
+/* === Default export === */
+/**
+ * Create a UIElement subclass for a custom element tag
  *
  * @since 0.7.0
  * @param {string} tag - custom element tag name
- * @param {UIAttributeMap} attributeMap - object of observed attributes and their corresponding state keys and parser functions
+ * @param {UIComponentProps} props - object of observed attributes and their corresponding state keys and parser functions
  * @param {(host: UIElement, my: UIRef) => void} connect - callback to be called when the element is connected to the DOM
  * @param {(host: UIElement) => void} disconnect - callback to be called when the element is disconnected from the DOM
+ * @param {typeof UIElement} superClass - parent class to extend; defaults to `UIElement`
  * @returns {typeof FxComponent} - custom element class
  */
-const component = (tag, attributeMap = {}, connect, disconnect) => {
-    const UIComponent = class extends UIElement {
-        static observedAttributes = Object.keys(attributeMap);
-        attributeMap = attributeMap;
+const component = (tag, props = {}, connect, disconnect, superClass = UIElement) => {
+    const UIComponent = class extends superClass {
+        static observedAttributes = fromKeys(props.attributeMap);
+        static providedContexts = props.providedContexts || [];
+        static consumedContexts = fromKeys(props.contextMap).map(context => ({ __context__: context }));
+        attributeMap = props.attributeMap || {};
+        contextMap = props.contextMap || {};
         connectedCallback() {
             super.connectedCallback();
             connect && connect(this, ui(this));
         }
         disconnectedCallback() {
+            super.disconnectedCallback();
             disconnect && disconnect(this);
         }
     };

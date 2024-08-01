@@ -13,12 +13,20 @@ const autorun = (effects) => {
 };
 /* === Exported functions === */
 /**
+ * Check if a given variable is a given JavaScript primitive type
+ *
+ * @param {string} type - JavaScript primitive type to check against
+ * @param {unknown} value - variable to check if it is of the given JavaScript primitive type
+ * @returns {boolean} true if supplied parameter is of the given JavaScript primitive type
+ */
+const is = (type, value) => typeof value === type;
+/**
  * Check if a given variable is a function
  *
  * @param {unknown} fn - variable to check if it is a function
  * @returns {boolean} true if supplied parameter is a function
  */
-const isFunction = (fn) => typeof fn === 'function';
+const isFunction = (fn) => is('function', fn);
 /**
  * Check if a given variable is a reactive state
  *
@@ -112,13 +120,21 @@ class ContextRequestEvent extends Event {
 
 /* === Internal function === */
 /**
- * Parse a attribute or context mapping value into a key-value pair
+ * Normalize a attribute or context map value as a key/value pair
  *
  * @param {[PropertyKey, T] | T} value
  * @param {PropertyKey} defaultKey
  * @returns {[PropertyKey, T]}
  */
-const getArrayMapping = (value, defaultKey) => Array.isArray(value) ? value : [defaultKey, (isFunction(value) ? value : (v) => v)];
+const arrayMap = (value, defaultKey) => Array.isArray(value) ? value : [defaultKey, (isFunction(value) ? value : (v) => v)];
+/* === Exported functions === */
+/**
+ * Check if a given value is a string
+ *
+ * @param {unknown} value - value to check if it is a string
+ * @returns {boolean} true if supplied parameter is a string
+ */
+const isString = (value) => is('string', value);
 /* === Default export === */
 /**
  * Base class for reactive custom elements
@@ -128,6 +144,8 @@ const getArrayMapping = (value, defaultKey) => Array.isArray(value) ? value : [d
  * @type {UIElement}
  */
 class UIElement extends HTMLElement {
+    static consumedContexts;
+    static providedContexts;
     /**
      * Define a custom element in the custom element registry
      *
@@ -168,22 +186,21 @@ class UIElement extends HTMLElement {
     attributeChangedCallback(name, old, value) {
         if (value === old)
             return;
-        const [key, fn] = getArrayMapping(this.attributeMap[name], name);
+        const [key, fn] = arrayMap(this.attributeMap[name], name);
         this.set(key, isFunction(fn) ? fn(value, this, old) : value);
     }
     connectedCallback() {
-        const proto = Object.getPrototypeOf(this);
+        const proto = this.constructor;
         // context consumer
+        const consumed = proto.consumedContexts || [];
+        for (const context of consumed)
+            isString(context) && this.set(context, undefined);
         setTimeout(() => {
-            proto.consumedContexts?.forEach((context) => {
-                const event = new ContextRequestEvent(context, (value) => {
-                    if (typeof context !== 'string')
-                        return;
-                    const [key, fn] = getArrayMapping(this.contextMap[context], context);
+            for (const context of consumed)
+                isString(context) && this.dispatchEvent(new ContextRequestEvent(context, (value) => {
+                    const [key, fn] = arrayMap(this.contextMap[context], context);
                     this.set(key || context, isFunction(fn) ? fn(value, this) : value);
-                });
-                this.dispatchEvent(event);
-            });
+                }));
         });
         // context provider: listen to context request events
         const provided = proto.providedContexts || [];
@@ -191,7 +208,7 @@ class UIElement extends HTMLElement {
             return;
         this.addEventListener(CONTEXT_REQUEST, (e) => {
             const { context, callback } = e;
-            if (!(typeof context === 'string') || !provided.includes(context) || !isFunction(callback))
+            if (!isString(context) || !provided.includes(context) || !isFunction(callback))
                 return;
             e.stopPropagation();
             callback(this.#states.get(context));

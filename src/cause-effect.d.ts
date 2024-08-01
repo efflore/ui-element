@@ -16,6 +16,14 @@ type UIDOMInstructionQueue = (element: Element, fn: () => void) => void;
 type UIMaybeCleanup = void | (() => void);
 type UIEffectCallback = (enqueue: UIDOMInstructionQueue) => UIMaybeCleanup;
 /**
+ * Check if a given variable is a given JavaScript primitive type
+ *
+ * @param {string} type - JavaScript primitive type to check against
+ * @param {unknown} value - variable to check if it is of the given JavaScript primitive type
+ * @returns {boolean} true if supplied parameter is of the given JavaScript primitive type
+ */
+declare const is: (type: string, value: unknown) => boolean;
+/**
  * Check if a given variable is a function
  *
  * @param {unknown} fn - variable to check if it is a function
@@ -53,4 +61,4 @@ declare const derive: <T>(fn: () => T, memo?: boolean) => UIComputed<T>;
  * @param {UIEffectCallback} fn - callback function to be executed when a state changes
  */
 declare const effect: (fn: UIEffectCallback) => void;
-export { type UIState, type UIComputed, type UIEffect, type UIDOMInstructionQueue, isFunction, isState, cause, derive, effect };
+export { type UIState, type UIComputed, type UIEffect, type UIDOMInstructionQueue, is, isFunction, isState, cause, derive, effect };

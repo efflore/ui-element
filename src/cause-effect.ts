@@ -1,35 +1,35 @@
 /* === Types === */
 
 interface UIEffect {
-  (): void;
-  run(): void;
-  targets?: Map<Element, Set<() => void>>;
-};
+  (): void
+  run(): void
+  targets?: Map<Element, Set<() => void>>
+}
 
 interface UIComputed<T> extends UIEffect {
-  (): T;
-  effects: Set<UIEffect>;
+  (): T
+  effects: Set<UIEffect>
 }
 
 interface UIState<T> {
-  (): T;
-  effects: Set<UIEffect>;
-  set(value: unknown): void;
+  (): T
+  effects: Set<UIEffect>
+  set(value: unknown): void
 }
 
 type UIDOMInstructionQueue = (
   element: Element,
   fn: () => void
-) => void;
+) => void
 
-type UIMaybeCleanup = void | (() => void);
+type UIMaybeCleanup = void | (() => void)
 
-type UIEffectCallback = (enqueue: UIDOMInstructionQueue) => UIMaybeCleanup;
+type UIEffectCallback = (enqueue: UIDOMInstructionQueue) => UIMaybeCleanup
 
 /* === Internal === */
 
 // hold the currently active effect
-let active: UIEffect | undefined;
+let active: UIEffect | undefined
 
 /**
  * Run all effects in the provided set
@@ -38,10 +38,19 @@ let active: UIEffect | undefined;
  */
 const autorun = (effects: Set<UIEffect>) => {
   for (const effect of effects)
-    effect.run();
+    effect.run()
 }
 
 /* === Exported functions === */
+
+/**
+ * Check if a given variable is a given JavaScript primitive type
+ * 
+ * @param {string} type - JavaScript primitive type to check against
+ * @param {unknown} value - variable to check if it is of the given JavaScript primitive type
+ * @returns {boolean} true if supplied parameter is of the given JavaScript primitive type
+ */
+const is = (type: string, value: unknown): boolean => typeof value === type
 
 /**
  * Check if a given variable is a function
@@ -49,7 +58,7 @@ const autorun = (effects: Set<UIEffect>) => {
  * @param {unknown} fn - variable to check if it is a function
  * @returns {boolean} true if supplied parameter is a function
  */
-const isFunction = (fn: unknown): fn is Function => typeof fn === 'function';
+const isFunction = (fn: unknown): fn is Function => is('function', fn)
 
 /**
  * Check if a given variable is a reactive state
@@ -57,7 +66,7 @@ const isFunction = (fn: unknown): fn is Function => typeof fn === 'function';
  * @param {unknown} value - variable to check if it is a reactive state
  * @returns {boolean} true if supplied parameter is a reactive state
  */
-const isState = (value: unknown): value is UIState<unknown> => isFunction(value) && isFunction((value as UIState<unknown>).set);
+const isState = (value: unknown): value is UIState<unknown> => isFunction(value) && isFunction((value as UIState<unknown>).set)
 
 /**
  * Define a reactive state
@@ -68,19 +77,19 @@ const isState = (value: unknown): value is UIState<unknown> => isFunction(value)
  */
 const cause = <T>(value: any): UIState<T> => {
   const state: UIState<T> = () => { // getter function
-    active && state.effects.add(active);
-    return value;
-  };
+    active && state.effects.add(active)
+    return value
+  }
   state.effects = new Set<UIEffect>(); // set of listeners
   state.set = (updater: unknown) => { // setter function
-    const old = value;
+    const old = value
     value = isFunction(updater) && !isState(updater)
       ? updater(old)
-      : updater;
-    !Object.is(value, old) && autorun(state.effects);
-  };
-  return state;
-};
+      : updater
+    !Object.is(value, old) && autorun(state.effects)
+  }
+  return state
+}
 
 /**
  * Create a derived state from an existing state
@@ -91,25 +100,25 @@ const cause = <T>(value: any): UIState<T> => {
  * @returns {UIComputed<T>} derived state
  */
 const derive = <T>(fn: () => T, memo: boolean = false): UIComputed<T> => {
-  let value: T;
-  let dirty = true;
+  let value: T
+  let dirty = true
   const computed = () => {
-    active && computed.effects.add(active);
-    if (memo && !dirty) return value;
-    const prev = active;
-    active = computed;
-    value = fn();
-    dirty = false;
-    active = prev;
-    return value;
-  };
+    active && computed.effects.add(active)
+    if (memo && !dirty) return value
+    const prev = active
+    active = computed
+    value = fn()
+    dirty = false
+    active = prev
+    return value
+  }
   computed.effects = new Set<UIEffect>(); // set of listeners
   computed.run = () => {
-    dirty = true;
-    memo && autorun(computed.effects);
+    dirty = true
+    memo && autorun(computed.effects)
   }
-  return computed;
-};
+  return computed
+}
 
 /**
  * Define what happens when a reactive state changes
@@ -118,27 +127,27 @@ const derive = <T>(fn: () => T, memo: boolean = false): UIComputed<T> => {
  * @param {UIEffectCallback} fn - callback function to be executed when a state changes
  */
 const effect = (fn: UIEffectCallback) => {
-  const targets = new Map<Element, Set<() => void>>();
+  const targets = new Map<Element, Set<() => void>>()
   const next = () => {
-    const prev = active;
-    active = next;
+    const prev = active
+    active = next
     const cleanup = fn((
       element: Element,
       domFn: () => void
     ): void => {
-      !targets.has(element) && targets.set(element, new Set<() => void>());
-      targets.get(element)?.add(domFn);
-    });
+      !targets.has(element) && targets.set(element, new Set<() => void>())
+      targets.get(element)?.add(domFn)
+    })
     for (const domFns of targets.values()) {
       for (const domFn of domFns)
-        domFn();
+        domFn()
     }   
-    active = prev;
-    isFunction(cleanup) && queueMicrotask(cleanup);
-  };
-  next.run = () => next();
-  next.targets = targets;
-  next();
+    active = prev
+    isFunction(cleanup) && queueMicrotask(cleanup)
+  }
+  next.run = () => next()
+  next.targets = targets
+  next()
 }
 
-export { type UIState, type UIComputed, type UIEffect, type UIDOMInstructionQueue, isFunction, isState, cause, derive, effect };
+export { type UIState, type UIComputed, type UIEffect, type UIDOMInstructionQueue, is, isFunction, isState, cause, derive, effect }

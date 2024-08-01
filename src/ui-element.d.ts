@@ -1,4 +1,5 @@
 import { type UIState } from "./cause-effect";
+import { type UnknownContext } from "./context-request";
 type UIAttributeParser = ((value: string | undefined, element?: HTMLElement, old?: string | undefined) => unknown);
 type UIMappedAttributeParser = [PropertyKey, UIAttributeParser];
 type UIAttributeMap = Record<string, UIAttributeParser | UIMappedAttributeParser>;
@@ -20,6 +21,13 @@ interface UIElement extends HTMLElement {
     targets(key: PropertyKey): Set<Element>;
 }
 /**
+ * Check if a given value is a string
+ *
+ * @param {unknown} value - value to check if it is a string
+ * @returns {boolean} true if supplied parameter is a string
+ */
+declare const isString: (value: unknown) => value is string;
+/**
  * Base class for reactive custom elements
  *
  * @class UIElement
@@ -28,6 +36,8 @@ interface UIElement extends HTMLElement {
  */
 declare class UIElement extends HTMLElement {
     #private;
+    static consumedContexts: UnknownContext[];
+    static providedContexts: UnknownContext[];
     /**
      * Define a custom element in the custom element registry
      *
@@ -49,4 +59,4 @@ declare class UIElement extends HTMLElement {
      */
     contextMap: UIContextMap;
 }
-export { type UIStateMap, type UIAttributeMap, type UIContextMap, UIElement as default };
+export { type UIStateMap, type UIAttributeMap, type UIContextMap, UIElement as default, isString };
