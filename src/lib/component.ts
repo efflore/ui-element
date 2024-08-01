@@ -1,4 +1,4 @@
-import UIElement, { type UIAttributeMap, type UIContextMap } from "../ui-element"
+import UIElement, { type UIAttributeMap } from "../ui-element"
 import { is, effect } from "../cause-effect"
 import type { UnknownContext } from "../context-request"
 import { asBoolean, asInteger, asNumber, asString, asJSON } from "./parse-attribute"
@@ -8,7 +8,7 @@ import ui, { type UIRef, isDefined } from "./ui"
 
 type UIComponentProps = {
   attributeMap?: UIAttributeMap
-  contextMap?: UIContextMap
+  consumedContexts?: UnknownContext[]
   providedContexts?: UnknownContext[]
 }
 
@@ -21,14 +21,6 @@ type UIComponentProps = {
  * @returns {boolean} true if supplied parameter is an object
  */
 const isObject = (value: unknown): value is Record<string, unknown> => isDefined(value) && is('object', value)
-
-/**
- * Retrieve all enumarable keys from an object as an array; defaults to an empty array
- * 
- * @param {unknown} obj - object to retrieve keys from
- * @returns {string[]} - array of enumarable keys
- */
-const fromKeys = (obj: Record<string, unknown>): string[] => isObject(obj) ? Object.keys(obj) : []
 
 /* === Default export === */
 
@@ -51,11 +43,10 @@ const component = (
   superClass: typeof UIElement = UIElement
 ): typeof UIComponent => {
   const UIComponent = class extends superClass {
-    static observedAttributes: string[] = fromKeys(props.attributeMap)
+    static observedAttributes: string[] = isObject(props.attributeMap) ? Object.keys(props.attributeMap) : []
     static providedContexts: UnknownContext[] = props.providedContexts || []
-    static consumedContexts: UnknownContext[] = fromKeys(props.contextMap).map(context => ({ __context__: context }))
+    static consumedContexts: UnknownContext[] = props.consumedContexts || []
     attributeMap: UIAttributeMap = props.attributeMap || {}
-    contextMap: UIContextMap = props.contextMap || {}
 
     connectedCallback() {
       super.connectedCallback()

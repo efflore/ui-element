@@ -118,15 +118,6 @@ class ContextRequestEvent extends Event {
     }
 }
 
-/* === Internal function === */
-/**
- * Normalize a attribute or context map value as a key/value pair
- *
- * @param {[PropertyKey, T] | T} value
- * @param {PropertyKey} defaultKey
- * @returns {[PropertyKey, T]}
- */
-const arrayMap = (value, defaultKey) => Array.isArray(value) ? value : [defaultKey, (isFunction(value) ? value : (v) => v)];
 /* === Exported functions === */
 /**
  * Check if a given value is a string
@@ -167,12 +158,6 @@ class UIElement extends HTMLElement {
      * @type {UIAttributeMap}
      */
     attributeMap = {};
-    /**
-     * @since 0.7.0
-     * @property
-     * @type {UIContextMap}
-     */
-    contextMap = {};
     // @private hold states – use `has()`, `get()`, `set()` and `delete()` to access and modify
     #states = new Map();
     /**
@@ -186,21 +171,18 @@ class UIElement extends HTMLElement {
     attributeChangedCallback(name, old, value) {
         if (value === old)
             return;
-        const [key, fn] = arrayMap(this.attributeMap[name], name);
-        this.set(key, isFunction(fn) ? fn(value, this, old) : value);
+        const parser = this.attributeMap[name];
+        this.set(name, isFunction(parser) ? parser(value, this, old) : value);
     }
     connectedCallback() {
         const proto = this.constructor;
         // context consumer
         const consumed = proto.consumedContexts || [];
         for (const context of consumed)
-            isString(context) && this.set(context, undefined);
+            this.set(String(context), undefined);
         setTimeout(() => {
             for (const context of consumed)
-                isString(context) && this.dispatchEvent(new ContextRequestEvent(context, (value) => {
-                    const [key, fn] = arrayMap(this.contextMap[context], context);
-                    this.set(key || context, isFunction(fn) ? fn(value, this) : value);
-                }));
+                this.dispatchEvent(new ContextRequestEvent(context, (value) => this.set(String(context), value)));
         });
         // context provider: listen to context request events
         const provided = proto.providedContexts || [];
@@ -208,10 +190,10 @@ class UIElement extends HTMLElement {
             return;
         this.addEventListener(CONTEXT_REQUEST, (e) => {
             const { context, callback } = e;
-            if (!isString(context) || !provided.includes(context) || !isFunction(callback))
+            if (!provided.includes(context) || !isFunction(callback))
                 return;
             e.stopPropagation();
-            callback(this.#states.get(context));
+            callback(this.#states.get(String(context)));
         });
     }
     /**
@@ -473,13 +455,6 @@ const asJSON = (value) => {
  * @returns {boolean} true if supplied parameter is an object
  */
 const isObject = (value) => isDefined(value) && is('object', value);
-/**
- * Retrieve all enumarable keys from an object as an array; defaults to an empty array
- *
- * @param {unknown} obj - object to retrieve keys from
- * @returns {string[]} - array of enumarable keys
- */
-const fromKeys = (obj) => isObject(obj) ? Object.keys(obj) : [];
 /* === Default export === */
 /**
  * Create a UIElement subclass for a custom element tag
@@ -494,11 +469,10 @@ const fromKeys = (obj) => isObject(obj) ? Object.keys(obj) : [];
  */
 const component = (tag, props = {}, connect, disconnect, superClass = UIElement) => {
     const UIComponent = class extends superClass {
-        static observedAttributes = fromKeys(props.attributeMap);
+        static observedAttributes = isObject(props.attributeMap) ? Object.keys(props.attributeMap) : [];
         static providedContexts = props.providedContexts || [];
-        static consumedContexts = fromKeys(props.contextMap).map(context => ({ __context__: context }));
+        static consumedContexts = props.consumedContexts || [];
         attributeMap = props.attributeMap || {};
-        contextMap = props.contextMap || {};
         connectedCallback() {
             super.connectedCallback();
             connect && connect(this, ui(this));

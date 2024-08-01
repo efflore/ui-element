@@ -1,15 +1,10 @@
 import { type UIState } from "./cause-effect";
 import { type UnknownContext } from "./context-request";
 type UIAttributeParser = ((value: string | undefined, element?: HTMLElement, old?: string | undefined) => unknown);
-type UIMappedAttributeParser = [PropertyKey, UIAttributeParser];
-type UIAttributeMap = Record<string, UIAttributeParser | UIMappedAttributeParser>;
+type UIAttributeMap = Record<string, UIAttributeParser>;
 type UIStateMap = Record<PropertyKey, PropertyKey | UIState<unknown>>;
-type UIContextParser = ((value: unknown | undefined, element?: HTMLElement) => unknown);
-type UIMappedContextParser = [string, UIContextParser];
-type UIContextMap = Record<string, UIContextParser | UIMappedContextParser>;
 interface UIElement extends HTMLElement {
     attributeMap: UIAttributeMap;
-    contextMap: UIContextMap;
     connectedCallback(): void;
     disconnectedCallback(): void;
     attributeChangedCallback(name: string, old: string | undefined, value: string | undefined): void;
@@ -52,11 +47,5 @@ declare class UIElement extends HTMLElement {
      * @type {UIAttributeMap}
      */
     attributeMap: UIAttributeMap;
-    /**
-     * @since 0.7.0
-     * @property
-     * @type {UIContextMap}
-     */
-    contextMap: UIContextMap;
 }
-export { type UIStateMap, type UIAttributeMap, type UIContextMap, UIElement as default, isString };
+export { type UIStateMap, type UIAttributeMap, UIElement as default, isString };

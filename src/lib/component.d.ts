@@ -1,11 +1,11 @@
-import UIElement, { type UIAttributeMap, type UIContextMap } from "../ui-element";
+import UIElement, { type UIAttributeMap } from "../ui-element";
 import { effect } from "../cause-effect";
 import type { UnknownContext } from "../context-request";
 import { asBoolean, asInteger, asNumber, asString, asJSON } from "./parse-attribute";
 import ui, { type UIRef } from "./ui";
 type UIComponentProps = {
     attributeMap?: UIAttributeMap;
-    contextMap?: UIContextMap;
+    consumedContexts?: UnknownContext[];
     providedContexts?: UnknownContext[];
 };
 /**
@@ -22,7 +22,6 @@ type UIComponentProps = {
 declare const component: (tag: string, props: UIComponentProps, connect: (host: UIElement, my: UIRef) => void, disconnect: (host: UIElement) => void, superClass?: typeof UIElement) => {
     new (): {
         attributeMap: UIAttributeMap;
-        contextMap: UIContextMap;
         connectedCallback(): void;
         disconnectedCallback(): void;
         attributeChangedCallback(name: string, old: string | undefined, value: string | undefined): void;

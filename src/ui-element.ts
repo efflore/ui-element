@@ -9,24 +9,12 @@ type UIAttributeParser = ((
   old?: string | undefined,
 ) => unknown)
 
-type UIMappedAttributeParser = [PropertyKey, UIAttributeParser]
-
-type UIAttributeMap = Record<string, UIAttributeParser | UIMappedAttributeParser>
+type UIAttributeMap = Record<string, UIAttributeParser>
 
 type UIStateMap = Record<PropertyKey, PropertyKey | UIState<unknown>>
 
-type UIContextParser = ((
-  value: unknown | undefined,
-  element?: HTMLElement
-) => unknown)
-
-type UIMappedContextParser = [string, UIContextParser]
-
-type UIContextMap = Record<string, UIContextParser | UIMappedContextParser>
-
 interface UIElement extends HTMLElement {
   attributeMap: UIAttributeMap
-  contextMap: UIContextMap
   connectedCallback(): void
   disconnectedCallback(): void
   attributeChangedCallback(name: string, old: string | undefined, value: string | undefined): void
@@ -37,21 +25,6 @@ interface UIElement extends HTMLElement {
   pass(element: UIElement, states: UIStateMap, registry?: CustomElementRegistry): Promise<void>
   targets(key: PropertyKey): Set<Element>
 }
-
-/* === Internal function === */
-
-/**
- * Normalize a attribute or context map value as a key/value pair
- * 
- * @param {[PropertyKey, T] | T} value 
- * @param {PropertyKey} defaultKey 
- * @returns {[PropertyKey, T]}
- */
-const arrayMap = <T extends Function>(
-  value: [PropertyKey, T] | T,
-  defaultKey: PropertyKey
-): [PropertyKey, T | ((v: unknown) => unknown)] =>
-  Array.isArray(value) ? value : [defaultKey, (isFunction(value) ? value : (v: unknown): unknown => v)]
 
 /* === Exported functions === */
 
@@ -101,13 +74,6 @@ class UIElement extends HTMLElement {
    */
   attributeMap: UIAttributeMap = {}
 
-  /**
-   * @since 0.7.0
-   * @property
-   * @type {UIContextMap}
-   */
-  contextMap: UIContextMap = {}
-
   // @private hold states – use `has()`, `get()`, `set()` and `delete()` to access and modify
   #states = new Map<PropertyKey, UIState<any>>()
 
@@ -125,8 +91,8 @@ class UIElement extends HTMLElement {
     value: string | undefined
   ): void {
     if (value === old) return
-    const [key, fn] = arrayMap(this.attributeMap[name], name)
-    this.set(key, isFunction(fn) ? fn(value, this, old) : value)
+    const parser = this.attributeMap[name]
+    this.set(name, isFunction(parser) ? parser(value, this, old) : value)
   }
 
   connectedCallback(): void {
@@ -134,14 +100,10 @@ class UIElement extends HTMLElement {
 
     // context consumer
     const consumed = proto.consumedContexts || []
-    for (const context of consumed)
-      isString(context) && this.set(context, undefined)
+    for (const context of consumed) this.set(String(context), undefined)
     setTimeout(() => { // wait for all custom elements to be defined
       for (const context of consumed)
-        isString(context) && this.dispatchEvent(new ContextRequestEvent(context, (value: unknown) => {
-          const [key, fn] = arrayMap(this.contextMap[context], context)
-          this.set(key || context, isFunction(fn) ? fn(value, this) : value)
-        }))
+        this.dispatchEvent(new ContextRequestEvent(context, (value: unknown) => this.set(String(context), value)))
     })
 
     // context provider: listen to context request events
@@ -149,9 +111,9 @@ class UIElement extends HTMLElement {
     if (!provided.length) return
     this.addEventListener(CONTEXT_REQUEST, (e: ContextRequestEvent<UnknownContext>) => {
       const { context, callback } = e
-      if (!isString(context) || !provided.includes(context) || !isFunction(callback)) return
+      if (!provided.includes(context) || !isFunction(callback)) return
       e.stopPropagation()
-      callback(this.#states.get(context))
+      callback(this.#states.get(String(context)))
     })
   }
 
@@ -250,4 +212,4 @@ class UIElement extends HTMLElement {
 
 }
 
-export { type UIStateMap, type UIAttributeMap, type UIContextMap, UIElement as default, isString }
+export { type UIStateMap, type UIAttributeMap, UIElement as default, isString }

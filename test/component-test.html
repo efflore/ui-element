@@ -49,7 +49,7 @@
     <input type="number" />
   </updating-component>
   <updating-component id="updating-with-boolean-attribute" selected>
-    <h1 data-updating-component-text="title">Hello from Server</h1>
+    <h1>Hello from Server</h1>
     <p>Number of unread messages: <span></span></p>
   </updating-component>
   <child-component id="orphan">
@@ -115,7 +115,7 @@
 
     component('updating-component', {
       attributeMap: {
-        heading: ['title'],
+        heading: asString,
         count: asInteger,
         step: asNumber,
         value: (v, el) => Number.isInteger(el.get('step')) ? parseInt(v, 10) : parseFloat(v),
@@ -123,7 +123,7 @@
       }
     },
     (el, my) => {
-      my.first('h1')?.text('title').class('selected');
+      my.first('h1')?.text('heading').class('selected');
       my.first('p span')?.text('count');
       my.first('input')?.attr('value').attr('step');
     });
@@ -456,10 +456,10 @@
 
           it('should update when state is set', async function () {
             const updatingComponent = document.getElementById('updating-with-string-attribute');
-            updatingComponent.set('title', 'Hello from State');
+            updatingComponent.set('heading', 'Hello from State');
             await paint();
             const textContent = normalizeText(updatingComponent.querySelector('h1').textContent);
-            assert.equal(textContent, 'Hello from State', 'Should update text content from setting title state');
+            assert.equal(textContent, 'Hello from State', 'Should update text content from setting heading state');
           });
         });
         
