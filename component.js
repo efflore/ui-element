@@ -31,7 +31,7 @@ const isState = (value) => isFunction(value) && isFunction(value.set);
  *
  * @since 0.1.0
  * @param {any} value - initial value of the state; may be a function for derived state
- * @returns {UIState} getter function for the current value with a `set` method to update the value
+ * @returns {UIState<T>} getter function for the current value with a `set` method to update the value
  */
 const cause = (value) => {
     const state = () => {
@@ -61,7 +61,7 @@ const effect = (fn) => {
         active = next;
         const cleanup = fn((element, domFn) => {
             !targets.has(element) && targets.set(element, new Set());
-            targets.get(element).add(domFn);
+            targets.get(element)?.add(domFn);
         });
         for (const domFns of targets.values()) {
             for (const domFn of domFns)
@@ -110,17 +110,14 @@ class ContextRequestEvent extends Event {
     }
 }
 
-/* === Internal function === */
+/* === Exported functions === */
 /**
- * Parse a attribute or context mapping value into a key-value pair
+ * Check if a given value is a string
  *
- * @param {[PropertyKey, UIAttributeParser | UIContextParser] | UIAttributeParser | UIContextParser} value
- * @param {PropertyKey} defaultKey
- * @returns {[PropertyKey, UIAttributeParser | UIContextParser]}
+ * @param {unknown} value - value to check if it is a string
+ * @returns {boolean} true if supplied parameter is a string
  */
-const getArrayMapping = (value, defaultKey) => {
-    return Array.isArray(value) ? value : [defaultKey, isFunction(value) ? value : (v) => v];
-};
+const isString = (value) => typeof value === 'string';
 /* === Default export === */
 /**
  * Base class for reactive custom elements
@@ -130,6 +127,8 @@ const getArrayMapping = (value, defaultKey) => {
  * @type {UIElement}
  */
 class UIElement extends HTMLElement {
+    static consumedContexts;
+    static providedContexts;
     /**
      * Define a custom element in the custom element registry
      *
@@ -151,12 +150,6 @@ class UIElement extends HTMLElement {
      * @type {UIAttributeMap}
      */
     attributeMap = {};
-    /**
-     * @since 0.7.0
-     * @property
-     * @type {UIContextMap}
-     */
-    contextMap = {};
     // @private hold states – use `has()`, `get()`, `set()` and `delete()` to access and modify
     #states = new Map();
     /**
@@ -168,39 +161,31 @@ class UIElement extends HTMLElement {
      * @param {string|undefined} value - new value of the modified attribute
      */
     attributeChangedCallback(name, old, value) {
-        if (value !== old) {
-            const input = this.attributeMap[name];
-            const [key, fn] = getArrayMapping(input, name);
-            this.set(key, isFunction(fn)
-                ? fn(value, this, old)
-                : value);
-        }
+        if (value === old)
+            return;
+        const parser = this.attributeMap[name];
+        this.set(name, isFunction(parser) ? parser(value, this, old) : value);
     }
     connectedCallback() {
-        const proto = Object.getPrototypeOf(this);
+        const proto = this.constructor;
+        // context consumer
+        const consumed = proto.consumedContexts || [];
+        for (const context of consumed)
+            this.set(String(context), undefined);
+        setTimeout(() => {
+            for (const context of consumed)
+                this.dispatchEvent(new ContextRequestEvent(context, (value) => this.set(String(context), value)));
+        });
         // context provider: listen to context request events
         const provided = proto.providedContexts || [];
-        if (provided.length) {
-            this.addEventListener(CONTEXT_REQUEST, (e) => {
-                const { context, callback } = e;
-                if (!provided.includes(context) || !isFunction(callback))
-                    return;
-                e.stopPropagation();
-                callback(this.#states.get(context));
-            });
-        }
-        // context consumer
-        setTimeout(() => {
-            proto.consumedContexts?.forEach((context) => {
-                const event = new ContextRequestEvent(context, (value) => {
-                    const input = this.contextMap[context];
-                    const [key, fn] = getArrayMapping(input, context);
-                    this.#states.set(key || context, isFunction(fn)
-                        ? fn(value, this)
-                        : value);
-                });
-                this.dispatchEvent(event);
-            });
+        if (!provided.length)
+            return;
+        this.addEventListener(CONTEXT_REQUEST, (e) => {
+            const { context, callback } = e;
+            if (!provided.includes(context) || !isFunction(callback))
+                return;
+            e.stopPropagation();
+            callback(this.#states.get(String(context)));
         });
     }
     /**
@@ -218,12 +203,10 @@ class UIElement extends HTMLElement {
      *
      * @since 0.2.0
      * @param {PropertyKey} key - state to get value from
-     * @returns {unknown} current value of state; undefined if state does not exist
+     * @returns {T | undefined} current value of state; undefined if state does not exist
      */
     get(key) {
-        const unwrap = (value) => isFunction(value)
-            ? unwrap(value())
-            : value;
+        const unwrap = (value) => isFunction(value) ? unwrap(value()) : value;
         return unwrap(this.#states.get(key));
     }
     /**
@@ -231,7 +214,7 @@ class UIElement extends HTMLElement {
      *
      * @since 0.2.0
      * @param {PropertyKey} key - state to set value to
-     * @param {unknown} value - initial or new value; may be a function (gets old value as parameter) to be evaluated when value is retrieved
+     * @param {T | ((old: T | undefined) => T) | UIState<T>} value - initial or new value; may be a function (gets old value as parameter) to be evaluated when value is retrieved
      * @param {boolean} [update=true] - if `true` (default), the state is updated; if `false`, just return existing value
      */
     set(key, value, update = true) {
@@ -240,10 +223,7 @@ class UIElement extends HTMLElement {
             update && isState(state) && state.set(value);
         }
         else {
-            const state = isState(value)
-                ? value
-                : cause(value);
-            this.#states.set(key, state);
+            this.#states.set(key, isState(value) ? value : cause(value));
         }
     }
     /**
@@ -267,9 +247,7 @@ class UIElement extends HTMLElement {
     async pass(element, states, registry = customElements) {
         await registry.whenDefined(element.localName);
         for (const [key, source] of Object.entries(states))
-            element.set(key, cause(isFunction(source)
-                ? source
-                : this.#states.get(source)));
+            element.set(key, cause(isFunction(source) ? source : this.#states.get(source)));
     }
     /**
      * Return a Set of elements that have effects dependent on the given state
@@ -280,60 +258,18 @@ class UIElement extends HTMLElement {
      */
     targets(key) {
         const targets = new Set();
-        for (const effect of this.#states.get(key).effects) {
-            for (const target of effect.targets.keys())
-                targets.add(target);
+        const state = this.#states.get(key);
+        if (!state || !state.effects)
+            return targets;
+        for (const effect of state.effects) {
+            const t = effect.targets?.keys();
+            if (t)
+                for (const target of t)
+                    targets.add(target);
         }
         return targets;
     }
 }
-
-/* === Internal === */
-/**
- * Returns a finite number or undefined
- */
-const finiteNumber = (value) => Number.isFinite(value) && value;
-/* === Exported functions === */
-/**
- * Parse a boolean attribute as an actual boolean value
- *
- * @since 0.7.0
- * @param {string | undefined} value
- * @returns {boolean}
- */
-const asBoolean = (value) => typeof value === 'string';
-/**
- * Parse an attribute as a number forced to integer
- *
- * @since 0.7.0
- * @param {string | undefined} value
- * @returns {number | undefined}
- */
-const asInteger = (value) => finiteNumber(parseInt(value, 10));
-/**
- * Parse an attribute as a number
- *
- * @since 0.7.0
- * @param {string | undefined} value
- * @returns {number | undefined}
- */
-const asNumber = (value) => finiteNumber(parseFloat(value));
-/**
- * Parse an attribute as a string
- *
- * @since 0.7.0
- * @param {string} value
- * @returns {string}
- */
-const asString = (value) => value;
-/**
- * Parse an attribute as a JSON serialized object
- *
- * @since 0.7.2
- * @param {string} value
- * @returns {Record<string, unknown>}
- */
-const asJSON = (value) => JSON.parse(value);
 
 /* Internal functions === */
 /**
@@ -344,9 +280,8 @@ const asJSON = (value) => JSON.parse(value);
  */
 const isStylable = (node) => {
     for (const type of [HTMLElement, SVGElement, MathMLElement]) {
-        if (node instanceof type) {
+        if (node instanceof type)
             return true;
-        }
     }
     return false;
 };
@@ -358,7 +293,7 @@ const isStylable = (node) => {
  * @param {unknown} value - variable to check if it is defined
  * @returns {boolean} true if supplied parameter is defined
  */
-const isDefined = (value) => typeof value !== 'undefined';
+const isDefined = (value) => typeof value !== 'undefined' && value !== null;
 /**
  * Wrapper around a native DOM element for DOM manipulation
  *
@@ -444,25 +379,98 @@ const ui = (host, node = host) => {
     return el;
 };
 
+/* === Internal === */
 /**
- * Create a UIElement (or DebugElement in DEV_MODE) subclass for a custom element tag
+ * Returns a finite number or undefined
+ *
+ * @param {number} value
+ * @returns {number | undefined}
+ */
+const toFinite = (value) => Number.isFinite(value) ? value : undefined;
+/* === Exported functions === */
+/**
+ * Parse a boolean attribute as an actual boolean value
+ *
+ * @since 0.7.0
+ * @param {string | undefined} value
+ * @returns {boolean}
+ */
+const asBoolean = (value) => isString(value);
+/**
+ * Parse an attribute as a number forced to integer
+ *
+ * @since 0.7.0
+ * @param {string | undefined} value
+ * @returns {number | undefined}
+ */
+const asInteger = (value) => toFinite(parseInt(value, 10));
+/**
+ * Parse an attribute as a number
+ *
+ * @since 0.7.0
+ * @param {string | undefined} value
+ * @returns {number | undefined}
+ */
+const asNumber = (value) => toFinite(parseFloat(value));
+/**
+ * Parse an attribute as a string
+ *
+ * @since 0.7.0
+ * @param {string | undefined} value
+ * @returns {string | undefined}
+ */
+const asString = (value) => isDefined(value) ? value : undefined;
+/**
+ * Parse an attribute as a JSON serialized object
+ *
+ * @since 0.7.2
+ * @param {string | undefined} value
+ * @returns {Record<string, unknown> | undefined}
+ */
+const asJSON = (value) => {
+    let result;
+    try {
+        result = JSON.parse(value);
+    }
+    catch (error) {
+        console.error(error);
+        result = undefined;
+    }
+    return result;
+};
+
+/* === Internal functions === */
+/**
+ * Check if a given value is an object
+ *
+ * @param {unknown} value - value to check if it is an object
+ * @returns {boolean} true if supplied parameter is an object
+ */
+const isObject = (value) => isDefined(value) && typeof value === 'object';
+/* === Default export === */
+/**
+ * Create a UIElement subclass for a custom element tag
  *
  * @since 0.7.0
  * @param {string} tag - custom element tag name
- * @param {UIAttributeMap} attributeMap - object of observed attributes and their corresponding state keys and parser functions
+ * @param {UIComponentProps} props - object of observed attributes and their corresponding state keys and parser functions
  * @param {(host: UIElement, my: UIRef) => void} connect - callback to be called when the element is connected to the DOM
  * @param {(host: UIElement) => void} disconnect - callback to be called when the element is disconnected from the DOM
+ * @param {typeof UIElement} superClass - parent class to extend; defaults to `UIElement`
  * @returns {typeof FxComponent} - custom element class
  */
-const component = (tag, attributeMap = {}, connect, disconnect) => {
-    const UIComponent = class extends UIElement {
-        static observedAttributes = Object.keys(attributeMap);
-        attributeMap = attributeMap;
+const component = (tag, props = {}, connect, disconnect, superClass = UIElement) => {
+    const UIComponent = class extends superClass {
+        static observedAttributes = isObject(props.attributeMap) ? Object.keys(props.attributeMap) : [];
+        static providedContexts = props.providedContexts || [];
+        static consumedContexts = props.consumedContexts || [];
+        attributeMap = props.attributeMap || {};
         connectedCallback() {
             super.connectedCallback();
             connect && connect(this, ui(this));
         }
         disconnectedCallback() {
+            super.disconnectedCallback();
             disconnect && disconnect(this);
         }
     };

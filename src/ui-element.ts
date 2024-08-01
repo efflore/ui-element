@@ -1,60 +1,40 @@
-import { type UIState, isFunction, isState, cause } from "./cause-effect";
-import { Context, CONTEXT_REQUEST, ContextRequestEvent } from "./context-request";
+import { type UIState, isFunction, isState, cause } from "./cause-effect"
+import { type UnknownContext, CONTEXT_REQUEST, ContextRequestEvent } from "./context-request"
 
 /* === Types === */
 
 type UIAttributeParser = ((
-  value: unknown | undefined,
+  value: string | undefined,
   element?: HTMLElement,
-  old?: unknown | undefined,
-) => unknown) | undefined;
+  old?: string | undefined,
+) => unknown)
 
-type UIMappedAttributeParser = [PropertyKey, UIAttributeParser];
+type UIAttributeMap = Record<string, UIAttributeParser>
 
-type UIAttributeMap = Record<string, UIAttributeParser | UIMappedAttributeParser>;
-
-type UIStateMap = Record<PropertyKey, PropertyKey | UIState<unknown>>;
-
-type UIContextParser = ((
-  value: unknown | undefined,
-  element?: HTMLElement
-) => unknown) | undefined;
-
-type UIMappedContextParser = [PropertyKey, UIContextParser];
-
-type UIContextMap = Record<PropertyKey, UIContextParser | UIMappedContextParser>;
-
-type UIStateContext = Context<PropertyKey, UIState<unknown>>;
+type UIStateMap = Record<PropertyKey, PropertyKey | UIState<unknown>>
 
 interface UIElement extends HTMLElement {
-  attributeMap: UIAttributeMap;
-  contextMap: UIContextMap;
-  connectedCallback(): void;
-  disconnectedCallback(): void;
-  attributeChangedCallback(name: string, old: string | undefined, value: string | undefined): void;
-  has(key: PropertyKey): boolean;
-  get(key: PropertyKey): unknown;
-  set(key: PropertyKey, value: unknown | UIState<unknown>, update?: boolean): void;
-  delete(key: PropertyKey): boolean;
-  pass(element: UIElement, states: UIStateMap, registry?: CustomElementRegistry): Promise<void>;
-  targets(key: PropertyKey): Set<Element>;
+  attributeMap: UIAttributeMap
+  connectedCallback(): void
+  disconnectedCallback(): void
+  attributeChangedCallback(name: string, old: string | undefined, value: string | undefined): void
+  has(key: PropertyKey): boolean
+  get<V>(key: PropertyKey): V
+  set<V>(key: PropertyKey, value: V | ((old: V | undefined) => V) | UIState<V>, update?: boolean): void
+  delete(key: PropertyKey): boolean
+  pass(element: UIElement, states: UIStateMap, registry?: CustomElementRegistry): Promise<void>
+  targets(key: PropertyKey): Set<Element>
 }
 
-/* === Internal function === */
+/* === Exported functions === */
 
 /**
- * Parse a attribute or context mapping value into a key-value pair
+ * Check if a given value is a string
  * 
- * @param {[PropertyKey, UIAttributeParser | UIContextParser] | UIAttributeParser | UIContextParser} value 
- * @param {PropertyKey} defaultKey 
- * @returns {[PropertyKey, UIAttributeParser | UIContextParser]}
+ * @param {unknown} value - value to check if it is a string
+ * @returns {boolean} true if supplied parameter is a string
  */
-const getArrayMapping = (
-  value: [PropertyKey, UIAttributeParser | UIContextParser] | UIAttributeParser | UIContextParser,
-  defaultKey: PropertyKey
-): [PropertyKey, UIAttributeParser | UIContextParser] => {
-  return Array.isArray(value) ? value : [defaultKey, isFunction(value) ? value : (v: unknown): unknown => v];
-};
+const isString = (value: unknown): value is string => typeof value === 'string';
 
 /* === Default export === */
 
@@ -66,6 +46,8 @@ const getArrayMapping = (
  * @type {UIElement}
  */
 class UIElement extends HTMLElement {
+  static consumedContexts: UnknownContext[]
+  static providedContexts: UnknownContext[]
 
   /**
    * Define a custom element in the custom element registry
@@ -79,9 +61,9 @@ class UIElement extends HTMLElement {
     registry: CustomElementRegistry = customElements
   ): void {
     try {
-      registry.get(tag) || registry.define(tag, this);
+      registry.get(tag) || registry.define(tag, this)
     } catch (err) {
-      console.error(err);
+      console.error(err)
     }
   }
 
@@ -90,17 +72,10 @@ class UIElement extends HTMLElement {
    * @property
    * @type {UIAttributeMap}
    */
-  attributeMap: UIAttributeMap = {};
-
-  /**
-   * @since 0.7.0
-   * @property
-   * @type {UIContextMap}
-   */
-  contextMap: UIContextMap = {};
+  attributeMap: UIAttributeMap = {}
 
   // @private hold states – use `has()`, `get()`, `set()` and `delete()` to access and modify
-  #states = new Map();
+  #states = new Map<PropertyKey, UIState<any>>()
 
   /**
    * Native callback function when an observed attribute of the custom element changes
@@ -115,44 +90,31 @@ class UIElement extends HTMLElement {
     old: string | undefined,
     value: string | undefined
   ): void {
-    if (value !== old) {
-      const input = this.attributeMap[name];
-      const [key, fn] = getArrayMapping(input, name);
-      this.set(key, isFunction(fn)
-        ? fn(value, this, old)
-        : value
-      );
-    }
+    if (value === old) return
+    const parser = this.attributeMap[name]
+    this.set(name, isFunction(parser) ? parser(value, this, old) : value)
   }
 
   connectedCallback(): void {
-    const proto = Object.getPrototypeOf(this);
-
-    // context provider: listen to context request events
-    const provided = proto.providedContexts || [];
-    if (provided.length) {
-      this.addEventListener(CONTEXT_REQUEST, (e: ContextRequestEvent<UIStateContext>) => {
-        const { context, callback } = e;
-        if (!provided.includes(context) || !isFunction(callback)) return;
-        e.stopPropagation();
-        callback(this.#states.get(context));
-      });
-    }
+    const proto = this.constructor as typeof UIElement
 
     // context consumer
+    const consumed = proto.consumedContexts || []
+    for (const context of consumed) this.set(String(context), undefined)
     setTimeout(() => { // wait for all custom elements to be defined
-      proto.consumedContexts?.forEach((context: UIStateContext) => {
-        const event = new ContextRequestEvent(context, (value: UIState<unknown>) => {
-          const input = this.contextMap[context];
-          const [key, fn] = getArrayMapping(input, context);
-          this.#states.set(key || context, isFunction(fn)
-            ? fn(value, this)
-            : value
-          );
-        });
-        this.dispatchEvent(event);
-      });
-    });
+      for (const context of consumed)
+        this.dispatchEvent(new ContextRequestEvent(context, (value: unknown) => this.set(String(context), value)))
+    })
+
+    // context provider: listen to context request events
+    const provided = proto.providedContexts || []
+    if (!provided.length) return
+    this.addEventListener(CONTEXT_REQUEST, (e: ContextRequestEvent<UnknownContext>) => {
+      const { context, callback } = e
+      if (!provided.includes(context) || !isFunction(callback)) return
+      e.stopPropagation()
+      callback(this.#states.get(String(context)))
+    })
   }
 
   /**
@@ -163,7 +125,7 @@ class UIElement extends HTMLElement {
    * @returns {boolean} `true` if this element has state with the given key; `false` otherwise
    */
   has(key: PropertyKey): boolean {
-    return this.#states.has(key);
+    return this.#states.has(key)
   }
 
   /**
@@ -171,13 +133,12 @@ class UIElement extends HTMLElement {
    *
    * @since 0.2.0
    * @param {PropertyKey} key - state to get value from
-   * @returns {unknown} current value of state; undefined if state does not exist
+   * @returns {T | undefined} current value of state; undefined if state does not exist
    */
-  get(key: PropertyKey): unknown {
-    const unwrap = (value: unknown): unknown => isFunction(value)
-      ? unwrap(value())
-      : value;
-    return unwrap(this.#states.get(key));
+  get<T>(key: PropertyKey): T | undefined {
+    const unwrap = (value: T | undefined | (() => T) | UIState<T>): T | undefined => 
+      isFunction(value) ? unwrap(value()) : value
+    return unwrap(this.#states.get(key))
   }
 
   /**
@@ -185,22 +146,19 @@ class UIElement extends HTMLElement {
    * 
    * @since 0.2.0
    * @param {PropertyKey} key - state to set value to
-   * @param {unknown} value - initial or new value; may be a function (gets old value as parameter) to be evaluated when value is retrieved
+   * @param {T | ((old: T | undefined) => T) | UIState<T>} value - initial or new value; may be a function (gets old value as parameter) to be evaluated when value is retrieved
    * @param {boolean} [update=true] - if `true` (default), the state is updated; if `false`, just return existing value
    */
-  set(
+  set<T>(
     key: PropertyKey,
-    value: unknown | UIState<unknown>,
+    value: T | ((old: T | undefined) => T) | UIState<T>,
     update: boolean = true
   ): void {
     if (this.#states.has(key)) {
-      const state = this.#states.get(key);
-      update && isState(state) && state.set(value);
+      const state = this.#states.get(key)
+      update && isState(state) && state.set(value)
     } else {
-      const state = isState(value)
-        ? value
-        : cause(value);
-      this.#states.set(key, state);
+      this.#states.set(key, isState(value) ? value : cause(value))
     }
   }
 
@@ -212,7 +170,7 @@ class UIElement extends HTMLElement {
    * @returns {boolean} `true` if the state existed and was deleted; `false` if ignored
    */
   delete(key: PropertyKey): boolean {
-    return this.#states.delete(key);
+    return this.#states.delete(key)
   }
 
   /**
@@ -228,12 +186,9 @@ class UIElement extends HTMLElement {
     states: UIStateMap,
     registry: CustomElementRegistry = customElements
   ): Promise<void> {
-    await registry.whenDefined(element.localName);
+    await registry.whenDefined(element.localName)
     for (const [key, source] of Object.entries(states))
-      element.set(key, cause(isFunction(source)
-        ? source
-        : this.#states.get(source)
-      ));
+      element.set(key, cause(isFunction(source) ? source : this.#states.get(source)))
   }
 
   /**
@@ -244,14 +199,17 @@ class UIElement extends HTMLElement {
    * @returns {Set<Element>} set of elements that have effects dependent on the given state
    */
   targets(key: PropertyKey): Set<Element> {
-    const targets = new Set<Element>();
-    for (const effect of this.#states.get(key).effects) {
-      for (const target of effect.targets.keys())
-        targets.add(target);
+    const targets = new Set<Element>()
+    const state = this.#states.get(key)
+    if (!state || !state.effects) return targets
+    for (const effect of state.effects) {
+      const t = effect.targets?.keys()
+      if (t) for (const target of t)
+        targets.add(target)
     }
-    return targets;
+    return targets
   }
 
 }
 
-export { type UIStateMap, type UIAttributeMap, type UIContextMap, UIElement as default };
+export { type UIStateMap, type UIAttributeMap, UIElement as default, isString }

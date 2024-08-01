@@ -1,21 +1,21 @@
-import UIElement, { type UIStateMap } from '../ui-element';
-import { isDefined } from './ui';
+import UIElement, { type UIStateMap, isString } from '../ui-element'
+import { isDefined } from './ui'
 
 /* === Types === */
 
 /* interface DebugElement extends UIElement {
-  highlight: (className?: string) => void;
-  log(msg: string): void;
+  highlight: (className?: string) => void
+  log(msg: string): void
 }; */
 
 /* === Constants === */
 
-const DEV_MODE = true;
-const DEBUG_STATE = 'debug';
-const SELECTOR_PREFIX = 'data-';
-const HOVER_SUFFIX = 'hover';
-const FOCUS_SUFFIX = 'focus';
-const EFFECT_CLASS = 'ui-effect';
+const DEV_MODE = true
+const DEBUG_STATE = 'debug'
+const SELECTOR_PREFIX = 'data-'
+const HOVER_SUFFIX = 'hover'
+const FOCUS_SUFFIX = 'focus'
+const EFFECT_CLASS = 'ui-effect'
 
 /* === Internal variables and functions to the module === */
 
@@ -27,7 +27,7 @@ const EFFECT_CLASS = 'ui-effect';
  * @returns {string}
  */
 const elementName = (el: Element): string =>
-  `<${el.localName}${el.id && `#${el.id}`}${el.className && `.${el.className.replace(' ', '.')}`}>`;
+  `<${el.localName}${el.id && `#${el.id}`}${el.className && `.${el.className.replace(' ', '.')}`}>`
 
 /**
  * Return a string representation of a JavaScript variable
@@ -36,13 +36,13 @@ const elementName = (el: Element): string =>
  * @param {unknown} value 
  * @returns {string}
  */
-const valueString = (value: unknown): string => typeof value === 'string'
+const valueString = (value: unknown): string => isString(value)
   ? `"${value}"`
   : typeof value === 'object'
     ? JSON.stringify(value)
     : isDefined(value)
       ? value.toString()
-      : 'undefined';
+      : 'undefined'
 
 /* === Exported class === */
 
@@ -60,22 +60,23 @@ class DebugElement extends UIElement {
    * Wrap connectedCallback to log to the console
    */
   connectedCallback() {
-    (typeof this.getAttribute(DEBUG_STATE) === 'string') && this.set(DEBUG_STATE, true);
-    this.log(`Connected ${elementName(this)}`);
+    isString(this.getAttribute(DEBUG_STATE)) && this.set(DEBUG_STATE, true)
+    super.connectedCallback()
+    this.log(`Connected ${elementName(this)}`)
   }
 
   /**
    * Wrap disconnectedCallback to log to the console
    */
   disconnectedCallback() {
-    this.log(`Disconnected ${elementName(this)}`);
+    this.log(`Disconnected ${elementName(this)}`)
   }
 
   /**
    * Wrap adoptedCallback to log to the console
    */
   adoptedCallback() {
-    this.log(`Adopted ${elementName(this)}`);
+    this.log(`Adopted ${elementName(this)}`)
   }
 
   /**
@@ -87,8 +88,8 @@ class DebugElement extends UIElement {
    * @param {string|undefined} value
    */
   attributeChangedCallback(name: string, old: string | undefined, value: string | undefined) {
-    this.log(`Attribute "${name}" of ${elementName(this)} changed from ${valueString(old)} to ${valueString(value)}`);
-    super.attributeChangedCallback(name, old, value);
+    this.log(`Attribute "${name}" of ${elementName(this)} changed from ${valueString(old)} to ${valueString(value)}`)
+    super.attributeChangedCallback(name, old, value)
   }
 
   /**
@@ -99,9 +100,9 @@ class DebugElement extends UIElement {
    * @returns {unknown} - current value of the state
    */
   get(key: PropertyKey): unknown {
-    const value = super.get(key);
-    this.log(`Get current value of state ${valueString(key)} in ${elementName(this)} (value: ${valueString(value)}) and track its use in effect`);
-    return value;
+    const value = super.get(key)
+    this.log(`Get current value of state ${valueString(key)} in ${elementName(this)} (value: ${valueString(value)}) and track its use in effect`)
+    return value
   }
 
   /**
@@ -117,8 +118,8 @@ class DebugElement extends UIElement {
     value: unknown,
     update: boolean = true
   ): void {
-    this.log(`Set ${update ? '' : 'default '}value of state ${valueString(key)} in ${elementName(this)} to ${valueString(value)} and trigger dependent effects`);
-    super.set(key, value, update);
+    this.log(`Set ${update ? '' : 'default '}value of state ${valueString(key)} in ${elementName(this)} to ${valueString(value)} and trigger dependent effects`)
+    super.set(key, value, update)
   }
 
   /**
@@ -129,8 +130,8 @@ class DebugElement extends UIElement {
    * @returns {boolean} - whether the state was deleted
    */
   delete(key: PropertyKey): boolean {
-    this.log(`Delete state ${valueString(key)} from ${elementName(this)}`);
-    return super.delete(key);
+    this.log(`Delete state ${valueString(key)} from ${elementName(this)}`)
+    return super.delete(key)
   }
 
   /**
@@ -142,8 +143,8 @@ class DebugElement extends UIElement {
    * @param {CustomElementRegistry} [registry=customElements] - custom element registry
    */
   async pass(element: UIElement, states: UIStateMap, registry: CustomElementRegistry = customElements) {
-    this.log(`Pass state(s) ${valueString(Object.keys(states))} to ${elementName(element as HTMLElement)} from ${elementName(this)}`);
-    super.pass(element, states, registry);
+    this.log(`Pass state(s) ${valueString(Object.keys(states))} to ${elementName(element as HTMLElement)} from ${elementName(this)}`)
+    super.pass(element, states, registry)
   }
 
   /**
@@ -156,25 +157,25 @@ class DebugElement extends UIElement {
     [HOVER_SUFFIX, FOCUS_SUFFIX].forEach(suffix => {
       const [onOn, onOff] = suffix === HOVER_SUFFIX
         ? ['mouseenter','mouseleave']
-        : ['focus', 'blur'];
-      const attr = `${SELECTOR_PREFIX}-${this.localName}-${suffix}`;
+        : ['focus', 'blur']
+      const attr = `${SELECTOR_PREFIX}-${this.localName}-${suffix}`
       const apply = (node: Element) => {
-        const key = this.getAttribute(attr).trim();
+        const key = this.getAttribute(attr).trim()
         const on = (type: string, force: boolean) =>
           node.addEventListener(type, () => {
             for (const target of this.targets(key))
-              target.classList.toggle(className, force);
-          });
-        on(onOn, true);
-        on(onOff, false);
-        node.removeAttribute(attr);
-      };
+              target.classList.toggle(className, force)
+          })
+        on(onOn, true)
+        on(onOff, false)
+        node.removeAttribute(attr)
+      }
 
-      this.hasAttribute(attr) && apply(this);
+      this.hasAttribute(attr) && apply(this)
       for (const node of (this.shadowRoot || this).querySelectorAll(`[${attr}]`))
-        apply(node);
-    });
-  };
+        apply(node)
+    })
+  }
 
   /**
    * Log messages in debug mode
@@ -183,8 +184,8 @@ class DebugElement extends UIElement {
    * @param {string} msg - debug message to be logged
    */
   log(msg: string): void {
-    this.has(DEBUG_STATE) && console.debug(msg);
+    this.has(DEBUG_STATE) && console.debug(msg)
   }
 }
 
-export { DEV_MODE, DebugElement as default };
+export { DEV_MODE, DebugElement as default }

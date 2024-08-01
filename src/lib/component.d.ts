@@ -1,38 +1,44 @@
 import UIElement, { type UIAttributeMap } from "../ui-element";
 import { effect } from "../cause-effect";
+import type { UnknownContext } from "../context-request";
 import { asBoolean, asInteger, asNumber, asString, asJSON } from "./parse-attribute";
 import ui, { type UIRef } from "./ui";
+type UIComponentProps = {
+    attributeMap?: UIAttributeMap;
+    consumedContexts?: UnknownContext[];
+    providedContexts?: UnknownContext[];
+};
 /**
- * Create a UIElement (or DebugElement in DEV_MODE) subclass for a custom element tag
+ * Create a UIElement subclass for a custom element tag
  *
  * @since 0.7.0
  * @param {string} tag - custom element tag name
- * @param {UIAttributeMap} attributeMap - object of observed attributes and their corresponding state keys and parser functions
+ * @param {UIComponentProps} props - object of observed attributes and their corresponding state keys and parser functions
  * @param {(host: UIElement, my: UIRef) => void} connect - callback to be called when the element is connected to the DOM
  * @param {(host: UIElement) => void} disconnect - callback to be called when the element is disconnected from the DOM
+ * @param {typeof UIElement} superClass - parent class to extend; defaults to `UIElement`
  * @returns {typeof FxComponent} - custom element class
  */
-declare const component: (tag: string, attributeMap: UIAttributeMap, connect: (host: UIElement, my: UIRef) => void, disconnect: (host: UIElement) => void) => {
+declare const component: (tag: string, props: UIComponentProps, connect: (host: UIElement, my: UIRef) => void, disconnect: (host: UIElement) => void, superClass?: typeof UIElement) => {
     new (): {
         attributeMap: UIAttributeMap;
         connectedCallback(): void;
         disconnectedCallback(): void;
-        contextMap: import("../ui-element").UIContextMap;
         attributeChangedCallback(name: string, old: string | undefined, value: string | undefined): void;
         attributeChangedCallback(name: string, old: string | undefined, value: string | undefined): void;
         has(key: PropertyKey): boolean;
         has(key: PropertyKey): boolean;
-        get(key: PropertyKey): unknown;
-        get(key: PropertyKey): unknown;
-        set(key: PropertyKey, value: unknown | import("../cause-effect").UIState<unknown>, update?: boolean): void;
-        set(key: PropertyKey, value: unknown | import("../cause-effect").UIState<unknown>, update?: boolean): void;
+        get<V>(key: PropertyKey): V;
+        get<T>(key: PropertyKey): T | undefined;
+        set<V>(key: PropertyKey, value: V | import("../cause-effect").UIState<V> | ((old: V) => V), update?: boolean): void;
+        set<T>(key: PropertyKey, value: T | ((old: T) => T) | import("../cause-effect").UIState<T>, update?: boolean): void;
         delete(key: PropertyKey): boolean;
         delete(key: PropertyKey): boolean;
         pass(element: UIElement, states: import("../ui-element").UIStateMap, registry?: CustomElementRegistry): Promise<void>;
         pass(element: UIElement, states: import("../ui-element").UIStateMap, registry?: CustomElementRegistry): Promise<void>;
         targets(key: PropertyKey): Set<Element>;
         targets(key: PropertyKey): Set<Element>;
-        "__#1@#states": Map<any, any>;
+        "__#1@#states": Map<PropertyKey, import("../cause-effect").UIState<any>>;
         accessKey: string;
         readonly accessKeyLabel: string;
         autocapitalize: string;
@@ -362,6 +368,8 @@ declare const component: (tag: string, attributeMap: UIAttributeMap, connect: (h
         focus(options?: FocusOptions): void;
     };
     observedAttributes: string[];
+    providedContexts: UnknownContext[];
+    consumedContexts: UnknownContext[];
     define(tag: string, registry?: CustomElementRegistry): void;
 };
-export { UIElement as default, effect, component, ui, asBoolean, asInteger, asNumber, asString, asJSON };
+export { type UIComponentProps, UIElement as default, effect, component, ui, asBoolean, asInteger, asNumber, asString, asJSON };

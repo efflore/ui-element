@@ -1,24 +1,27 @@
 import { type UIState } from "./cause-effect";
-type UIAttributeParser = ((value: unknown | undefined, element?: HTMLElement, old?: unknown | undefined) => unknown) | undefined;
-type UIMappedAttributeParser = [PropertyKey, UIAttributeParser];
-type UIAttributeMap = Record<string, UIAttributeParser | UIMappedAttributeParser>;
+import { type UnknownContext } from "./context-request";
+type UIAttributeParser = ((value: string | undefined, element?: HTMLElement, old?: string | undefined) => unknown);
+type UIAttributeMap = Record<string, UIAttributeParser>;
 type UIStateMap = Record<PropertyKey, PropertyKey | UIState<unknown>>;
-type UIContextParser = ((value: unknown | undefined, element?: HTMLElement) => unknown) | undefined;
-type UIMappedContextParser = [PropertyKey, UIContextParser];
-type UIContextMap = Record<PropertyKey, UIContextParser | UIMappedContextParser>;
 interface UIElement extends HTMLElement {
     attributeMap: UIAttributeMap;
-    contextMap: UIContextMap;
     connectedCallback(): void;
     disconnectedCallback(): void;
     attributeChangedCallback(name: string, old: string | undefined, value: string | undefined): void;
     has(key: PropertyKey): boolean;
-    get(key: PropertyKey): unknown;
-    set(key: PropertyKey, value: unknown | UIState<unknown>, update?: boolean): void;
+    get<V>(key: PropertyKey): V;
+    set<V>(key: PropertyKey, value: V | ((old: V | undefined) => V) | UIState<V>, update?: boolean): void;
     delete(key: PropertyKey): boolean;
     pass(element: UIElement, states: UIStateMap, registry?: CustomElementRegistry): Promise<void>;
     targets(key: PropertyKey): Set<Element>;
 }
+/**
+ * Check if a given value is a string
+ *
+ * @param {unknown} value - value to check if it is a string
+ * @returns {boolean} true if supplied parameter is a string
+ */
+declare const isString: (value: unknown) => value is string;
 /**
  * Base class for reactive custom elements
  *
@@ -28,6 +31,8 @@ interface UIElement extends HTMLElement {
  */
 declare class UIElement extends HTMLElement {
     #private;
+    static consumedContexts: UnknownContext[];
+    static providedContexts: UnknownContext[];
     /**
      * Define a custom element in the custom element registry
      *
@@ -42,11 +47,5 @@ declare class UIElement extends HTMLElement {
      * @type {UIAttributeMap}
      */
     attributeMap: UIAttributeMap;
-    /**
-     * @since 0.7.0
-     * @property
-     * @type {UIContextMap}
-     */
-    contextMap: UIContextMap;
 }
-export { type UIStateMap, type UIAttributeMap, type UIContextMap, UIElement as default };
+export { type UIStateMap, type UIAttributeMap, UIElement as default, isString };

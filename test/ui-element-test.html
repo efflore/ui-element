@@ -25,17 +25,17 @@
     <h1>Hello from Server</h1>
   </void-component>
   <causal-component id="causal">
-    <h1 data-causal-component-text="heading">Hello from Server</h1>
+    <h1>Hello from Server</h1>
   </causal-component>
   <causal-component id="causal-with-ignored-attribute" heading="Hello from Attribute">
-    <h1 data-causal-component-text="heading">Hello from Server</h1>
+    <h1>Hello from Server</h1>
   </causal-component>
   <updating-component id="updating">
-    <h1 data-updating-component-text="title">Hello from Server</h1>
+    <h1>Hello from Server</h1>
     <p>Number of unread messages: <span></span></p>
   </updating-component>
   <updating-component id="updating-with-string-attribute" heading="Hello from Attribute">
-    <h1 data-updating-component-text="title">Hello from Server</h1>
+    <h1>Hello from Server</h1>
     <p>Number of unread messages: <span></span></p>
   </updating-component>
   <updating-component id="updating-with-number-attribute" count="42" step="0.1" value="3.14">
@@ -118,7 +118,6 @@
     class UpdatingComponent extends UIElement {
       static observedAttributes = ['heading', 'count', 'step', 'value', 'selected'];
       attributeMap = {
-        heading: ['title'],
         count: v => parseInt(v, 10),
         step: v => parseFloat(v),
         value: (v, el) => Number.isInteger(el.get('step')) ? parseInt(v, 10) : parseFloat(v),
@@ -130,7 +129,7 @@
         const badge = this.querySelector('span');
         const input = this.querySelector('input');
 
-        effect(enqueue => this.has('title') && enqueue(heading, () => heading.textContent = this.get('title')));
+        effect(enqueue => this.has('heading') && enqueue(heading, () => heading.textContent = this.get('heading')));
 
         effect(enqueue => this.has('count') && enqueue(badge, () => badge.textContent = this.get('count')));
 
@@ -497,10 +496,10 @@
 
           it('should update when state is set', async function () {
             const updatingComponent = document.getElementById('updating-with-string-attribute');
-            updatingComponent.set('title', 'Hello from State');
+            updatingComponent.set('heading', 'Hello from State');
             await paint();
             const textContent = normalizeText(updatingComponent.querySelector('h1').textContent);
-            assert.equal(textContent, 'Hello from State', 'Should update text content from setting title state');
+            assert.equal(textContent, 'Hello from State', 'Should update text content from setting heading state');
           });
         });
         

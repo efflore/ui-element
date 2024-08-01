@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Parse Attribute Test</title>
+</head>
+<body>
+  <script type="module">
+    import { runTests } from '@web/test-runner-mocha';
+    import { assert } from '@esm-bundle/chai';
+    import { asBoolean, asInteger, asNumber, asString, asJSON } from '../component.js';
+
+    runTests(() => {
+
+      describe('asBoolean()', function () {
+
+        it('should be true for empty string', function () {
+          const result = asBoolean('');
+          assert.isTrue(result, 'Should return true for boolean attribute');
+        });
+
+        it('should be true for any string', function () {
+          const result = asBoolean('any');
+          assert.isTrue(result, 'Should return true for any defined attribute');
+        });
+
+        it('should be false for undefined', function () {
+          const result = asBoolean();
+          assert.isFalse(result, 'Should return false for undefined attribute');
+        });
+
+      });
+
+      describe('asInteger()', function () {
+
+        it('should be undefined for empty string', function () {
+          const result = asInteger('');
+          assert.isUndefined(result, 'Should return undefined for boolean attribute');
+        });
+
+        it('should be undefined for non-parsable string', function () {
+          const result = asInteger('any');
+          assert.isUndefined(result, 'Should return undefined for non-parsable attribute');
+        });
+
+        it('should be undefined for undefined', function () {
+          const result = asInteger();
+          assert.isUndefined(result, 'Should return undefined for undefined attribute');
+        });
+
+        it('should be 42 for "42"', function () {
+          const result = asInteger('42');
+          assert.equal(result, 42, 'Should return number for parsable attribute with integer value');
+        });
+
+        it('should be 3 for "3.14"', function () {
+          const result = asInteger('3.14');
+          assert.equal(result, 3, 'Should return number for parsable attribute with floating point value');
+        });
+
+        it('should be 9007199254740992 for String(Number.MAX_SAFE_INTEGER + 1)', function () {
+          const result = asInteger(String(Number.MAX_SAFE_INTEGER + 1));
+          assert.equal(result, 9007199254740992, 'Should return number for parsable attribute with integer outside safe range');
+        });
+
+        it('should be -4 for " -4  "', function () {
+          const result = asInteger(' -4  ');
+          assert.equal(result, -4, 'Should return number for parsable attribute with integer and ignored whitespace');
+        });
+
+      });
+
+      describe('asNumber()', function () {
+
+        it('should be undefined for empty string', function () {
+          const result = asNumber('');
+          assert.isUndefined(result, 'Should return undefined for boolean attribute');
+        });
+
+        it('should be undefined for non-parsable string', function () {
+          const result = asNumber('any');
+          assert.isUndefined(result, 'Should return undefined for non-parsable attribute');
+        });
+
+        it('should be undefined for undefined', function () {
+          const result = asNumber();
+          assert.isUndefined(result, 'Should return undefined for undefined attribute');
+        });
+
+        it('should be 42 for "42"', function () {
+          const result = asNumber('42');
+          assert.equal(result, 42, 'Should return number for parsable attribute with integer value');
+        });
+
+        it('should be 3.14 for "3.14"', function () {
+          const result = asNumber('3.14');
+          assert.equal(result, 3.14, 'Should return number for parsable attribute with floating point value');
+        });
+
+        it('should be 9007199254740991.1 for String(Number.MAX_SAFE_INTEGER + 0.1)', function () {
+          const result = asNumber(String(Number.MAX_SAFE_INTEGER + 0.1));
+          assert.equal(result, 9007199254740991.1, 'Should return number for parsable attribute with floating point value outside safe range');
+        });
+
+        it('should be -4 for " -4  "', function () {
+          const result = asInteger(' -4  ');
+          assert.equal(result, -4, 'Should return number for parsable attribute with integer value and ignored whitespace');
+        });
+
+      });
+
+      describe('asString()', function () {
+
+        it('should be undefined for undefined', function () {
+          const result = asString();
+          assert.isUndefined(result, 'Should return undefined for undefined attribute');
+        });
+
+        it('should be "" for boolean attribute', function () {
+          const result = asString('');
+          assert.equal(result, '', 'Should return empty string for boolean attribute');
+        });
+
+        it('should be "true" for boolean attribute', function () {
+          const result = asString('true');
+          assert.equal(result, 'true', 'Should return "true" string for attribute with boolean value');
+        });
+
+        it('should be "42" for 42', function () {
+          const result = asString('42');
+          assert.equal(result, '42', 'Should return string for attribute with integer value');
+        });
+
+        it('should be "3.14" for 3.14', function () {
+          const result = asString('3.14');
+          assert.equal(result, '3.14', 'Should return string for attribute with floating point value');
+        });
+
+        it('should be "foo" for "foo"', function () {
+          const result = asString('foo');
+          assert.equal(result, 'foo', 'Should return string for attribute with string value');
+        });
+
+        it('should be "{ "foo": "bar" }" for "{ "foo": "bar" }"', function () {
+          const result = asString('{ "foo": "bar" }');
+          assert.equal(result, '{ "foo": "bar" }', 'Should return string for attribute with JSON value');
+        });
+
+      });
+
+      describe('asJSON()', function () {
+
+        it('should be undefined for undefined', function () {
+          const result = asJSON();
+          assert.isUndefined(result, 'Should return undefined for undefined attribute');
+        });
+
+        it('should be undefined for boolean attribute', function () {
+          const result = asJSON('');
+          assert.isUndefined(result, 'Should return undefined for boolean attribute');
+        });
+
+        it('should be null for "null"', function () {
+          const result = asJSON('null');
+          assert.equal(result, null, 'Should return null for attribute with "null" value');
+        });
+
+        it('should be {} for "{}"', function () {
+          const result = asJSON('{}');
+          assert.deepEqual(result, {}, 'Should return empty object for attribute with "{}" value');
+        });
+
+        it('should be [] for "[]"', function () {
+          const result = asJSON('[]');
+          assert.deepEqual(result, [], 'Should return empty array for attribute with "[]" value');
+        });
+
+        it('should be { foo: \'bar\' } for "{ "foo": "bar" }"', function () {
+          const result = asJSON('{ "foo": "bar" }');
+          assert.deepEqual(result, { foo: 'bar' }, 'Should return JSON for attribute with JSON value with string');
+        });
+
+        it('should be { 42: true } for "{ "42": true }"', function () {
+          const result = asJSON('{ "42": true }');
+          assert.deepEqual(result, { 42: true }, 'Should return JSON for attribute with JSON value with numeric key');
+        });
+
+      });
+
+    });
+  </script>
+</body>
+</html>
