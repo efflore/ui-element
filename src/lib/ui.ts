@@ -1,4 +1,4 @@
-import { type UIDOMInstructionQueue, is, effect } from '../cause-effect'
+import { type UIDOMInstructionQueue, effect } from '../cause-effect'
 import UIElement from '../ui-element'
 
 /* === Type definitions === */
@@ -42,7 +42,7 @@ const isStylable = (node: Element): node is HTMLElement | SVGElement | MathMLEle
  * @param {unknown} value - variable to check if it is defined
  * @returns {boolean} true if supplied parameter is defined
  */
-const isDefined = (value: unknown): value is NonNullable<unknown> => !is('undefined', value) && value !== null
+const isDefined = (value: unknown): value is NonNullable<unknown> => typeof value !== 'undefined' && value !== null
 
 /**
  * Wrapper around a native DOM element for DOM manipulation

@@ -1,5 +1,5 @@
 import UIElement, { type UIAttributeMap } from "../ui-element"
-import { is, effect } from "../cause-effect"
+import { effect } from "../cause-effect"
 import type { UnknownContext } from "../context-request"
 import { asBoolean, asInteger, asNumber, asString, asJSON } from "./parse-attribute"
 import ui, { type UIRef, isDefined } from "./ui"
@@ -20,7 +20,7 @@ type UIComponentProps = {
  * @param {unknown} value - value to check if it is an object
  * @returns {boolean} true if supplied parameter is an object
  */
-const isObject = (value: unknown): value is Record<string, unknown> => isDefined(value) && is('object', value)
+const isObject = (value: unknown): value is Record<string, unknown> => isDefined(value) && typeof value === 'object'
 
 /* === Default export === */
 

@@ -16,7 +16,7 @@ In the `connectedCallback()` you setup references to inner elements, add event l
 
 `UIElement` is fast. In fact, faster than any JavaScript framework. Only direct fine-grained DOM updates in vanilla JavaScript can beat its performance. But then, you have no loose coupling of components and need to parse attributes and track changes yourself. This tends to get tedious and messy rather quickly. `UIElement` provides a structured way to keep your components simple, consistent and self-contained.
 
-`UIElement` is tiny. 890 bytes gzipped over the wire. And it has zero dependiences. If you want to understand how it works, you have to study the source code of [one single file](./index.js).
+`UIElement` is tiny. 889 bytes gzipped over the wire. And it has zero dependiences. If you want to understand how it works, you have to study the source code of [one single file](./index.js).
 
 That's all.
 
@@ -246,7 +246,7 @@ It consists of three functions:
 - `derive()` returns a getter function for the current value of the derived computation
 - `effect()` accepts a callback function to be exectuted when used signals change
 
-Cause & Effect is possibly the simplest way to turn JavaScript into a reactive language – with just 400 bytes gezipped code. By default, Cause & Effect doesn't do any memoization for derived signals but recalculates their current values each time. Contrary to general expectations, this seems to be faster in most cases. If you however are performing expensive work in computed signals or rely on the count of execution times, you should turn memoization on, by setting the second parameter of `derive()` to `true`.
+Cause & Effect is possibly the simplest way to turn JavaScript into a reactive language – with just 386 bytes gezipped code. By default, Cause & Effect doesn't do any memoization for derived signals but recalculates their current values each time. Contrary to general expectations, this seems to be faster in most cases. If you however are performing expensive work in computed signals or rely on the count of execution times, you should turn memoization on, by setting the second parameter of `derive()` to `true`.
 
 #### Usage Example
 

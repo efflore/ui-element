@@ -13,20 +13,12 @@ const autorun = (effects) => {
 };
 /* === Exported functions === */
 /**
- * Check if a given variable is a given JavaScript primitive type
- *
- * @param {string} type - JavaScript primitive type to check against
- * @param {unknown} value - variable to check if it is of the given JavaScript primitive type
- * @returns {boolean} true if supplied parameter is of the given JavaScript primitive type
- */
-const is = (type, value) => typeof value === type;
-/**
  * Check if a given variable is a function
  *
  * @param {unknown} fn - variable to check if it is a function
  * @returns {boolean} true if supplied parameter is a function
  */
-const isFunction = (fn) => is('function', fn);
+const isFunction = (fn) => typeof fn === 'function';
 /**
  * Check if a given variable is a reactive state
  *
@@ -125,7 +117,7 @@ class ContextRequestEvent extends Event {
  * @param {unknown} value - value to check if it is a string
  * @returns {boolean} true if supplied parameter is a string
  */
-const isString = (value) => is('string', value);
+const isString = (value) => typeof value === 'string';
 /* === Default export === */
 /**
  * Base class for reactive custom elements
@@ -301,7 +293,7 @@ const isStylable = (node) => {
  * @param {unknown} value - variable to check if it is defined
  * @returns {boolean} true if supplied parameter is defined
  */
-const isDefined = (value) => !is('undefined', value) && value !== null;
+const isDefined = (value) => typeof value !== 'undefined' && value !== null;
 /**
  * Wrapper around a native DOM element for DOM manipulation
  *
@@ -454,7 +446,7 @@ const asJSON = (value) => {
  * @param {unknown} value - value to check if it is an object
  * @returns {boolean} true if supplied parameter is an object
  */
-const isObject = (value) => isDefined(value) && is('object', value);
+const isObject = (value) => isDefined(value) && typeof value === 'object';
 /* === Default export === */
 /**
  * Create a UIElement subclass for a custom element tag

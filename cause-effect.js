@@ -13,20 +13,12 @@ const autorun = (effects) => {
 };
 /* === Exported functions === */
 /**
- * Check if a given variable is a given JavaScript primitive type
- *
- * @param {string} type - JavaScript primitive type to check against
- * @param {unknown} value - variable to check if it is of the given JavaScript primitive type
- * @returns {boolean} true if supplied parameter is of the given JavaScript primitive type
- */
-const is = (type, value) => typeof value === type;
-/**
  * Check if a given variable is a function
  *
  * @param {unknown} fn - variable to check if it is a function
  * @returns {boolean} true if supplied parameter is a function
  */
-const isFunction = (fn) => is('function', fn);
+const isFunction = (fn) => typeof fn === 'function';
 /**
  * Check if a given variable is a reactive state
  *
@@ -112,4 +104,4 @@ const effect = (fn) => {
     next();
 };
 
-export { cause, derive, effect, is, isFunction, isState };
+export { cause, derive, effect, isFunction, isState };

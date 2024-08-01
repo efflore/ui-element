@@ -1,4 +1,3 @@
-import { is } from '../cause-effect'
 import UIElement, { type UIStateMap, isString } from '../ui-element'
 import { isDefined } from './ui'
 
@@ -39,7 +38,7 @@ const elementName = (el: Element): string =>
  */
 const valueString = (value: unknown): string => isString(value)
   ? `"${value}"`
-  : is('object', value)
+  : typeof value === 'object'
     ? JSON.stringify(value)
     : isDefined(value)
       ? value.toString()

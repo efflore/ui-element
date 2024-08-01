@@ -1,4 +1,4 @@
-import { type UIState, is, isFunction, isState, cause } from "./cause-effect"
+import { type UIState, isFunction, isState, cause } from "./cause-effect"
 import { type UnknownContext, CONTEXT_REQUEST, ContextRequestEvent } from "./context-request"
 
 /* === Types === */
@@ -34,7 +34,7 @@ interface UIElement extends HTMLElement {
  * @param {unknown} value - value to check if it is a string
  * @returns {boolean} true if supplied parameter is a string
  */
-const isString = (value: unknown): value is string => is('string', value)
+const isString = (value: unknown): value is string => typeof value === 'string';
 
 /* === Default export === */
 
