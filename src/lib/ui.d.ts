@@ -1,3 +1,4 @@
+import { isDefined } from '../is-type';
 import UIElement from '../ui-element';
 type UIRef = {
     (): Element;
@@ -13,14 +14,6 @@ type UIRef = {
     class: (token: string, stateKey?: PropertyKey) => UIRef | undefined;
     style: (prop: string, stateKey?: PropertyKey) => UIRef | undefined;
 };
-/**
- * Check if a given variable is defined
- *
- * @since 0.7.0
- * @param {unknown} value - variable to check if it is defined
- * @returns {boolean} true if supplied parameter is defined
- */
-declare const isDefined: (value: unknown) => value is NonNullable<unknown>;
 /**
  * Wrapper around a native DOM element for DOM manipulation
  *

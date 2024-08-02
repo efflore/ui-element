@@ -16,13 +16,6 @@ interface UIElement extends HTMLElement {
     targets(key: PropertyKey): Set<Element>;
 }
 /**
- * Check if a given value is a string
- *
- * @param {unknown} value - value to check if it is a string
- * @returns {boolean} true if supplied parameter is a string
- */
-declare const isString: (value: unknown) => value is string;
-/**
  * Base class for reactive custom elements
  *
  * @class UIElement
@@ -48,4 +41,4 @@ declare class UIElement extends HTMLElement {
      */
     attributeMap: UIAttributeMap;
 }
-export { type UIStateMap, type UIAttributeMap, UIElement as default, isString };
+export { type UIStateMap, type UIAttributeMap, UIElement as default, };

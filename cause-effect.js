@@ -1,4 +1,7 @@
-/* === Types === */
+/* === Exported Functions === */
+const is = (type) => (value) => typeof value === type;
+const isFunction = is('function');
+
 /* === Internal === */
 // hold the currently active effect
 let active;
@@ -12,13 +15,6 @@ const autorun = (effects) => {
         effect.run();
 };
 /* === Exported functions === */
-/**
- * Check if a given variable is a function
- *
- * @param {unknown} fn - variable to check if it is a function
- * @returns {boolean} true if supplied parameter is a function
- */
-const isFunction = (fn) => typeof fn === 'function';
 /**
  * Check if a given variable is a reactive state
  *
@@ -104,4 +100,4 @@ const effect = (fn) => {
     next();
 };
 
-export { cause, derive, effect, isFunction, isState };
+export { cause, derive, effect, isState };

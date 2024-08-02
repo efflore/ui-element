@@ -16,13 +16,6 @@ type UIDOMInstructionQueue = (element: Element, fn: () => void) => void;
 type UIMaybeCleanup = void | (() => void);
 type UIEffectCallback = (enqueue: UIDOMInstructionQueue) => UIMaybeCleanup;
 /**
- * Check if a given variable is a function
- *
- * @param {unknown} fn - variable to check if it is a function
- * @returns {boolean} true if supplied parameter is a function
- */
-declare const isFunction: (fn: unknown) => fn is Function;
-/**
  * Check if a given variable is a reactive state
  *
  * @param {unknown} value - variable to check if it is a reactive state
@@ -53,4 +46,4 @@ declare const derive: <T>(fn: () => T, memo?: boolean) => UIComputed<T>;
  * @param {UIEffectCallback} fn - callback function to be executed when a state changes
  */
 declare const effect: (fn: UIEffectCallback) => void;
-export { type UIState, type UIComputed, type UIEffect, type UIDOMInstructionQueue, isFunction, isState, cause, derive, effect };
+export { type UIState, type UIComputed, type UIEffect, type UIDOMInstructionQueue, isState, cause, derive, effect };

@@ -1,3 +1,5 @@
+import { isFunction } from './is-type'
+
 /* === Types === */
 
 interface UIEffect {
@@ -42,14 +44,6 @@ const autorun = (effects: Set<UIEffect>) => {
 }
 
 /* === Exported functions === */
-
-/**
- * Check if a given variable is a function
- * 
- * @param {unknown} fn - variable to check if it is a function
- * @returns {boolean} true if supplied parameter is a function
- */
-const isFunction = (fn: unknown): fn is Function => typeof fn === 'function'
 
 /**
  * Check if a given variable is a reactive state
@@ -141,4 +135,4 @@ const effect = (fn: UIEffectCallback) => {
   next()
 }
 
-export { type UIState, type UIComputed, type UIEffect, type UIDOMInstructionQueue, isFunction, isState, cause, derive, effect }
+export { type UIState, type UIComputed, type UIEffect, type UIDOMInstructionQueue, isState, cause, derive, effect }

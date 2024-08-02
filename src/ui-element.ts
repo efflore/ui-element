@@ -1,4 +1,5 @@
-import { type UIState, isFunction, isState, cause } from "./cause-effect"
+import { isFunction, isInstanceOf } from "./is-type"
+import { type UIState, isState, cause } from "./cause-effect"
 import { type UnknownContext, CONTEXT_REQUEST, ContextRequestEvent } from "./context-request"
 
 /* === Types === */
@@ -25,16 +26,6 @@ interface UIElement extends HTMLElement {
   pass(element: UIElement, states: UIStateMap, registry?: CustomElementRegistry): Promise<void>
   targets(key: PropertyKey): Set<Element>
 }
-
-/* === Exported functions === */
-
-/**
- * Check if a given value is a string
- * 
- * @param {unknown} value - value to check if it is a string
- * @returns {boolean} true if supplied parameter is a string
- */
-const isString = (value: unknown): value is string => typeof value === 'string';
 
 /* === Default export === */
 
@@ -212,4 +203,6 @@ class UIElement extends HTMLElement {
 
 }
 
-export { type UIStateMap, type UIAttributeMap, UIElement as default, isString }
+// const isUIElement = isInstanceOf(UIElement)
+
+export { type UIStateMap, type UIAttributeMap, UIElement as default, /* isUIElement */ }

@@ -1,4 +1,9 @@
-/* === Types === */
+/* === Exported Functions === */
+const is = (type) => (value) => typeof value === type;
+const isDefined = (value) => value != null;
+const isString = is('string');
+const isFunction = is('function');
+
 /* === Internal === */
 // hold the currently active effect
 let active;
@@ -12,13 +17,6 @@ const autorun = (effects) => {
         effect.run();
 };
 /* === Exported functions === */
-/**
- * Check if a given variable is a function
- *
- * @param {unknown} fn - variable to check if it is a function
- * @returns {boolean} true if supplied parameter is a function
- */
-const isFunction = (fn) => typeof fn === 'function';
 /**
  * Check if a given variable is a reactive state
  *
@@ -110,14 +108,6 @@ class ContextRequestEvent extends Event {
     }
 }
 
-/* === Exported functions === */
-/**
- * Check if a given value is a string
- *
- * @param {unknown} value - value to check if it is a string
- * @returns {boolean} true if supplied parameter is a string
- */
-const isString = (value) => typeof value === 'string';
 /* === Default export === */
 /**
  * Base class for reactive custom elements
@@ -271,6 +261,66 @@ class UIElement extends HTMLElement {
     }
 }
 
+/* === Internal === */
+/**
+ * Returns a finite number or undefined
+ *
+ * @param {number} value
+ * @returns {number | undefined}
+ */
+const toFinite = (value) => Number.isFinite(value) ? value : undefined;
+/* === Exported functions === */
+/**
+ * Parse a boolean attribute as an actual boolean value
+ *
+ * @since 0.7.0
+ * @param {string | undefined} value
+ * @returns {boolean}
+ */
+const asBoolean = isString;
+/**
+ * Parse an attribute as a number forced to integer
+ *
+ * @since 0.7.0
+ * @param {string | undefined} value
+ * @returns {number | undefined}
+ */
+const asInteger = (value) => toFinite(parseInt(value, 10));
+/**
+ * Parse an attribute as a number
+ *
+ * @since 0.7.0
+ * @param {string | undefined} value
+ * @returns {number | undefined}
+ */
+const asNumber = (value) => toFinite(parseFloat(value));
+/**
+ * Parse an attribute as a string
+ *
+ * @since 0.7.0
+ * @param {string | undefined} value
+ * @returns {string | undefined}
+ */
+const asString = (value) => isDefined(value) ? value : undefined;
+/**
+ * Parse an attribute as a JSON serialized object
+ *
+ * @since 0.7.2
+ * @param {string | undefined} value
+ * @returns {Record<string, unknown> | undefined}
+ */
+const asJSON = (value) => {
+    let result;
+    try {
+        result = JSON.parse(value);
+    }
+    catch (error) {
+        console.error(error);
+        result = undefined;
+    }
+    return result;
+};
+
 /* Internal functions === */
 /**
  * Check if a given variable is an element which can have a style property
@@ -286,14 +336,6 @@ const isStylable = (node) => {
     return false;
 };
 /* === Exported function === */
-/**
- * Check if a given variable is defined
- *
- * @since 0.7.0
- * @param {unknown} value - variable to check if it is defined
- * @returns {boolean} true if supplied parameter is defined
- */
-const isDefined = (value) => typeof value !== 'undefined' && value !== null;
 /**
  * Wrapper around a native DOM element for DOM manipulation
  *
@@ -377,66 +419,6 @@ const ui = (host, node = host) => {
     };
     // return UIRef instance
     return el;
-};
-
-/* === Internal === */
-/**
- * Returns a finite number or undefined
- *
- * @param {number} value
- * @returns {number | undefined}
- */
-const toFinite = (value) => Number.isFinite(value) ? value : undefined;
-/* === Exported functions === */
-/**
- * Parse a boolean attribute as an actual boolean value
- *
- * @since 0.7.0
- * @param {string | undefined} value
- * @returns {boolean}
- */
-const asBoolean = (value) => isString(value);
-/**
- * Parse an attribute as a number forced to integer
- *
- * @since 0.7.0
- * @param {string | undefined} value
- * @returns {number | undefined}
- */
-const asInteger = (value) => toFinite(parseInt(value, 10));
-/**
- * Parse an attribute as a number
- *
- * @since 0.7.0
- * @param {string | undefined} value
- * @returns {number | undefined}
- */
-const asNumber = (value) => toFinite(parseFloat(value));
-/**
- * Parse an attribute as a string
- *
- * @since 0.7.0
- * @param {string | undefined} value
- * @returns {string | undefined}
- */
-const asString = (value) => isDefined(value) ? value : undefined;
-/**
- * Parse an attribute as a JSON serialized object
- *
- * @since 0.7.2
- * @param {string | undefined} value
- * @returns {Record<string, unknown> | undefined}
- */
-const asJSON = (value) => {
-    let result;
-    try {
-        result = JSON.parse(value);
-    }
-    catch (error) {
-        console.error(error);
-        result = undefined;
-    }
-    return result;
 };
 
 /* === Internal functions === */

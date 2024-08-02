@@ -1,5 +1,5 @@
-import UIElement, { type UIStateMap, isString } from '../ui-element'
-import { isDefined } from './ui'
+import { isString, isDefined } from '../is-type';
+import UIElement, { type UIStateMap } from '../ui-element'
 
 /* === Types === */
 

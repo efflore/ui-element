@@ -1,5 +1,4 @@
-import { isDefined } from './ui'
-import { isString } from '../ui-element'
+import { isString, isDefined } from '../is-type'
 
 /* === Internal === */
 
@@ -20,7 +19,7 @@ const toFinite = (value: number): number | undefined => Number.isFinite(value) ?
  * @param {string | undefined} value 
  * @returns {boolean}
  */
-const asBoolean = (value: string | undefined): boolean => isString(value)
+const asBoolean = isString
 
 /**
  * Parse an attribute as a number forced to integer
