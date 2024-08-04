@@ -5,7 +5,7 @@
  * @param {string | undefined} value
  * @returns {boolean}
  */
-declare const asBoolean: (value: unknown) => value is string;
+declare const asBoolean: (value: string | undefined) => boolean;
 /**
  * Parse an attribute as a number forced to integer
  *

@@ -84,8 +84,8 @@ class DebugElement extends UIElement {
    * 
    * @since 0.5.0
    * @param {string} name
-   * @param {string|undefined} old
-   * @param {string|undefined} value
+   * @param {string | undefined} old
+   * @param {string | undefined} value
    */
   attributeChangedCallback(name: string, old: string | undefined, value: string | undefined) {
     this.log(`Attribute "${name}" of ${elementName(this)} changed from ${valueString(old)} to ${valueString(value)}`)

@@ -448,7 +448,7 @@
           assert.isTrue(effectDidRun);
         });
 
-        it('should be triggered repeatedly after repeated state change', function() {
+        it('should be triggered repeatedly after repeated state change', async function() {
           const state = cause(0);
           let count = 0;
           effect(() => {
@@ -457,7 +457,8 @@
           });
           for (let i = 0; i < 10; i++) {
             state.set(i);
-            assert.equal(count, i + 1);
+            await paint();
+            assert.equal(count, i + 1); // + initial effect execution
           }
         });
 
@@ -465,7 +466,7 @@
 
       /* describe('Batch', function () {
 
-        it('should be triggered only once after repeated state change', function() {
+        it('should be triggered only once after repeated state change', async function() {
           const state = cause(0);
           let result = 0;
           let count = 0;
@@ -473,11 +474,12 @@
             result = state();
             count++;
           });
-          batch(() => {
+          (() => {
             for (let i = 1; i <= 10; i++) {
               state.set(i);
             }
-          });
+          })();
+          await paint();
           assert.equal(result, 10);
           // next assert fails, apparently the effect callback function is executed even 11 times
           // but this does not seem to have an adverse effect on performance maybe because of internal optimizations of the JS runtime engine

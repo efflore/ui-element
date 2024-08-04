@@ -1,5 +1,6 @@
 import { isFunction, isInstanceOf } from "./is-type"
-import { type UIState, isState, cause } from "./cause-effect"
+import { unwrap, maybe } from "./maybe"
+import { type UISignal, isState, isSignal, cause } from "./cause-effect"
 import { type UnknownContext, CONTEXT_REQUEST, ContextRequestEvent } from "./context-request"
 
 /* === Types === */
@@ -12,7 +13,7 @@ type UIAttributeParser = ((
 
 type UIAttributeMap = Record<string, UIAttributeParser>
 
-type UIStateMap = Record<PropertyKey, PropertyKey | UIState<unknown>>
+type UIStateMap = Record<PropertyKey, PropertyKey | UISignal<unknown> | (() => unknown)>
 
 interface UIElement extends HTMLElement {
   attributeMap: UIAttributeMap
@@ -21,7 +22,7 @@ interface UIElement extends HTMLElement {
   attributeChangedCallback(name: string, old: string | undefined, value: string | undefined): void
   has(key: PropertyKey): boolean
   get<V>(key: PropertyKey): V
-  set<V>(key: PropertyKey, value: V | ((old: V | undefined) => V) | UIState<V>, update?: boolean): void
+  set<V>(key: PropertyKey, value: V | ((old: V | undefined) => V) | UISignal<V>, update?: boolean): void
   delete(key: PropertyKey): boolean
   pass(element: UIElement, states: UIStateMap, registry?: CustomElementRegistry): Promise<void>
   targets(key: PropertyKey): Set<Element>
@@ -66,15 +67,15 @@ class UIElement extends HTMLElement {
   attributeMap: UIAttributeMap = {}
 
   // @private hold states – use `has()`, `get()`, `set()` and `delete()` to access and modify
-  #states = new Map<PropertyKey, UIState<any>>()
+  #states = new Map<PropertyKey, UISignal<any>>()
 
   /**
    * Native callback function when an observed attribute of the custom element changes
    * 
    * @since 0.1.0
    * @param {string} name - name of the modified attribute
-   * @param {string|undefined} old - old value of the modified attribute
-   * @param {string|undefined} value - new value of the modified attribute
+   * @param {string | undefined} old - old value of the modified attribute
+   * @param {string | undefined} value - new value of the modified attribute
    */
   attributeChangedCallback(
     name: string,
@@ -83,7 +84,11 @@ class UIElement extends HTMLElement {
   ): void {
     if (value === old) return
     const parser = this.attributeMap[name]
-    this.set(name, isFunction(parser) ? parser(value, this, old) : value)
+    const maybeValue = maybe(value);
+    this.set(name, isFunction(parser)
+      ? maybeValue.map((v: string | undefined) => parser(v, this, old))
+      : maybeValue
+    )
   }
 
   connectedCallback(): void {
@@ -127,8 +132,6 @@ class UIElement extends HTMLElement {
    * @returns {T | undefined} current value of state; undefined if state does not exist
    */
   get<T>(key: PropertyKey): T | undefined {
-    const unwrap = (value: T | undefined | (() => T) | UIState<T>): T | undefined => 
-      isFunction(value) ? unwrap(value()) : value
     return unwrap(this.#states.get(key))
   }
 
@@ -137,19 +140,19 @@ class UIElement extends HTMLElement {
    * 
    * @since 0.2.0
    * @param {PropertyKey} key - state to set value to
-   * @param {T | ((old: T | undefined) => T) | UIState<T>} value - initial or new value; may be a function (gets old value as parameter) to be evaluated when value is retrieved
-   * @param {boolean} [update=true] - if `true` (default), the state is updated; if `false`, just return existing value
+   * @param {T | ((old: T | undefined) => T) | UISignal<T>} value - initial or new value; may be a function (gets old value as parameter) to be evaluated when value is retrieved
+   * @param {boolean} [update=true] - if `true` (default), the state is updated; if `false`, do nothing if state already exists
    */
   set<T>(
     key: PropertyKey,
-    value: T | ((old: T | undefined) => T) | UIState<T>,
+    value: T | ((old: T | undefined) => T) | UISignal<T>,
     update: boolean = true
   ): void {
-    if (this.#states.has(key)) {
+    if (!this.#states.has(key)) {
+      this.#states.set(key, isSignal(value) ? value : cause(value))
+    } else if (update) {
       const state = this.#states.get(key)
-      update && isState(state) && state.set(value)
-    } else {
-      this.#states.set(key, isState(value) ? value : cause(value))
+      isState(state) && state.set(value)
     }
   }
 
@@ -179,7 +182,12 @@ class UIElement extends HTMLElement {
   ): Promise<void> {
     await registry.whenDefined(element.localName)
     for (const [key, source] of Object.entries(states))
-      element.set(key, cause(isFunction(source) ? source : this.#states.get(source)))
+      element.set(key, isSignal(source)
+        ? source
+        : isFunction(source)
+          ? cause(source)
+          : this.#states.get(source)
+      )
   }
 
   /**
@@ -203,6 +211,6 @@ class UIElement extends HTMLElement {
 
 }
 
-// const isUIElement = isInstanceOf(UIElement)
+const isUIElement = isInstanceOf(UIElement)
 
-export { type UIStateMap, type UIAttributeMap, UIElement as default, /* isUIElement */ }
+export { type UIStateMap, type UIAttributeMap, UIElement as default, isUIElement }

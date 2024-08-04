@@ -1,45 +1,79 @@
-import { isFunction, isObject, isNullish } from './is-type'
+import { isFunction, /* isDefinedObject, */ isNullish } from './is-type'
 
 /* === Types === */
 
-interface UIContainer {                                // Unit
-  (): unknown                                          // Flatten: unwraps the container function
-  type: string                                         // type of the container
-  toString: () => string                               // string representation of the container
-  map: (fn: Function) => UIContainer                   // Functor pattern
+interface UIContainer<T> {                        // Unit
+  (): T                                           // Flatten: unwraps the container value
+  type: string                                    // type of the container
+  toString?: () => string                         // string representation of the container
 }
 
-interface UISomething<T> extends UIContainer {         // Unit
-  (): unknown                                          // Flatten: unwraps the container function
-  or: (_: unknown) => unknown                          // fallback value; ignored for "something" containers
-  map: (fn: Function) => UIMaybe<T>                    // Functor pattern
-  chain: (fn: Function) => unknown                     // Bind operation
-  filter: (fn: Function) => UISomething<T> | UINothing // Filter operation
-  apply: (other: UIContainer) => UIContainer           // Applicative pattern
+interface UIFunctor<T> extends UIContainer<T> {   // Unit
+  map: (fn: Function) => UIFunctor<T>             // Functor pattern
 }
 
-interface UINothing extends UIContainer {              // Unit
-  (): void                                             // Flatten: unwraps the container function
-  or: (value: unknown) => unknown                      // fallback value; returned for "nothing" containers
-  map: (fn: Function) => UINothing                     // Functor pattern
-  chain: (fn: Function) => unknown                     // Bind operation
-  filter: (fn: Function) => UINothing                  // Filter operation
-  apply: (other: UIContainer) => UIContainer           // Applicative pattern
+interface UISomething<T> extends UIFunctor<T> {   // Unit
+  (): T                                           // Flatten: unwraps the container function
+  or: (_: unknown) => unknown                     // fallback value; ignored for "something" containers
+  map: (fn: Function) => UIMaybe<T>               // Functor pattern
+  chain: (fn: Function) => unknown                // Bind operation
+  filter: (fn: Function) => UIMaybe<T>            // Filter operation
+  // apply: <U>(other: UIFunctor<U>) => UIFunctor<U> // Applicative pattern
 }
 
-type UIMaybe<T> = UISomething<T> | UINothing           // Unit: Maybe monad
+interface UINothing<T> extends UIFunctor<T> {      // Unit
+  (): T                                            // Flatten: unwraps the container function
+  or: (value: unknown) => unknown                  // fallback value; returned for "nothing" containers
+  map: (fn: Function) => UINothing<T>              // Functor pattern
+  chain: (fn: Function) => unknown                 // Bind operation
+  filter: (fn: Function) => UINothing<T>           // Filter operation
+  // apply: <U>(other: UIFunctor<U>) => UIFunctor<U>  // Applicative pattern
+}
+
+type UIMaybe<T> = UISomething<T> | UINothing<T>     // Unit: Maybe monad
+
+/* === Constants === */
+
+const TYPE_NOTHING = 'nothing'
 
 /* === Exported Functions === */
 
 /**
- * Unwrap any value wrapped in a container
+ * Unwrap any value wrapped in a function
  * 
  * @since 0.8.0
- * @param {unknown} value - value to unwrap if it's a container function
- * @param {unknown[]} args - additional arguments to pass to the container function
- * @returns {unknown} - unwrapped value
+ * @param {any} value - value to unwrap if it's a function
+ * @returns {any} - unwrapped value
  */
-const unwrap = (value: unknown, ...args: unknown[]): unknown => isFunction(value) ? unwrap(value(...args)) : value
+const unwrap = (value: any): any => isFunction(value) ? unwrap(value()) : value;
+
+/**
+ * Check if a given value is a container function
+ * 
+ * @since 0.8.0
+ * @param {unknown} value - value to check
+ * @returns {boolean} - whether the value is a container function
+ */
+const isAnyContainer = (value: unknown): value is UIContainer<unknown> => isFunction(value) && 'type' in value;
+
+/**
+ * Check if a given value is a container function
+ * 
+ * @since 0.8.0
+ * @param {string} type - expected container type
+ * @param {unknown} value - value to check
+ * @returns {boolean} - whether the value is a container function of the given type
+ */
+const isContainer = (type: string, value: unknown): boolean => isAnyContainer(value) && value.type === type
+
+/**
+ * Check if a given value is a functor
+ * 
+ * @since 0.8.0
+ * @param {unknown} value - value to check
+ * @returns {boolean} - true if the value is a functor, false otherwise
+ */
+const isFunctor = (value: unknown): value is UIFunctor<unknown> => isAnyContainer(value) && 'map' in value
 
 /**
  * Check if a given value is nothing
@@ -48,8 +82,7 @@ const unwrap = (value: unknown, ...args: unknown[]): unknown => isFunction(value
  * @param {unknown} value - value to check
  * @returns {boolean} - true if the value is nothing, false otherwise
  */
-const isNothing = (value: unknown): boolean => isNullish(value) ||
-  (isObject(value) && ('type' in value) && value.type !== 'nothing')
+const isNothing = (value: unknown): boolean => isNullish(value) || isContainer(TYPE_NOTHING, value)
 
 /**
  * Check if a given value is something
@@ -79,12 +112,12 @@ const maybe = <T>(value: T): UIMaybe<T> => isNothing(value) ? nothing() : someth
 const something = <T>(value: T): UISomething<T> => {
   const j = (): T => value
   j.type = typeof value
-  j.toString = (): string => isObject(value) ? JSON.stringify(value) : String(value)
+  // j.toString = (): string => isDefinedObject(value) ? JSON.stringify(value) : String(value)
   j.or = (_: unknown): unknown => value
-  j.map = (fn: Function): UISomething<T> | UINothing => maybe(fn(value))
+  j.map = (fn: Function): UIMaybe<T> => maybe(fn(value))
   j.chain = (fn: Function): unknown => fn(value)
-  j.filter = (fn: Function): UISomething<T> | UINothing => fn(value) ? something(value) : nothing()
-  j.apply = (container: UIContainer): UIContainer => isFunction(value) ? container.map(value) : container.map(j)
+  j.filter = (fn: Function): UIMaybe<T> => fn(value) ? something(value) : nothing()
+  // j.apply = <T>(other: UIFunctor<T>): UIFunctor<T> => isFunction(value) ? other.map(value) : other.map(j)
   return j
 };
 
@@ -92,17 +125,18 @@ const something = <T>(value: T): UISomething<T> => {
  * Create a "nothing" container for a given value, providing a chainable API for handling nullable values
  * 
  * @since 0.8.0
- * @returns {UINothing} - container of "nothing" at all
+ * @returns {UINothing<T>} - container of "nothing" at all
  */
-const nothing = (): UINothing => {
-  const n = (): void => undefined
-  n.type = 'nothing'
-  n.toString = (): string => ''
-  n.or = (value: unknown): unknown => value
-  n.map = n.filter = (_: Function): UINothing => nothing()
-  n.chain = (fn: Function): unknown => fn()
-  n.apply = (container: UIContainer): UIContainer => container.map(n)
-  return n
-};
+const nothing = <T>(): UINothing<T> => new Proxy((): undefined => undefined, {
+  get: (_: any, prop: string): unknown => {    
+    switch (prop) {
+      case 'type': return TYPE_NOTHING
+      case 'toString': return () => ''
+      case 'or': return (value: unknown): unknown => value
+      case 'chain': return (fn: Function): unknown => fn()
+      default: return (): UINothing<T> => nothing()
+    }
+  }
+});
 
-export { unwrap, isNothing, isSomething, maybe, something, nothing }
+export { type UIContainer, type UIFunctor, type UIMaybe, type UISomething, type UINothing, unwrap, isAnyContainer, isContainer, isFunctor, isNothing, isSomething, maybe, something, nothing }

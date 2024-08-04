@@ -1,5 +1,7 @@
-interface UIEffect {
+import { type UIContainer } from './maybe';
+interface UIEffect extends UIContainer<void> {
     (): void;
+    type: string;
     run(): void;
     targets?: Map<Element, Set<() => void>>;
 }
@@ -7,11 +9,13 @@ interface UIComputed<T> extends UIEffect {
     (): T;
     effects: Set<UIEffect>;
 }
-interface UIState<T> {
+interface UIState<T> extends UIContainer<T> {
     (): T;
+    type: string;
     effects: Set<UIEffect>;
     set(value: unknown): void;
 }
+type UISignal<T> = UIState<T> | UIComputed<T>;
 type UIDOMInstructionQueue = (element: Element, fn: () => void) => void;
 type UIMaybeCleanup = void | (() => void);
 type UIEffectCallback = (enqueue: UIDOMInstructionQueue) => UIMaybeCleanup;
@@ -23,13 +27,26 @@ type UIEffectCallback = (enqueue: UIDOMInstructionQueue) => UIMaybeCleanup;
  */
 declare const isState: (value: unknown) => value is UIState<unknown>;
 /**
+ * Check if a given variable is a reactive signal (state or computed state)
+ *
+ * @param {unknown} value - variable to check if it is a reactive signal
+ */
+declare const isSignal: (value: unknown) => value is UISignal<unknown>;
+/**
+ * Check if a given variable is a reactive effect
+ *
+ * @param {unknown} value - variable to check if it is a reactive effect
+ * /
+const isEffect = (value: unknown): value is UIEffect => isContainer(TYPE_EFFECT, value)
+
+/**
  * Define a reactive state
  *
  * @since 0.1.0
  * @param {any} value - initial value of the state; may be a function for derived state
- * @returns {UIState<T>} getter function for the current value with a `set` method to update the value
+ * @returns {UIState<unknown>} getter function for the current value with a `set` method to update the value
  */
-declare const cause: <T>(value: any) => UIState<T>;
+declare const cause: (value: any) => UIState<unknown>;
 /**
  * Create a derived state from an existing state
  *
@@ -46,4 +63,4 @@ declare const derive: <T>(fn: () => T, memo?: boolean) => UIComputed<T>;
  * @param {UIEffectCallback} fn - callback function to be executed when a state changes
  */
 declare const effect: (fn: UIEffectCallback) => void;
-export { type UIState, type UIComputed, type UIEffect, type UIDOMInstructionQueue, isState, cause, derive, effect };
+export { type UIState, type UIComputed, type UISignal, type UIEffect, type UIDOMInstructionQueue, isState, isSignal, cause, derive, effect };

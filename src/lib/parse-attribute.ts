@@ -19,7 +19,7 @@ const toFinite = (value: number): number | undefined => Number.isFinite(value) ?
  * @param {string | undefined} value 
  * @returns {boolean}
  */
-const asBoolean = isString
+const asBoolean = (value: string | undefined): boolean => isString(value)
 
 /**
  * Parse an attribute as a number forced to integer

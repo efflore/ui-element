@@ -1,35 +1,59 @@
-interface UIContainer {
-    (): unknown;
+interface UIContainer<T> {
+    (): T;
     type: string;
-    toString: () => string;
-    map: (fn: Function) => UIContainer;
+    toString?: () => string;
 }
-interface UISomething<T> extends UIContainer {
-    (): unknown;
+interface UIFunctor<T> extends UIContainer<T> {
+    map: (fn: Function) => UIFunctor<T>;
+}
+interface UISomething<T> extends UIFunctor<T> {
+    (): T;
     or: (_: unknown) => unknown;
     map: (fn: Function) => UIMaybe<T>;
     chain: (fn: Function) => unknown;
-    filter: (fn: Function) => UISomething<T> | UINothing;
-    apply: (other: UIContainer) => UIContainer;
+    filter: (fn: Function) => UIMaybe<T>;
 }
-interface UINothing extends UIContainer {
-    (): void;
+interface UINothing<T> extends UIFunctor<T> {
+    (): T;
     or: (value: unknown) => unknown;
-    map: (fn: Function) => UINothing;
+    map: (fn: Function) => UINothing<T>;
     chain: (fn: Function) => unknown;
-    filter: (fn: Function) => UINothing;
-    apply: (other: UIContainer) => UIContainer;
+    filter: (fn: Function) => UINothing<T>;
 }
-type UIMaybe<T> = UISomething<T> | UINothing;
+type UIMaybe<T> = UISomething<T> | UINothing<T>;
 /**
- * Unwrap any value wrapped in a container
+ * Unwrap any value wrapped in a function
  *
  * @since 0.8.0
- * @param {unknown} value - value to unwrap if it's a container function
- * @param {unknown[]} args - additional arguments to pass to the container function
- * @returns {unknown} - unwrapped value
+ * @param {any} value - value to unwrap if it's a function
+ * @returns {any} - unwrapped value
  */
-declare const unwrap: (value: unknown, ...args: unknown[]) => unknown;
+declare const unwrap: (value: any) => any;
+/**
+ * Check if a given value is a container function
+ *
+ * @since 0.8.0
+ * @param {unknown} value - value to check
+ * @returns {boolean} - whether the value is a container function
+ */
+declare const isAnyContainer: (value: unknown) => value is UIContainer<unknown>;
+/**
+ * Check if a given value is a container function
+ *
+ * @since 0.8.0
+ * @param {string} type - expected container type
+ * @param {unknown} value - value to check
+ * @returns {boolean} - whether the value is a container function of the given type
+ */
+declare const isContainer: (type: string, value: unknown) => boolean;
+/**
+ * Check if a given value is a functor
+ *
+ * @since 0.8.0
+ * @param {unknown} value - value to check
+ * @returns {boolean} - true if the value is a functor, false otherwise
+ */
+declare const isFunctor: (value: unknown) => value is UIFunctor<unknown>;
 /**
  * Check if a given value is nothing
  *
@@ -66,7 +90,7 @@ declare const something: <T>(value: T) => UISomething<T>;
  * Create a "nothing" container for a given value, providing a chainable API for handling nullable values
  *
  * @since 0.8.0
- * @returns {UINothing} - container of "nothing" at all
+ * @returns {UINothing<T>} - container of "nothing" at all
  */
-declare const nothing: () => UINothing;
-export { unwrap, isNothing, isSomething, maybe, something, nothing };
+declare const nothing: <T>() => UINothing<T>;
+export { type UIContainer, type UIFunctor, type UIMaybe, type UISomething, type UINothing, unwrap, isAnyContainer, isContainer, isFunctor, isNothing, isSomething, maybe, something, nothing };

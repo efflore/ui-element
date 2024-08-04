@@ -1,23 +1,41 @@
-import { isDefined } from '../is-type'
+import { isComment, isDefined } from '../is-type'
+import { nothing, type UIFunctor, type UINothing } from '../maybe'
 import { type UIDOMInstructionQueue, effect } from '../cause-effect'
 import UIElement from '../ui-element'
 
 /* === Type definitions === */
 
-type UIRef = {
-  (): Element
-  first: (selector: string) => UIRef | undefined
-  all: (selector: string) => UIRef[]
-  on: (event: string, handler: EventListenerOrEventListenerObject) => UIRef | undefined
-  off: (event: string, handler: EventListenerOrEventListenerObject) => UIRef | undefined
-  setText: (content: string) => void
-  text: (stateKey: PropertyKey) => UIRef | undefined
-  prop: (propKey: PropertyKey, stateKey?: PropertyKey) => UIRef | undefined
-  attr: (name: string, stateKey?: PropertyKey) => UIRef | undefined
-  bool: (name: string, stateKey?: PropertyKey) => UIRef | undefined
-  class: (token: string, stateKey?: PropertyKey) => UIRef | undefined
-  style: (prop: string, stateKey?: PropertyKey) => UIRef | undefined
+interface UIRef<T> extends UIFunctor<unknown> {
+  (): T
+  type: string
+  // toString: () => string
+  map: (fn: (host: UIElement, node: T) => T) => UIMaybeRef<T> | UIList<UIRef<T>>
+  chain: (fn: (host: UIElement, node: T) => unknown) => unknown
+  filter: (fn: (host: UIElement, node: T) => boolean) => UIMaybeRef<T>
+  // apply: <U>(other: UIFunctor<U>) => UIFunctor<U>
+  first: (selector: string) => UIRef<T>
+  all: (selector: string) => UIList<UIRef<T>>
+  on: (event: string, handler: EventListenerOrEventListenerObject) => UIRef<T>
+  off: (event: string, handler: EventListenerOrEventListenerObject) => UIRef<T>
+  text: (state: PropertyKey) => UIRef<T>
+  prop: (key: PropertyKey, state?: PropertyKey) => UIRef<T>
+  attr: (name: string, state?: PropertyKey) => UIRef<T>
+  bool: (name: string, state?: PropertyKey) => UIRef<T>
+  class: (token: string, state?: PropertyKey) => UIRef<T>
+  style: (prop: string, state?: PropertyKey) => UIRef<T>
 }
+
+interface UIList<T> extends UIFunctor<unknown> {
+  (): T[]
+  type: string
+  // toString: () => string
+  map: (fn: (node: T) => T[]) => UIList<T>
+  chain: (fn: (node: T) => T[]) => unknown
+  filter: (fn: (node: T) => boolean) => UIList<T>
+  // apply: <U>(other: UIFunctor<U>) => UIFunctor<U>
+}
+
+type UIMaybeRef<T> = UIRef<T> | UINothing<T>
 
 /* Internal functions === */
 
@@ -34,7 +52,43 @@ const isStylable = (node: Element): node is HTMLElement | SVGElement | MathMLEle
   return false
 }
 
-/* === Exported function === */
+/**
+ * Return selector string for the id of the element
+ * 
+ * @param {string} id 
+ * @returns {string} - id string for the element with '#' prefix
+ * /
+const idString = (id: string): string => id ? `#${id}` : '';
+
+/**
+ * Return a selector string for classes of the element
+ * 
+ * @param {DOMTokenList} classList - DOMTokenList to convert to a string
+ * @returns {string} - class string for the DOMTokenList with '.' prefix if any
+ * /
+const classString = (classList: DOMTokenList): string => classList.length ? `.${Array.from(classList).join('.')}` : '';
+
+/* === Exported functions === */
+
+/**
+ * Create a "list" container for an array of whatever, providing a chainable API for handling multiple values
+ * 
+ * @since 0.8.0
+ * @param {unknown} items - array of items to wrap in a list container
+ * @returns {UIList} - UIList instance for the given array
+ */
+const list = <T>(items: T[]): UIList<T> => {
+  const l = ()  => items
+  l.type = 'list'
+  // l.toString = () => items.map(n => n.toString()).join('\n')
+  l.map = (fn: Function): UIList<T> => list(items.map((item: T) => fn(item)))
+  l.chain = (fn: Function): unknown => fn(items)
+  l.filter = (fn: Function): UIList<T> => list(items.filter((item: T) => fn(item)))
+  // l.apply = <U>(other: UIFunctor<U>): UIFunctor<U> => other.map(l)
+  return l
+}
+
+/* === Default export === */
 
 /**
  * Wrapper around a native DOM element for DOM manipulation
@@ -44,112 +98,83 @@ const isStylable = (node: Element): node is HTMLElement | SVGElement | MathMLEle
  * @param {Element} node - native DOM element to wrap
  * @returns {UIRef} - UIRef instance for the given element
  */
-const ui = (host: UIElement, node: Element = host): UIRef => {
-  const root = host.shadowRoot || host
-  const autoEffect = (
-    stateKey: PropertyKey,
-    fallback: any,
-    setter: () => void
-  ): void => {
-    if (!node) return
-    host.set(stateKey, fallback, false)
-    effect((q: UIDOMInstructionQueue) => host.has(stateKey) && q(node, setter))
-  }
-
-  // return native DOM element
+const ui = <T>(host: UIElement, node: Element = host): UIRef<T> => {
   const el = (): Element => node
+  el.type = node.localName
+  // el.toString = () => `<${node.localName}${idString(node.id)}${classString(node.classList)}>`
+  el.map = (fn: (host: UIElement, node: Element) => Element): UIRef<T> => ui(host, fn(host, node))
+  el.chain = (fn: (host: UIElement, node: Element) => unknown): unknown => fn(host, node)
+  el.filter = (fn: (host: UIElement, node: Element) => boolean): UIMaybeRef<T> => fn(host, node) ? ui(host, node) : nothing()
+  // el.apply = <U>(other: UIFunctor<U>): UIFunctor<U> => other.map(el)
 
-  // return first matching selector as UIRef or undefined
-  el.first = (selector: string): UIRef | undefined => {
-    const match = root.querySelector(selector)
-    return match && ui(host, match)
+  el.first = (selector: string): UIMaybeRef<T> => {
+    const match = (host.shadowRoot || host).querySelector(selector)
+    return match ? ui(host, match) : nothing()
   }
 
-  // return all matching selectors as UIRef array
-  el.all = (selector: string): UIRef[] =>
-    Array.from(root.querySelectorAll(selector)).map(match => ui(host, match))
-
-  el.on = (event: string, handler: EventListenerOrEventListenerObject): UIRef | undefined => {
-    node && node.addEventListener(event, handler)
-    return el
+  el.all = (selector: string): UIList<UIRef<Element>> => {
+    return list(Array.from((host.shadowRoot || host).querySelectorAll(selector)).map(node => ui(host, node)))
   }
 
-  el.off = (event: string, handler: EventListenerOrEventListenerObject): UIRef | undefined => {
-    node && node.removeEventListener(event, handler)
-    return el
+  el.on = (event: string, handler: EventListenerOrEventListenerObject): UIRef<T> => {
+    node.addEventListener(event, handler)
+    return el as UIRef<T>
   }
 
-  // set text content of the element while preserving comments
-  el.setText = (content: string): void => {
-    if (!node) return
-    Array.from(node.childNodes)
-      .filter(match => match.nodeType !== Node.COMMENT_NODE)
-      .forEach(match => match.remove())
-    node.append(document.createTextNode(content))
+  el.off = (event: string, handler: EventListenerOrEventListenerObject): UIRef<T> => {
+    node.removeEventListener(event, handler)
+    return el as UIRef<T>
   }
 
-  // sync text content of the element with given state by key
-  el.text = (stateKey: PropertyKey): UIRef | undefined => {
-    const fallback = node?.textContent || ''
-    autoEffect(stateKey, fallback, () => {
-      const content = host.get(stateKey)
-      el.setText(isDefined(content) ? String(content) : fallback)
-    })
-    return el
+  el.text = (state: PropertyKey): UIRef<T> => {
+    const fallback = node.textContent || '';
+    host.set(state, fallback, false)
+    effect((q: UIDOMInstructionQueue) => host.has(state) && q(node, () => {
+      const content = host.get(state)
+      Array.from(node.childNodes).filter(isComment).forEach(match => match.remove())
+      node.append(document.createTextNode(isDefined(content) ? String(content) : fallback))
+    }))
+    return el as UIRef<T>
   }
 
-  // sync given property of the element with given state by key
-  el.prop = (
-    key: PropertyKey,
-    stateKey: PropertyKey = key
-  ): UIRef | undefined => {
-    autoEffect(stateKey, node[key], () => el[key] = host.get(stateKey))
-    return el
+  el.prop = (key: PropertyKey, state: PropertyKey = key): UIRef<T> => {
+    host.set(state, node[key], false)
+    effect((q: UIDOMInstructionQueue) => host.has(state) && q(node, () => node[key] = host.get(state)))
+    return el as UIRef<T>
   }
 
-  // sync given attribute of the element with given state by key
-  el.attr = (
-    name: string,
-    stateKey: PropertyKey = name
-  ): UIRef | undefined => {
-      autoEffect(stateKey, node.getAttribute(name), () => {
-      const value = host.get(stateKey)
+  el.attr = (name: string, state: PropertyKey = name): UIRef<T> => {
+    host.set(state, node.getAttribute(name), false)
+    effect((q: UIDOMInstructionQueue) => host.has(state) && q(node, () => {
+      const value = host.get(state)
       isDefined(value) ? node.setAttribute(name, String(value)) : node.removeAttribute(name)
-    })
-    return el
+    }))
+    return el as UIRef<T>
   }
 
-  // sync given boolean attribute of the element with given state by key
-  el.bool = (
-    name: string,
-    stateKey: PropertyKey = name
-  ): UIRef | undefined => {
-    autoEffect(stateKey, node.hasAttribute(name), () => node.toggleAttribute(name, !!host.get(stateKey)))
-    return el
+  el.bool = (name: string, state: PropertyKey = name): UIRef<T> => {
+    host.set(state, node.hasAttribute(name), false)
+    effect((q: UIDOMInstructionQueue) => host.has(state) && q(node, () => node.toggleAttribute(name, !!host.get(state))))
+    return el as UIRef<T>
   }
 
-  // sync given class of the element with given state by key
-  el.class = (
-    token: string,
-    stateKey: PropertyKey = token
-  ): UIRef | undefined => {
-    autoEffect(stateKey, node.classList.contains(token), () => node.classList.toggle(token, !!host.get(stateKey)))
-    return el
+  el.class = (token: string, state: PropertyKey = token): UIRef<T> => {
+    host.set(state, node.classList.contains(token), false)
+    effect((q: UIDOMInstructionQueue) => host.has(state) && q(node, () => node.classList.toggle(token, !!host.get(state))))
+    return el as UIRef<T>
   }
 
-  // sync given style property of the element with given state by key
-  el.style = (
-    prop: string,
-    stateKey: PropertyKey = prop
-  ): UIRef | undefined => {
-    isStylable(node)
-      ? autoEffect(stateKey, node.style.getPropertyValue(prop), () => node.style.setProperty(prop, String(host.get(stateKey))))
-      : console.warn('Cannot sync style property', prop, 'on non-stylable element')
-    return el
+  el.style = (prop: string, state: PropertyKey = prop): UIRef<T> => {
+    if (isStylable(node)) {
+      host.set(state, node.style[prop], false)
+      effect((q: UIDOMInstructionQueue) => host.has(state) && q(node, () => node.style[prop] = host.get(state)))
+    } else {
+      console.error(`Style effect not supported for element type ${node.localName}`)
+    }
+    return el as UIRef<T>
   }
 
-  // return UIRef instance
-  return el
+  return el as UIRef<T>
 }
 
-export { type UIRef, ui as default, isDefined }
+export { type UIRef, type UIList, ui as default, list }

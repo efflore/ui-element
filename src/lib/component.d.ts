@@ -1,5 +1,5 @@
-import UIElement, { type UIAttributeMap } from "../ui-element";
 import { effect } from "../cause-effect";
+import UIElement, { type UIAttributeMap } from "../ui-element";
 import type { UnknownContext } from "../context-request";
 import { asBoolean, asInteger, asNumber, asString, asJSON } from "./parse-attribute";
 import ui, { type UIRef } from "./ui";
@@ -14,12 +14,12 @@ type UIComponentProps = {
  * @since 0.7.0
  * @param {string} tag - custom element tag name
  * @param {UIComponentProps} props - object of observed attributes and their corresponding state keys and parser functions
- * @param {(host: UIElement, my: UIRef) => void} connect - callback to be called when the element is connected to the DOM
+ * @param {(host: UIElement, my: UIRef<Element>) => void} connect - callback to be called when the element is connected to the DOM
  * @param {(host: UIElement) => void} disconnect - callback to be called when the element is disconnected from the DOM
  * @param {typeof UIElement} superClass - parent class to extend; defaults to `UIElement`
  * @returns {typeof FxComponent} - custom element class
  */
-declare const component: (tag: string, props: UIComponentProps, connect: (host: UIElement, my: UIRef) => void, disconnect: (host: UIElement) => void, superClass?: typeof UIElement) => {
+declare const component: (tag: string, props: UIComponentProps, connect: (host: UIElement, my: UIRef<Element>) => void, disconnect: (host: UIElement) => void, superClass?: typeof UIElement) => {
     new (): {
         attributeMap: UIAttributeMap;
         connectedCallback(): void;
@@ -30,15 +30,15 @@ declare const component: (tag: string, props: UIComponentProps, connect: (host: 
         has(key: PropertyKey): boolean;
         get<V>(key: PropertyKey): V;
         get<T>(key: PropertyKey): T | undefined;
-        set<V>(key: PropertyKey, value: V | import("../cause-effect").UIState<V> | ((old: V) => V), update?: boolean): void;
-        set<T>(key: PropertyKey, value: T | ((old: T) => T) | import("../cause-effect").UIState<T>, update?: boolean): void;
+        set<V>(key: PropertyKey, value: V | import("../cause-effect").UISignal<V> | ((old: V) => V), update?: boolean): void;
+        set<T>(key: PropertyKey, value: T | ((old: T) => T) | import("../cause-effect").UISignal<T>, update?: boolean): void;
         delete(key: PropertyKey): boolean;
         delete(key: PropertyKey): boolean;
         pass(element: UIElement, states: import("../ui-element").UIStateMap, registry?: CustomElementRegistry): Promise<void>;
         pass(element: UIElement, states: import("../ui-element").UIStateMap, registry?: CustomElementRegistry): Promise<void>;
         targets(key: PropertyKey): Set<Element>;
         targets(key: PropertyKey): Set<Element>;
-        "__#1@#states": Map<PropertyKey, import("../cause-effect").UIState<any>>;
+        "__#1@#states": Map<PropertyKey, import("../cause-effect").UISignal<any>>;
         accessKey: string;
         readonly accessKeyLabel: string;
         autocapitalize: string;

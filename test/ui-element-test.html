@@ -491,7 +491,7 @@
             updatingComponent.removeAttribute('selected');
             await paint();
             const className = updatingComponent.querySelector('h1').className;
-            assert.equal(className, '', 'Should update text remove class from removing selected attribute');
+            assert.equal(className, '', 'Should remove class from removing selected attribute');
           });
 
           it('should update when state is set', async function () {

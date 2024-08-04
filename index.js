@@ -1,7 +1,100 @@
 /* === Exported Functions === */
 const is = (type) => (value) => typeof value === type;
+const isNullish = (value) => value == null;
 const isFunction = is('function');
 
+/* === Constants === */
+const TYPE_NOTHING = 'nothing';
+/* === Exported Functions === */
+/**
+ * Unwrap any value wrapped in a function
+ *
+ * @since 0.8.0
+ * @param {any} value - value to unwrap if it's a function
+ * @returns {any} - unwrapped value
+ */
+const unwrap = (value) => isFunction(value) ? unwrap(value()) : value;
+/**
+ * Check if a given value is a container function
+ *
+ * @since 0.8.0
+ * @param {unknown} value - value to check
+ * @returns {boolean} - whether the value is a container function
+ */
+const isAnyContainer = (value) => isFunction(value) && 'type' in value;
+/**
+ * Check if a given value is a container function
+ *
+ * @since 0.8.0
+ * @param {string} type - expected container type
+ * @param {unknown} value - value to check
+ * @returns {boolean} - whether the value is a container function of the given type
+ */
+const isContainer = (type, value) => isAnyContainer(value) && value.type === type;
+/**
+ * Check if a given value is a functor
+ *
+ * @since 0.8.0
+ * @param {unknown} value - value to check
+ * @returns {boolean} - true if the value is a functor, false otherwise
+ */
+const isFunctor = (value) => isAnyContainer(value) && 'map' in value;
+/**
+ * Check if a given value is nothing
+ *
+ * @since 0.8.0
+ * @param {unknown} value - value to check
+ * @returns {boolean} - true if the value is nothing, false otherwise
+ */
+const isNothing = (value) => isNullish(value) || isContainer(TYPE_NOTHING, value);
+/**
+ * Create a container for a given value to gracefully handle nullable values
+ *
+ * @since 0.8.0
+ * @param {unknown} value - value to wrap in a container
+ * @returns {UIMaybe<T>} - container of either "something" or "nothing" for the given value
+ */
+const maybe = (value) => isNothing(value) ? nothing() : something(value);
+/**
+ * Create a "something" container for a given value, providing a chainable API for handling nullable values
+ *
+ * @since 0.8.0
+ * @param {unknown} value - value to wrap in a "something" container
+ * @returns {UISomething} - container of "something" type for the given value
+ */
+const something = (value) => {
+    const j = () => value;
+    j.type = typeof value;
+    // j.toString = (): string => isDefinedObject(value) ? JSON.stringify(value) : String(value)
+    j.or = (_) => value;
+    j.map = (fn) => maybe(fn(value));
+    j.chain = (fn) => fn(value);
+    j.filter = (fn) => fn(value) ? something(value) : nothing();
+    // j.apply = <T>(other: UIFunctor<T>): UIFunctor<T> => isFunction(value) ? other.map(value) : other.map(j)
+    return j;
+};
+/**
+ * Create a "nothing" container for a given value, providing a chainable API for handling nullable values
+ *
+ * @since 0.8.0
+ * @returns {UINothing<T>} - container of "nothing" at all
+ */
+const nothing = () => new Proxy(() => undefined, {
+    get: (_, prop) => {
+        switch (prop) {
+            case 'type': return TYPE_NOTHING;
+            case 'toString': return () => '';
+            case 'or': return (value) => value;
+            case 'chain': return (fn) => fn();
+            default: return () => nothing();
+        }
+    }
+});
+
+/* === Constants === */
+const TYPE_STATE = 'state';
+const TYPE_COMPUTED = 'computed';
+const TYPE_EFFECT = 'effect';
 /* === Internal === */
 // hold the currently active effect
 let active;
@@ -21,28 +114,50 @@ const autorun = (effects) => {
  * @param {unknown} value - variable to check if it is a reactive state
  * @returns {boolean} true if supplied parameter is a reactive state
  */
-const isState = (value) => isFunction(value) && isFunction(value.set);
+const isState = (value) => isContainer(TYPE_STATE, value);
+/**
+ * Check if a given variable is a reactive computed state
+ *
+ * @param {unknown} value - variable to check if it is a reactive computed state
+ */
+const isComputed = (value) => isContainer(TYPE_COMPUTED, value);
+/**
+ * Check if a given variable is a reactive signal (state or computed state)
+ *
+ * @param {unknown} value - variable to check if it is a reactive signal
+ */
+const isSignal = (value) => isState(value) || isComputed(value);
+/**
+ * Check if a given variable is a reactive effect
+ *
+ * @param {unknown} value - variable to check if it is a reactive effect
+ * /
+const isEffect = (value: unknown): value is UIEffect => isContainer(TYPE_EFFECT, value)
+
 /**
  * Define a reactive state
  *
  * @since 0.1.0
  * @param {any} value - initial value of the state; may be a function for derived state
- * @returns {UIState<T>} getter function for the current value with a `set` method to update the value
+ * @returns {UIState<unknown>} getter function for the current value with a `set` method to update the value
  */
 const cause = (value) => {
-    const state = () => {
-        active && state.effects.add(active);
+    const s = () => {
+        active && s.effects.add(active);
         return value;
     };
-    state.effects = new Set(); // set of listeners
-    state.set = (updater) => {
+    s.type = TYPE_STATE;
+    s.effects = new Set(); // set of listeners
+    s.set = (updater) => {
         const old = value;
-        value = isFunction(updater) && !isState(updater)
-            ? updater(old)
+        value = isFunction(updater) && !isAnyContainer(updater)
+            ? isFunctor(value)
+                ? value.map(updater)
+                : updater(value)
             : updater;
-        !Object.is(value, old) && autorun(state.effects);
+        !Object.is(unwrap(value), unwrap(old)) && autorun(s.effects);
     };
-    return state;
+    return s;
 };
 /**
  * Define what happens when a reactive state changes
@@ -52,9 +167,9 @@ const cause = (value) => {
  */
 const effect = (fn) => {
     const targets = new Map();
-    const next = () => {
+    const n = () => {
         const prev = active;
-        active = next;
+        active = n;
         const cleanup = fn((element, domFn) => {
             !targets.has(element) && targets.set(element, new Set());
             targets.get(element)?.add(domFn);
@@ -62,13 +177,15 @@ const effect = (fn) => {
         for (const domFns of targets.values()) {
             for (const domFn of domFns)
                 domFn();
+            domFns.clear();
         }
         active = prev;
         isFunction(cleanup) && queueMicrotask(cleanup);
     };
-    next.run = () => next();
-    next.targets = targets;
-    next();
+    n.type = TYPE_EFFECT;
+    n.run = () => n();
+    n.targets = targets;
+    n();
 };
 
 /** @see https://github.com/webcomponents-cg/community-protocols/blob/main/proposals/context.md */
@@ -145,14 +262,17 @@ class UIElement extends HTMLElement {
      *
      * @since 0.1.0
      * @param {string} name - name of the modified attribute
-     * @param {string|undefined} old - old value of the modified attribute
-     * @param {string|undefined} value - new value of the modified attribute
+     * @param {string | undefined} old - old value of the modified attribute
+     * @param {string | undefined} value - new value of the modified attribute
      */
     attributeChangedCallback(name, old, value) {
         if (value === old)
             return;
         const parser = this.attributeMap[name];
-        this.set(name, isFunction(parser) ? parser(value, this, old) : value);
+        const maybeValue = maybe(value);
+        this.set(name, isFunction(parser)
+            ? maybeValue.map((v) => parser(v, this, old))
+            : maybeValue);
     }
     connectedCallback() {
         const proto = this.constructor;
@@ -194,7 +314,6 @@ class UIElement extends HTMLElement {
      * @returns {T | undefined} current value of state; undefined if state does not exist
      */
     get(key) {
-        const unwrap = (value) => isFunction(value) ? unwrap(value()) : value;
         return unwrap(this.#states.get(key));
     }
     /**
@@ -202,16 +321,16 @@ class UIElement extends HTMLElement {
      *
      * @since 0.2.0
      * @param {PropertyKey} key - state to set value to
-     * @param {T | ((old: T | undefined) => T) | UIState<T>} value - initial or new value; may be a function (gets old value as parameter) to be evaluated when value is retrieved
-     * @param {boolean} [update=true] - if `true` (default), the state is updated; if `false`, just return existing value
+     * @param {T | ((old: T | undefined) => T) | UISignal<T>} value - initial or new value; may be a function (gets old value as parameter) to be evaluated when value is retrieved
+     * @param {boolean} [update=true] - if `true` (default), the state is updated; if `false`, do nothing if state already exists
      */
     set(key, value, update = true) {
-        if (this.#states.has(key)) {
-            const state = this.#states.get(key);
-            update && isState(state) && state.set(value);
+        if (!this.#states.has(key)) {
+            this.#states.set(key, isSignal(value) ? value : cause(value));
         }
-        else {
-            this.#states.set(key, isState(value) ? value : cause(value));
+        else if (update) {
+            const state = this.#states.get(key);
+            isState(state) && state.set(value);
         }
     }
     /**
@@ -235,7 +354,11 @@ class UIElement extends HTMLElement {
     async pass(element, states, registry = customElements) {
         await registry.whenDefined(element.localName);
         for (const [key, source] of Object.entries(states))
-            element.set(key, cause(isFunction(source) ? source : this.#states.get(source)));
+            element.set(key, isSignal(source)
+                ? source
+                : isFunction(source)
+                    ? cause(source)
+                    : this.#states.get(source));
     }
     /**
      * Return a Set of elements that have effects dependent on the given state

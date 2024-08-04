@@ -1,9 +1,11 @@
 import { isFunction } from './is-type'
+import { type UIContainer, unwrap, isAnyContainer, isContainer, isFunctor } from './maybe';
 
 /* === Types === */
 
-interface UIEffect {
+interface UIEffect extends UIContainer<void> {
   (): void
+  type: string
   run(): void
   targets?: Map<Element, Set<() => void>>
 }
@@ -13,11 +15,14 @@ interface UIComputed<T> extends UIEffect {
   effects: Set<UIEffect>
 }
 
-interface UIState<T> {
+interface UIState<T> extends UIContainer<T> {
   (): T
+  type: string
   effects: Set<UIEffect>
   set(value: unknown): void
 }
+
+type UISignal<T> = UIState<T> | UIComputed<T>
 
 type UIDOMInstructionQueue = (
   element: Element,
@@ -27,6 +32,12 @@ type UIDOMInstructionQueue = (
 type UIMaybeCleanup = void | (() => void)
 
 type UIEffectCallback = (enqueue: UIDOMInstructionQueue) => UIMaybeCleanup
+
+/* === Constants === */
+
+const TYPE_STATE = 'state'
+const TYPE_COMPUTED = 'computed'
+const TYPE_EFFECT = 'effect'
 
 /* === Internal === */
 
@@ -51,29 +62,53 @@ const autorun = (effects: Set<UIEffect>) => {
  * @param {unknown} value - variable to check if it is a reactive state
  * @returns {boolean} true if supplied parameter is a reactive state
  */
-const isState = (value: unknown): value is UIState<unknown> => isFunction(value) && isFunction((value as UIState<unknown>).set)
+const isState = (value: unknown): value is UIState<unknown> => isContainer(TYPE_STATE, value)
+
+/**
+ * Check if a given variable is a reactive computed state
+ * 
+ * @param {unknown} value - variable to check if it is a reactive computed state
+ */
+const isComputed = (value: unknown): value is UIComputed<unknown> => isContainer(TYPE_COMPUTED, value)
+
+/**
+ * Check if a given variable is a reactive signal (state or computed state)
+ * 
+ * @param {unknown} value - variable to check if it is a reactive signal
+ */
+const isSignal = (value: unknown): value is UISignal<unknown> => isState(value) || isComputed(value)
+
+/**
+ * Check if a given variable is a reactive effect
+ * 
+ * @param {unknown} value - variable to check if it is a reactive effect
+ * /
+const isEffect = (value: unknown): value is UIEffect => isContainer(TYPE_EFFECT, value)
 
 /**
  * Define a reactive state
  * 
  * @since 0.1.0
  * @param {any} value - initial value of the state; may be a function for derived state
- * @returns {UIState<T>} getter function for the current value with a `set` method to update the value
+ * @returns {UIState<unknown>} getter function for the current value with a `set` method to update the value
  */
-const cause = <T>(value: any): UIState<T> => {
-  const state: UIState<T> = () => { // getter function
-    active && state.effects.add(active)
+const cause = (value: any): UIState<unknown> => {
+  const s: UIState<unknown> = () => { // getter function
+    active && s.effects.add(active)
     return value
   }
-  state.effects = new Set<UIEffect>(); // set of listeners
-  state.set = (updater: unknown) => { // setter function
+  s.type = TYPE_STATE
+  s.effects = new Set<UIEffect>() // set of listeners
+  s.set = (updater: unknown) => { // setter function
     const old = value
-    value = isFunction(updater) && !isState(updater)
-      ? updater(old)
+    value = isFunction(updater) && !isAnyContainer(updater)
+      ? isFunctor(value)
+        ? value.map(updater)
+        : updater(value)
       : updater
-    !Object.is(value, old) && autorun(state.effects)
+    !Object.is(unwrap(value), unwrap(old)) && autorun(s.effects)
   }
-  return state
+  return s
 }
 
 /**
@@ -87,22 +122,23 @@ const cause = <T>(value: any): UIState<T> => {
 const derive = <T>(fn: () => T, memo: boolean = false): UIComputed<T> => {
   let value: T
   let dirty = true
-  const computed = () => {
-    active && computed.effects.add(active)
+  const c = () => {
+    active && c.effects.add(active)
     if (memo && !dirty) return value
     const prev = active
-    active = computed
+    active = c
     value = fn()
     dirty = false
     active = prev
     return value
   }
-  computed.effects = new Set<UIEffect>(); // set of listeners
-  computed.run = () => {
+  c.type = TYPE_COMPUTED
+  c.effects = new Set<UIEffect>(); // set of listeners
+  c.run = () => {
     dirty = true
-    memo && autorun(computed.effects)
+    memo && autorun(c.effects)
   }
-  return computed
+  return c
 }
 
 /**
@@ -113,9 +149,9 @@ const derive = <T>(fn: () => T, memo: boolean = false): UIComputed<T> => {
  */
 const effect = (fn: UIEffectCallback) => {
   const targets = new Map<Element, Set<() => void>>()
-  const next = () => {
+  const n = () => {
     const prev = active
-    active = next
+    active = n
     const cleanup = fn((
       element: Element,
       domFn: () => void
@@ -126,13 +162,15 @@ const effect = (fn: UIEffectCallback) => {
     for (const domFns of targets.values()) {
       for (const domFn of domFns)
         domFn()
+      domFns.clear()
     }   
     active = prev
     isFunction(cleanup) && queueMicrotask(cleanup)
   }
-  next.run = () => next()
-  next.targets = targets
-  next()
+  n.type = TYPE_EFFECT
+  n.run = () => n()
+  n.targets = targets
+  n()
 }
 
-export { type UIState, type UIComputed, type UIEffect, type UIDOMInstructionQueue, isState, cause, derive, effect }
+export { type UIState, type UIComputed, type UISignal, type UIEffect, type UIDOMInstructionQueue, isState, isSignal, cause, derive, effect }

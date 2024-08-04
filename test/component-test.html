@@ -108,10 +108,10 @@
 
     component('void-component');
 
-    component('causal-component', {}, (el, my) => {
-      el.set('heading', 'Hello from Internal State');
-      my.first('h1')?.text('heading');
-    });
+    component('causal-component', {}, (el, ui) => {
+      el.set('heading', 'Hello from Internal State')
+      ui.first('h1').text('heading')
+    })
 
     component('updating-component', {
       attributeMap: {
@@ -122,10 +122,10 @@
         selected: asBoolean,
       }
     },
-    (el, my) => {
-      my.first('h1')?.text('heading').class('selected');
-      my.first('p span')?.text('count');
-      my.first('input')?.attr('value').attr('step');
+    (el, ui) => {
+      ui.first('h1').text('heading').class('selected');
+      ui.first('p span').text('count');
+      ui.first('input').attr('value').attr('step');
     });
 
     component('parent-component', {
@@ -133,16 +133,16 @@
         heading: asString
       }
     },
-    (el, my) => {
-      el.pass(my.first('child-component')(), {
+    (el, ui) => {
+      el.pass(ui.first('child-component')(), {
         heading: 'heading',
         text: () => el.get('heading').toUpperCase(),
       });
     });
 
-    component('child-component', {}, (el, my) => {
-      my.first('h1')?.text('heading');
-      my.first('p')?.text('text');
+    component('child-component', {}, (el, ui) => {
+      ui.first('h1').text('heading');
+      ui.first('p').text('text');
     });
 
     component('my-counter', {
@@ -150,24 +150,21 @@
         value: asInteger
       }
     },
-    (el, my) => {
+    (el, ui) => {
       el.set('parity', () => el.get('value') % 2 ? 'odd' : 'even');
       el.set('double', () => el.get('value') * 2);
-      my.first('.decrement')?.on('click', () => el.set('value', v => --v));
-      my.first('.increment')?.on('click', () => el.set('value', v => ++v));
-      my.first('.value')?.text('value');
-      my.first('.parity')?.text('parity');
-      my.first('.double')?.text('double');
+      ui.first('.decrement').on('click', () => el.set('value', v => --v));
+      ui.first('.increment').on('click', () => el.set('value', v => ++v));
+      ui.first('.value').text('value');
+      ui.first('.parity').text('parity');
+      ui.first('.double').text('double');
     });
 
-    component('greeting-configurator', {}, (el, my) => {
-      const first = my.first('.first');
-      const last = my.first('.last');
-      const useFullname = my.first('input-checkbox');
-      el.pass(my.first('hello-world')(), {
-        name: () => useFullname().get('checked')
-          ? `${first().get('value')} ${last().get('value')}`
-          : first().get('value'),
+    component('greeting-configurator', {}, (el, ui) => {
+      el.pass(ui.first('hello-world')(), {
+        name: () => ui.first('input-checkbox')().get('checked')
+          ? `${ui.first('.first')().get('value')} ${ui.first('.last')().get('value')}`
+          : ui.first('.first')().get('value'),
       });
     });
 
@@ -176,24 +173,24 @@
         greeting: asString
       }
     },
-    (el, my) => {
-      my.first('.greeting')?.text('greeting');
-      my.first('.name')?.text('name');
+    (el, ui) => {
+      ui.first('.greeting').text('greeting');
+      ui.first('.name').text('name');
     });
 
-    component('input-field', {}, (el, my) => {
-      const input = my.first('input');
+    component('input-field', {}, (el, ui) => {
+      const input = ui.first('input');
       input && el.set('value', input().value);
-      input?.on('change', () => el.set('value', input().value));
+      input.on('change', () => el.set('value', input().value));
     });
 
-    component('input-checkbox', {}, (el, my) => {
-      const input = my.first('input');
+    component('input-checkbox', {}, (el, ui) => {
+      const input = ui.first('input');
       input && el.set('checked', input().checked);
-      input?.on('change', () => el.set('checked', input().checked));
+      input.on('change', () => el.set('checked', input().checked));
     });
 
-    component('lazy-load', {}, (el, my) => {
+    component('lazy-load', {}, (el, ui) => {
       el.set('error', '');
       el.set('content', () => {
         fetch(el.getAttribute('src')) // TODO ensure 'src' attribute is a valid URL from a trusted source
@@ -206,8 +203,8 @@
           .catch(error => el.set('error', error));
         return; // we don't return a fallback value
       });
-      const loadingEl = my.first('.loading');
-      const errorEl = my.first('.error');
+      const loadingEl = ui.first('.loading');
+      const errorEl = ui.first('.error');
 
       effect(enqueue => {
         const error = el.get('error');
@@ -451,7 +448,7 @@
             updatingComponent.removeAttribute('selected');
             await paint();
             const className = updatingComponent.querySelector('h1').className;
-            assert.equal(className, '', 'Should update text remove class from removing selected attribute');
+            assert.equal(className, '', 'Should remove class from removing selected attribute');
           });
 
           it('should update when state is set', async function () {

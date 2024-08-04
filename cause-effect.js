@@ -2,6 +2,45 @@
 const is = (type) => (value) => typeof value === type;
 const isFunction = is('function');
 
+/* === Exported Functions === */
+/**
+ * Unwrap any value wrapped in a function
+ *
+ * @since 0.8.0
+ * @param {any} value - value to unwrap if it's a function
+ * @returns {any} - unwrapped value
+ */
+const unwrap = (value) => isFunction(value) ? unwrap(value()) : value;
+/**
+ * Check if a given value is a container function
+ *
+ * @since 0.8.0
+ * @param {unknown} value - value to check
+ * @returns {boolean} - whether the value is a container function
+ */
+const isAnyContainer = (value) => isFunction(value) && 'type' in value;
+/**
+ * Check if a given value is a container function
+ *
+ * @since 0.8.0
+ * @param {string} type - expected container type
+ * @param {unknown} value - value to check
+ * @returns {boolean} - whether the value is a container function of the given type
+ */
+const isContainer = (type, value) => isAnyContainer(value) && value.type === type;
+/**
+ * Check if a given value is a functor
+ *
+ * @since 0.8.0
+ * @param {unknown} value - value to check
+ * @returns {boolean} - true if the value is a functor, false otherwise
+ */
+const isFunctor = (value) => isAnyContainer(value) && 'map' in value;
+
+/* === Constants === */
+const TYPE_STATE = 'state';
+const TYPE_COMPUTED = 'computed';
+const TYPE_EFFECT = 'effect';
 /* === Internal === */
 // hold the currently active effect
 let active;
@@ -21,28 +60,50 @@ const autorun = (effects) => {
  * @param {unknown} value - variable to check if it is a reactive state
  * @returns {boolean} true if supplied parameter is a reactive state
  */
-const isState = (value) => isFunction(value) && isFunction(value.set);
+const isState = (value) => isContainer(TYPE_STATE, value);
+/**
+ * Check if a given variable is a reactive computed state
+ *
+ * @param {unknown} value - variable to check if it is a reactive computed state
+ */
+const isComputed = (value) => isContainer(TYPE_COMPUTED, value);
+/**
+ * Check if a given variable is a reactive signal (state or computed state)
+ *
+ * @param {unknown} value - variable to check if it is a reactive signal
+ */
+const isSignal = (value) => isState(value) || isComputed(value);
+/**
+ * Check if a given variable is a reactive effect
+ *
+ * @param {unknown} value - variable to check if it is a reactive effect
+ * /
+const isEffect = (value: unknown): value is UIEffect => isContainer(TYPE_EFFECT, value)
+
 /**
  * Define a reactive state
  *
  * @since 0.1.0
  * @param {any} value - initial value of the state; may be a function for derived state
- * @returns {UIState<T>} getter function for the current value with a `set` method to update the value
+ * @returns {UIState<unknown>} getter function for the current value with a `set` method to update the value
  */
 const cause = (value) => {
-    const state = () => {
-        active && state.effects.add(active);
+    const s = () => {
+        active && s.effects.add(active);
         return value;
     };
-    state.effects = new Set(); // set of listeners
-    state.set = (updater) => {
+    s.type = TYPE_STATE;
+    s.effects = new Set(); // set of listeners
+    s.set = (updater) => {
         const old = value;
-        value = isFunction(updater) && !isState(updater)
-            ? updater(old)
+        value = isFunction(updater) && !isAnyContainer(updater)
+            ? isFunctor(value)
+                ? value.map(updater)
+                : updater(value)
             : updater;
-        !Object.is(value, old) && autorun(state.effects);
+        !Object.is(unwrap(value), unwrap(old)) && autorun(s.effects);
     };
-    return state;
+    return s;
 };
 /**
  * Create a derived state from an existing state
@@ -55,23 +116,24 @@ const cause = (value) => {
 const derive = (fn, memo = false) => {
     let value;
     let dirty = true;
-    const computed = () => {
-        active && computed.effects.add(active);
+    const c = () => {
+        active && c.effects.add(active);
         if (memo && !dirty)
             return value;
         const prev = active;
-        active = computed;
+        active = c;
         value = fn();
         dirty = false;
         active = prev;
         return value;
     };
-    computed.effects = new Set(); // set of listeners
-    computed.run = () => {
+    c.type = TYPE_COMPUTED;
+    c.effects = new Set(); // set of listeners
+    c.run = () => {
         dirty = true;
-        memo && autorun(computed.effects);
+        memo && autorun(c.effects);
     };
-    return computed;
+    return c;
 };
 /**
  * Define what happens when a reactive state changes
@@ -81,9 +143,9 @@ const derive = (fn, memo = false) => {
  */
 const effect = (fn) => {
     const targets = new Map();
-    const next = () => {
+    const n = () => {
         const prev = active;
-        active = next;
+        active = n;
         const cleanup = fn((element, domFn) => {
             !targets.has(element) && targets.set(element, new Set());
             targets.get(element)?.add(domFn);
@@ -91,13 +153,15 @@ const effect = (fn) => {
         for (const domFns of targets.values()) {
             for (const domFn of domFns)
                 domFn();
+            domFns.clear();
         }
         active = prev;
         isFunction(cleanup) && queueMicrotask(cleanup);
     };
-    next.run = () => next();
-    next.targets = targets;
-    next();
+    n.type = TYPE_EFFECT;
+    n.run = () => n();
+    n.targets = targets;
+    n();
 };
 
-export { cause, derive, effect, isState };
+export { cause, derive, effect, isSignal, isState };
