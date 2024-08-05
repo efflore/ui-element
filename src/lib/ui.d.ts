@@ -3,8 +3,6 @@ import UIElement from '../ui-element';
 interface UIRef<T> extends UIFunctor<unknown> {
     (): T;
     map: (fn: (host: UIElement, node: T) => T) => UIMaybeRef<T>;
-    chain: (fn: (host: UIElement, node: T) => unknown) => unknown;
-    filter: (fn: (host: UIElement, node: T) => boolean) => UIMaybeRef<T>;
     on: (event: string, handler: EventListenerOrEventListenerObject) => UIRef<T>;
     off: (event: string, handler: EventListenerOrEventListenerObject) => UIRef<T>;
     text: (state: PropertyKey) => UIRef<T>;

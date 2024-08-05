@@ -15,6 +15,15 @@ const isDefinedObject = (value) => isDefined(value) && (isObject(value) || isFun
  */
 const unwrap = (value) => isFunction(value) ? unwrap(value()) : value;
 /**
+ * Compose functions from right to left
+ *
+ * @since 0.8.0
+ * @param {Function[]} fns - functions to compose
+ * @returns {Function} - composed function
+ * /
+const compose = (...fns: Function[]): Function => (x: unknown) => fns.reduceRight((y, f) => f(y), x);
+
+/**
  * Check if an object has a method of given name
  *
  * @since 0.8.0

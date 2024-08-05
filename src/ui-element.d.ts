@@ -4,7 +4,6 @@ type UIAttributeParser = ((value: string | undefined, element?: HTMLElement, old
 type UIAttributeMap = Record<string, UIAttributeParser>;
 type UIStateMap = Record<PropertyKey, PropertyKey | UISignal<unknown> | (() => unknown)>;
 interface UIElement extends HTMLElement {
-    attributeMap: UIAttributeMap;
     connectedCallback(): void;
     disconnectedCallback(): void;
     attributeChangedCallback(name: string, old: string | undefined, value: string | undefined): void;
@@ -24,6 +23,8 @@ interface UIElement extends HTMLElement {
  */
 declare class UIElement extends HTMLElement {
     #private;
+    static registry: CustomElementRegistry;
+    static attributeMap: UIAttributeMap;
     static consumedContexts: UnknownContext[];
     static providedContexts: UnknownContext[];
     /**
@@ -31,14 +32,7 @@ declare class UIElement extends HTMLElement {
      *
      * @since 0.5.0
      * @param {string} tag - name of the custom element
-     * @param {CustomElementRegistry} [registry=customElements] - custom element registry to be used; defaults to `customElements`
      */
-    static define(tag: string, registry?: CustomElementRegistry): void;
-    /**
-     * @since 0.5.0
-     * @property
-     * @type {UIAttributeMap}
-     */
-    attributeMap: UIAttributeMap;
+    static define(tag: string): void;
 }
 export { type UIStateMap, type UIAttributeMap, UIElement as default };

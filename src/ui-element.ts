@@ -16,7 +16,6 @@ type UIAttributeMap = Record<string, UIAttributeParser>
 type UIStateMap = Record<PropertyKey, PropertyKey | UISignal<unknown> | (() => unknown)>
 
 interface UIElement extends HTMLElement {
-  attributeMap: UIAttributeMap
   connectedCallback(): void
   disconnectedCallback(): void
   attributeChangedCallback(name: string, old: string | undefined, value: string | undefined): void
@@ -38,6 +37,8 @@ interface UIElement extends HTMLElement {
  * @type {UIElement}
  */
 class UIElement extends HTMLElement {
+  static registry: CustomElementRegistry = customElements
+  static attributeMap: UIAttributeMap = {}
   static consumedContexts: UnknownContext[]
   static providedContexts: UnknownContext[]
 
@@ -46,25 +47,14 @@ class UIElement extends HTMLElement {
    * 
    * @since 0.5.0
    * @param {string} tag - name of the custom element
-   * @param {CustomElementRegistry} [registry=customElements] - custom element registry to be used; defaults to `customElements`
    */
-  static define(
-    tag: string,
-    registry: CustomElementRegistry = customElements
-  ): void {
+  static define(tag: string): void {
     try {
-      registry.get(tag) || registry.define(tag, this)
+      this.registry.get(tag) || this.registry.define(tag, this)
     } catch (err) {
       console.error(err)
     }
   }
-
-  /**
-   * @since 0.5.0
-   * @property
-   * @type {UIAttributeMap}
-   */
-  attributeMap: UIAttributeMap = {}
 
   // @private hold states – use `has()`, `get()`, `set()` and `delete()` to access and modify
   #states = new Map<PropertyKey, UISignal<any>>()
@@ -83,7 +73,7 @@ class UIElement extends HTMLElement {
     value: string | undefined
   ): void {
     if (value === old) return
-    const parser = this.attributeMap[name]
+    const parser = (this.constructor as typeof UIElement).attributeMap[name]
     const maybeValue = maybe(value);
     this.set(name, isFunction(parser)
       ? maybeValue.map((v: string | undefined) => parser(v, this, old))
@@ -173,14 +163,12 @@ class UIElement extends HTMLElement {
    * @since 0.5.0
    * @param {UIElement} target - child element to pass the states to
    * @param {UIStateMap} states - object of states to be passed; target state keys as keys, source state keys or function as values
-   * @param {CustomElementRegistry} [registry=customElements] - custom element registry to be used; defaults to `customElements`
    */
   async pass(
     target: UIElement,
-    states: UIStateMap,
-    registry: CustomElementRegistry = customElements
+    states: UIStateMap
   ): Promise<void> {
-    await registry.whenDefined(target.localName)
+    await (this.constructor as typeof UIElement).registry.whenDefined(target.localName)
     if (!hasMethod(target, 'set')) throw new TypeError('Expected UIElement')
     for (const [key, source] of Object.entries(states))
       target.set(key, isSignal(source)

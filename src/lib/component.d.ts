@@ -21,7 +21,6 @@ type UIComponentProps = {
  */
 declare const component: (tag: string, props: UIComponentProps, connect: (host: UIElement, my: UIRef<Element>) => void, disconnect: (host: UIElement) => void, superClass?: typeof UIElement) => {
     new (): {
-        attributeMap: UIAttributeMap;
         connectedCallback(): void;
         disconnectedCallback(): void;
         attributeChangedCallback(name: string, old: string | undefined, value: string | undefined): void;
@@ -35,7 +34,7 @@ declare const component: (tag: string, props: UIComponentProps, connect: (host: 
         delete(key: PropertyKey): boolean;
         delete(key: PropertyKey): boolean;
         pass(element: UIElement, states: import("../ui-element").UIStateMap, registry?: CustomElementRegistry): Promise<void>;
-        pass(target: UIElement, states: import("../ui-element").UIStateMap, registry?: CustomElementRegistry): Promise<void>;
+        pass(target: UIElement, states: import("../ui-element").UIStateMap): Promise<void>;
         signal<V>(key: PropertyKey): import("../cause-effect").UISignal<V>;
         signal<T>(key: PropertyKey): import("../cause-effect").UISignal<T> | undefined;
         "__#1@#states": Map<PropertyKey, import("../cause-effect").UISignal<any>>;
@@ -368,8 +367,10 @@ declare const component: (tag: string, props: UIComponentProps, connect: (host: 
         focus(options?: FocusOptions): void;
     };
     observedAttributes: string[];
+    attributeMap: UIAttributeMap;
     providedContexts: UnknownContext[];
     consumedContexts: UnknownContext[];
-    define(tag: string, registry?: CustomElementRegistry): void;
+    registry: CustomElementRegistry;
+    define(tag: string): void;
 };
 export { type UIComponentProps, UIElement as default, effect, component, ui, asBoolean, asInteger, asNumber, asString, asJSON };

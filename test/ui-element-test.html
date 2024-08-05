@@ -117,7 +117,7 @@
 
     class UpdatingComponent extends UIElement {
       static observedAttributes = ['heading', 'count', 'step', 'value', 'selected'];
-      attributeMap = {
+      static attributeMap = {
         count: v => parseInt(v, 10),
         step: v => parseFloat(v),
         value: (v, el) => Number.isInteger(el.get('step')) ? parseInt(v, 10) : parseFloat(v),

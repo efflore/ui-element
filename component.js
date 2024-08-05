@@ -12,7 +12,7 @@ const isDefinedObject = (value) => isDefined(value) && (isObject(value) || isFun
 const isComment = (node) => node.nodeType !== Node.COMMENT_NODE;
 
 /* === Constants === */
-const TYPE_NOTHING = 'nothing';
+const TYPE_NOTHING = Symbol('nothing');
 /* === Exported Functions === */
 /**
  * Unwrap any value wrapped in a function
@@ -22,6 +22,15 @@ const TYPE_NOTHING = 'nothing';
  * @returns {any} - unwrapped value
  */
 const unwrap = (value) => isFunction(value) ? unwrap(value()) : value;
+/**
+ * Compose functions from right to left
+ *
+ * @since 0.8.0
+ * @param {Function[]} fns - functions to compose
+ * @returns {Function} - composed function
+ * /
+const compose = (...fns: Function[]): Function => (x: unknown) => fns.reduceRight((y, f) => f(y), x);
+
 /**
  * Check if an object has a method of given name
  *
@@ -66,10 +75,10 @@ const something = (value) => {
     const j = () => value;
     j.type = typeof value;
     // j.toString = (): string => isDefinedObject(value) ? JSON.stringify(value) : String(value)
-    j.or = (_) => value;
+    // j.or = (_: unknown): unknown => value
     j.map = (fn) => maybe(fn(value));
-    j.chain = (fn) => fn(value);
-    j.filter = (fn) => fn(value) ? something(value) : nothing();
+    // j.chain = (fn: Function): unknown => fn(value)
+    // j.filter = (fn: Function): UIMaybe<T> => fn(value) ? something(value) : nothing()
     // j.apply = <T>(other: UIFunctor<T>): UIFunctor<T> => isFunction(value) ? other.map(value) : other.map(j)
     return j;
 };
@@ -79,15 +88,13 @@ const something = (value) => {
  * @since 0.8.0
  * @returns {UINothing<T>} - container of "nothing" at all
  */
-const nothing = () => new Proxy(() => undefined, {
+const nothing = () => new Proxy(() => { }, {
     get: (_, prop) => {
-        switch (prop) {
-            case 'type': return TYPE_NOTHING;
-            case 'toString': return () => '';
-            case 'or': return (value) => value;
-            case 'chain': return (fn) => fn();
-            default: return () => nothing();
-        }
+        return (prop === 'type') ? TYPE_NOTHING
+            : (prop === 'toString') ? () => ''
+                // : (prop === 'or') ? (value: unknown): unknown => value
+                // : (prop === 'chain') ? (fn: Function): unknown => fn()
+                : () => nothing();
     }
 });
 
@@ -225,6 +232,8 @@ class ContextRequestEvent extends Event {
  * @type {UIElement}
  */
 class UIElement extends HTMLElement {
+    static registry = customElements;
+    static attributeMap = {};
     static consumedContexts;
     static providedContexts;
     /**
@@ -232,22 +241,15 @@ class UIElement extends HTMLElement {
      *
      * @since 0.5.0
      * @param {string} tag - name of the custom element
-     * @param {CustomElementRegistry} [registry=customElements] - custom element registry to be used; defaults to `customElements`
      */
-    static define(tag, registry = customElements) {
+    static define(tag) {
         try {
-            registry.get(tag) || registry.define(tag, this);
+            this.registry.get(tag) || this.registry.define(tag, this);
         }
         catch (err) {
             console.error(err);
         }
     }
-    /**
-     * @since 0.5.0
-     * @property
-     * @type {UIAttributeMap}
-     */
-    attributeMap = {};
     // @private hold states – use `has()`, `get()`, `set()` and `delete()` to access and modify
     #states = new Map();
     /**
@@ -261,7 +263,7 @@ class UIElement extends HTMLElement {
     attributeChangedCallback(name, old, value) {
         if (value === old)
             return;
-        const parser = this.attributeMap[name];
+        const parser = this.constructor.attributeMap[name];
         const maybeValue = maybe(value);
         this.set(name, isFunction(parser)
             ? maybeValue.map((v) => parser(v, this, old))
@@ -342,10 +344,9 @@ class UIElement extends HTMLElement {
      * @since 0.5.0
      * @param {UIElement} target - child element to pass the states to
      * @param {UIStateMap} states - object of states to be passed; target state keys as keys, source state keys or function as values
-     * @param {CustomElementRegistry} [registry=customElements] - custom element registry to be used; defaults to `customElements`
      */
-    async pass(target, states, registry = customElements) {
-        await registry.whenDefined(target.localName);
+    async pass(target, states) {
+        await this.constructor.registry.whenDefined(target.localName);
         if (!hasMethod(target, 'set'))
             throw new TypeError('Expected UIElement');
         for (const [key, source] of Object.entries(states))
@@ -455,8 +456,8 @@ const ui = (host, node = host) => {
     // el.type = node.localName
     // el.toString = () => `<${node.localName}${idString(node.id)}${classString(node.classList)}>`
     el.map = (fn) => ui(host, fn(host, node));
-    el.chain = (fn) => fn(host, node);
-    el.filter = (fn) => fn(host, node) ? ui(host, node) : nothing();
+    // el.chain = (fn: (host: UIElement, node: Element) => unknown): unknown => fn(host, node)
+    // el.filter = (fn: (host: UIElement, node: Element) => boolean): UIMaybeRef<T> => fn(host, node) ? ui(host, node) : nothing()
     // el.apply = <U>(other: UIFunctor<U>): UIFunctor<U> => other.map(el)
     el.on = (event, handler) => {
         node.addEventListener(event, handler);
@@ -508,9 +509,9 @@ const ui = (host, node = host) => {
 const component = (tag, props = {}, connect, disconnect, superClass = UIElement) => {
     const UIComponent = class extends superClass {
         static observedAttributes = isDefinedObject(props.attributeMap) ? Object.keys(props.attributeMap) : [];
+        static attributeMap = props.attributeMap || {};
         static providedContexts = props.providedContexts || [];
         static consumedContexts = props.consumedContexts || [];
-        attributeMap = props.attributeMap || {};
         connectedCallback() {
             super.connectedCallback();
             connect && connect(this, ui(this));

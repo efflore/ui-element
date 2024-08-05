@@ -8,17 +8,11 @@ interface UIFunctor<T> {
 }
 interface UISomething<T> extends UIFunctor<T> {
     (): T;
-    or: (_: unknown) => unknown;
     map: (fn: Function) => UIMaybe<T>;
-    chain: (fn: Function) => unknown;
-    filter: (fn: Function) => UIMaybe<T>;
 }
 interface UINothing<T> extends UIFunctor<T> {
     (): T;
-    or: (value: unknown) => unknown;
     map: (fn: Function) => UINothing<T>;
-    chain: (fn: Function) => unknown;
-    filter: (fn: Function) => UINothing<T>;
 }
 type UIMaybe<T> = UISomething<T> | UINothing<T>;
 /**
@@ -35,8 +29,9 @@ declare const unwrap: (value: any) => any;
  * @since 0.8.0
  * @param {Function[]} fns - functions to compose
  * @returns {Function} - composed function
- */
-declare const compose: (...fns: Function[]) => Function;
+ * /
+const compose = (...fns: Function[]): Function => (x: unknown) => fns.reduceRight((y, f) => f(y), x);
+
 /**
  * Check if an object has a method of given name
  *
@@ -92,4 +87,4 @@ declare const something: <T>(value: T) => UISomething<T>;
  * @returns {UINothing<T>} - container of "nothing" at all
  */
 declare const nothing: <T>() => UINothing<T>;
-export { type UIContainer, type UIFunctor, type UIMaybe, type UISomething, type UINothing, unwrap, compose, hasMethod, isFunctor, isNothing, isSomething, maybe, something, nothing };
+export { type UIContainer, type UIFunctor, type UIMaybe, type UISomething, type UINothing, unwrap, /* compose, */ hasMethod, isFunctor, isNothing, isSomething, maybe, something, nothing };

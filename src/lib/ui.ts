@@ -10,8 +10,8 @@ interface UIRef<T> extends UIFunctor<unknown> {                        // Unit: 
   // type: string
   // toString: () => string
   map: (fn: (host: UIElement, node: T) => T) => UIMaybeRef<T>          // Functor pattern
-  chain: (fn: (host: UIElement, node: T) => unknown) => unknown        // Monad pattern
-  filter: (fn: (host: UIElement, node: T) => boolean) => UIMaybeRef<T> // Filterable pattern
+  // chain: (fn: (host: UIElement, node: T) => unknown) => unknown        // Monad pattern
+  // filter: (fn: (host: UIElement, node: T) => boolean) => UIMaybeRef<T> // Filterable pattern
   // apply: <U>(other: UIFunctor<U>) => UIFunctor<U>                      // Applicative pattern
   on: (event: string, handler: EventListenerOrEventListenerObject) => UIRef<T>
   off: (event: string, handler: EventListenerOrEventListenerObject) => UIRef<T>
@@ -62,8 +62,8 @@ const ui = <T>(
   // el.type = node.localName
   // el.toString = () => `<${node.localName}${idString(node.id)}${classString(node.classList)}>`
   el.map = (fn: (host: UIElement, node: Element) => Element): UIMaybeRef<T> => ui(host, fn(host, node))
-  el.chain = (fn: (host: UIElement, node: Element) => unknown): unknown => fn(host, node)
-  el.filter = (fn: (host: UIElement, node: Element) => boolean): UIMaybeRef<T> => fn(host, node) ? ui(host, node) : nothing()
+  // el.chain = (fn: (host: UIElement, node: Element) => unknown): unknown => fn(host, node)
+  // el.filter = (fn: (host: UIElement, node: Element) => boolean): UIMaybeRef<T> => fn(host, node) ? ui(host, node) : nothing()
   // el.apply = <U>(other: UIFunctor<U>): UIFunctor<U> => other.map(el)
 
   el.on = (

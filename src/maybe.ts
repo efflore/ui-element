@@ -15,19 +15,19 @@ interface UIFunctor<T> {                          // Unit
 
 interface UISomething<T> extends UIFunctor<T> {   // Unit: Something monad
   (): T                                           // Flat: unwraps the container function
-  or: (_: unknown) => unknown                     // fallback value; ignored for "something" containers
+  // or: (_: unknown) => unknown                     // fallback value; ignored for "something" containers
   map: (fn: Function) => UIMaybe<T>               // Functor pattern
-  chain: (fn: Function) => unknown                // Monad pattern
-  filter: (fn: Function) => UIMaybe<T>            // Filterable pattern
+  // chain: (fn: Function) => unknown                // Monad pattern
+  // filter: (fn: Function) => UIMaybe<T>            // Filterable pattern
   // apply: <U>(other: UIFunctor<U>) => UIFunctor<U> // Applicative pattern
 }
 
 interface UINothing<T> extends UIFunctor<T> {      // Unit: Nothing monad
   (): T                                            // Flat: unwraps the container function
-  or: (value: unknown) => unknown                  // fallback value; returned for "nothing" containers
+  // or: (value: unknown) => unknown                  // fallback value; returned for "nothing" containers
   map: (fn: Function) => UINothing<T>              // Functor pattern
-  chain: (fn: Function) => unknown                 // Monad pattern
-  filter: (fn: Function) => UINothing<T>           // Filterable pattern
+  // chain: (fn: Function) => unknown                 // Monad pattern
+  // filter: (fn: Function) => UINothing<T>           // Filterable pattern
   // apply: <U>(other: UIFunctor<U>) => UIFunctor<U>  // Applicative pattern
 }
 
@@ -35,7 +35,7 @@ type UIMaybe<T> = UISomething<T> | UINothing<T>     // Unit: Maybe monad
 
 /* === Constants === */
 
-const TYPE_NOTHING = 'nothing'
+const TYPE_NOTHING = Symbol('nothing')
 
 /* === Exported Functions === */
 
@@ -54,7 +54,7 @@ const unwrap = (value: any): any => isFunction(value) ? unwrap(value()) : value;
  * @since 0.8.0
  * @param {Function[]} fns - functions to compose
  * @returns {Function} - composed function
- */
+ * /
 const compose = (...fns: Function[]): Function => (x: unknown) => fns.reduceRight((y, f) => f(y), x);
 
 /**
@@ -114,10 +114,10 @@ const something = <T>(value: T): UISomething<T> => {
   const j = (): T => value
   j.type = typeof value
   // j.toString = (): string => isDefinedObject(value) ? JSON.stringify(value) : String(value)
-  j.or = (_: unknown): unknown => value
+  // j.or = (_: unknown): unknown => value
   j.map = (fn: Function): UIMaybe<T> => maybe(fn(value))
-  j.chain = (fn: Function): unknown => fn(value)
-  j.filter = (fn: Function): UIMaybe<T> => fn(value) ? something(value) : nothing()
+  // j.chain = (fn: Function): unknown => fn(value)
+  // j.filter = (fn: Function): UIMaybe<T> => fn(value) ? something(value) : nothing()
   // j.apply = <T>(other: UIFunctor<T>): UIFunctor<T> => isFunction(value) ? other.map(value) : other.map(j)
   return j
 };
@@ -128,16 +128,14 @@ const something = <T>(value: T): UISomething<T> => {
  * @since 0.8.0
  * @returns {UINothing<T>} - container of "nothing" at all
  */
-const nothing = <T>(): UINothing<T> => new Proxy((): undefined => undefined, {
-  get: (_: any, prop: string): unknown => {    
-    switch (prop) {
-      case 'type': return TYPE_NOTHING
-      case 'toString': return () => ''
-      case 'or': return (value: unknown): unknown => value
-      case 'chain': return (fn: Function): unknown => fn()
-      default: return (): UINothing<T> => nothing()
-    }
+const nothing = <T>(): UINothing<T> => new Proxy((): void => {}, {
+  get: (_: any, prop: string): unknown => {
+    return (prop === 'type') ? TYPE_NOTHING
+      : (prop === 'toString') ? () => ''
+      // : (prop === 'or') ? (value: unknown): unknown => value
+      // : (prop === 'chain') ? (fn: Function): unknown => fn()
+      : (): UINothing<T> => nothing()
   }
 });
 
-export { type UIContainer, type UIFunctor, type UIMaybe, type UISomething, type UINothing, unwrap, compose, hasMethod, isFunctor, isNothing, isSomething, maybe, something, nothing }
+export { type UIContainer, type UIFunctor, type UIMaybe, type UISomething, type UINothing, unwrap, /* compose, */ hasMethod, isFunctor, isNothing, isSomething, maybe, something, nothing }

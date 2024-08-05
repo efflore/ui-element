@@ -35,9 +35,9 @@ const component = (
 ): typeof UIComponent => {
   const UIComponent = class extends superClass {
     static observedAttributes: string[] = isDefinedObject(props.attributeMap) ? Object.keys(props.attributeMap) : []
+    static attributeMap: UIAttributeMap = props.attributeMap || {}
     static providedContexts: UnknownContext[] = props.providedContexts || []
     static consumedContexts: UnknownContext[] = props.consumedContexts || []
-    attributeMap: UIAttributeMap = props.attributeMap || {}
 
     connectedCallback() {
       super.connectedCallback()
