@@ -25,7 +25,6 @@ interface UIRef<T> extends UIFunctor<unknown> {                        // Unit: 
   // the following methods are defined for UIElement
   first?: (selector: string) => UIRef<T>
   all?: (selector: string) => UIRef<T>[]
-  targets?: (key: PropertyKey) => UIRef<Element>[]
 }
 
 type UIMaybeRef<T> = UIRef<T> | UINothing<T>
@@ -159,18 +158,6 @@ const ui = <T>(
   
     el.all = (selector: string): UIRef<Element>[] =>
       Array.from(root.querySelectorAll(selector)).map(node => ui(host, node)) // Arrays are monads too :-)
-
-    el.targets = (key: PropertyKey): UIRef<Element>[] => {
-      const targets = [] // Arrays are monads too :-)
-      const state = host.signal(key)
-      if (!state || !state.effects) return targets
-      for (const effect of state.effects) {
-        const t = effect.targets?.keys()
-        if (t) for (const target of t)
-          targets.push(ui(host, target))
-      }
-      return targets
-    }
   }
 
   return el as UIRef<T>

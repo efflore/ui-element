@@ -1,12 +1,6 @@
 import { isString, isDefined } from '../is-type';
+import { UIComputed, UIEffect } from '../cause-effect'
 import UIElement, { type UIStateMap } from '../ui-element'
-
-/* === Types === */
-
-/* interface DebugElement extends UIElement {
-  highlight: (className?: string) => void
-  log(msg: string): void
-}; */
 
 /* === Constants === */
 
@@ -169,12 +163,33 @@ class DebugElement extends UIElement {
   }
 
   /**
+   * Recursively get all target elements of a given state
+   * 
+   * @since 0.7.0
+   * @param {PropertyKey} key - state to be observed
+   */
+  targets(key: PropertyKey): Element[] {
+    let targets = []
+    const state = this.signal(key)
+    if (!state || !state.effects) return targets
+    const recurse = (effects: Set<UIEffect | UIComputed<unknown>>) => {
+      for (const effect of effects) {
+        'effects' in effect
+          ? recurse(effect.effects)
+          : targets = [...targets, ...Array.from(effect.targets?.keys())]
+      }
+    }
+    recurse(state.effects)
+    return targets
+  }
+
+  /**
    * Add event listeners to UIElement and sub-elements to auto-highlight targets when hovering or focusing on elements with given attribute
    * 
    * @since 0.7.0
    * @param {string} [className=EFFECT_CLASS] - CSS class to be added to highlighted targets
    */
-  highlight(className: string = EFFECT_CLASS) {
+  highlight(className: string = EFFECT_CLASS): void {
     [HOVER_SUFFIX, FOCUS_SUFFIX].forEach(suffix => {
       const [onOn, onOff] = suffix === HOVER_SUFFIX
         ? ['mouseenter','mouseleave']
@@ -183,10 +198,10 @@ class DebugElement extends UIElement {
       const apply = (node: Element) => {
         const key = this.getAttribute(attr).trim()
         const on = (type: string, force: boolean) =>
-          /* node.addEventListener(type, () => {
-            for (const target of this.signal(key).effects)
+          node.addEventListener(type, () => {
+            for (const target of this.targets(key))
               target.classList.toggle(className, force)
-          }) */
+          })
         on(onOn, true)
         on(onOff, false)
         node.removeAttribute(attr)

@@ -6,11 +6,11 @@ interface UIEffect extends UIContainer<void> {
 }
 interface UIComputed<T> extends UIEffect {
     (): T;
-    effects: Set<UIEffect>;
+    effects: Set<UIEffect | UIComputed<unknown>>;
 }
 interface UIState<T> extends UIContainer<T> {
     (): T;
-    effects: Set<UIEffect>;
+    effects: Set<UIEffect | UIComputed<unknown>>;
     set(value: unknown): void;
 }
 type UISignal<T> = UIState<T> | UIComputed<T>;
@@ -30,13 +30,6 @@ declare const isState: (value: unknown) => value is UIState<unknown>;
  * @param {unknown} value - variable to check if it is a reactive signal
  */
 declare const isSignal: (value: unknown) => value is UISignal<unknown>;
-/**
- * Check if a given variable is a reactive effect
- *
- * @param {unknown} value - variable to check if it is a reactive effect
- * /
-const isEffect = (value: unknown): value is UIEffect => isContainer(TYPE_EFFECT, value)
-
 /**
  * Define a reactive state
  *

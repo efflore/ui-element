@@ -1,4 +1,4 @@
-import { isFunction, /* isDefinedObject, */ isNullish } from './is-type'
+import { isDefinedObject, isFunction, /* isDefinedObject, */ isNullish } from './is-type'
 
 /* === Types === */
 
@@ -8,6 +8,7 @@ interface UIContainer<T> {                        // Unit
   toString?: () => string                         // string representation of the container
 }
 
+// We deliberately don't extends UIContainer so native arrays also satify the UIFunctor interface
 interface UIFunctor<T> {                          // Unit
   map: (fn: Function) => UIFunctor<T>             // Functor pattern
 }
@@ -57,28 +58,13 @@ const unwrap = (value: any): any => isFunction(value) ? unwrap(value()) : value;
 const compose = (...fns: Function[]): Function => (x: unknown) => fns.reduceRight((y, f) => f(y), x);
 
 /**
- * Check if a given value is a container function
- * 
- * @since 0.8.0
- * @param {unknown} value - value to check
- * @returns {boolean} - whether the value is a container function
- */
-const isAnyContainer = (value: unknown): value is UIContainer<unknown> => isFunction(value) && 'type' in value;
-
-/**
- * Check if a given value is a container function
- * 
- * @since 0.8.0
- * @param {string} type - expected container type
- * @param {unknown} value - value to check
- * @returns {boolean} - whether the value is a container function of the given type
- */
-const isContainer = (type: string, value: unknown): boolean => isAnyContainer(value) && value.type === type
-
-/**
  * Check if an object has a method of given name
+ * 
+ * @since 0.8.0
+ * @param {object} obj - object to check
+ * @returns {boolean} - true if the object has a method of the given name, false otherwise
  */
-const hasMethod = (obj: object, methodName: string): boolean => obj && isFunction(obj[methodName])
+const hasMethod = (obj: object, name: string): boolean => obj && isFunction(obj[name])
 
 /**
  * Check if a given value is a functor
@@ -87,7 +73,7 @@ const hasMethod = (obj: object, methodName: string): boolean => obj && isFunctio
  * @param {unknown} value - value to check
  * @returns {boolean} - true if the value is a functor, false otherwise
  */
-const isFunctor = (value: unknown): value is UIFunctor<unknown> => isAnyContainer(value) && hasMethod(value, 'map')
+const isFunctor = (value: unknown): value is UIFunctor<unknown> => isDefinedObject(value) && hasMethod(value, 'map')
 
 /**
  * Check if a given value is nothing
@@ -96,7 +82,8 @@ const isFunctor = (value: unknown): value is UIFunctor<unknown> => isAnyContaine
  * @param {unknown} value - value to check
  * @returns {boolean} - true if the value is nothing, false otherwise
  */
-const isNothing = (value: unknown): boolean => isNullish(value) || isContainer(TYPE_NOTHING, value)
+const isNothing = (value: unknown): boolean => isNullish(value)
+  || (isFunction(value) && 'type' in value && value.type === TYPE_NOTHING)
 
 /**
  * Check if a given value is something
@@ -153,4 +140,4 @@ const nothing = <T>(): UINothing<T> => new Proxy((): undefined => undefined, {
   }
 });
 
-export { type UIContainer, type UIFunctor, type UIMaybe, type UISomething, type UINothing, unwrap, compose, isAnyContainer, isContainer, hasMethod, isFunctor, isNothing, isSomething, maybe, something, nothing }
+export { type UIContainer, type UIFunctor, type UIMaybe, type UISomething, type UINothing, unwrap, compose, hasMethod, isFunctor, isNothing, isSomething, maybe, something, nothing }

@@ -12,13 +12,13 @@ interface UIEffect extends UIContainer<void> {
 
 interface UIComputed<T> extends UIEffect {
   (): T
-  effects: Set<UIEffect>
+  effects: Set<UIEffect | UIComputed<unknown>>
 }
 
 interface UIState<T> extends UIContainer<T> {
   (): T
   // type: string
-  effects: Set<UIEffect>
+  effects: Set<UIEffect | UIComputed<unknown>>
   set(value: unknown): void
 }
 
@@ -47,9 +47,9 @@ let active: UIEffect | undefined
 /**
  * Run all effects in the provided set
  * 
- * @param {Set<UIEffects>} effects 
+ * @param {Set<UIEffect | UIComputed<unknown>>} effects 
  */
-const autorun = (effects: Set<UIEffect>) => {
+const autorun = (effects: Set<UIEffect | UIComputed<unknown>>) => {
   for (const effect of effects)
     effect.run()
 }
@@ -79,13 +79,6 @@ const isComputed = (value: unknown): value is UIComputed<unknown> => isFunction(
 const isSignal = (value: unknown): value is UISignal<unknown> => isState(value) || isComputed(value)
 
 /**
- * Check if a given variable is a reactive effect
- * 
- * @param {unknown} value - variable to check if it is a reactive effect
- * /
-const isEffect = (value: unknown): value is UIEffect => isContainer(TYPE_EFFECT, value)
-
-/**
  * Define a reactive state
  * 
  * @since 0.1.0
@@ -98,7 +91,7 @@ const cause = (value: any): UIState<unknown> => {
     return value
   }
   // s.type = TYPE_STATE
-  s.effects = new Set<UIEffect>() // set of listeners
+  s.effects = new Set<UIEffect | UIComputed<unknown>>() // set of listeners
   s.set = (updater: unknown) => { // setter function
     const old = value
     value = isFunction(updater) && !isSignal(updater)
@@ -133,7 +126,7 @@ const derive = <T>(fn: () => T, memo: boolean = false): UIComputed<T> => {
     return value
   }
   // c.type = TYPE_COMPUTED
-  c.effects = new Set<UIEffect>(); // set of listeners
+  c.effects = new Set<UIEffect | UIComputed<unknown>>(); // set of listeners
   c.run = () => {
     dirty = true
     memo && autorun(c.effects)

@@ -1,7 +1,10 @@
 /* === Exported Functions === */
-const is = (type) => (value) => typeof value === type;
+const isType = (type) => (value) => typeof value === type;
 const isNullish = (value) => value == null;
-const isFunction = is('function');
+const isDefined = (value) => value != null;
+const isObject = isType('object');
+const isFunction = isType('function');
+const isDefinedObject = (value) => isDefined(value) && (isObject(value) || isFunction(value));
 
 /* === Constants === */
 const TYPE_NOTHING = 'nothing';
@@ -15,26 +18,13 @@ const TYPE_NOTHING = 'nothing';
  */
 const unwrap = (value) => isFunction(value) ? unwrap(value()) : value;
 /**
- * Check if a given value is a container function
- *
- * @since 0.8.0
- * @param {unknown} value - value to check
- * @returns {boolean} - whether the value is a container function
- */
-const isAnyContainer = (value) => isFunction(value) && 'type' in value;
-/**
- * Check if a given value is a container function
- *
- * @since 0.8.0
- * @param {string} type - expected container type
- * @param {unknown} value - value to check
- * @returns {boolean} - whether the value is a container function of the given type
- */
-const isContainer = (type, value) => isAnyContainer(value) && value.type === type;
-/**
  * Check if an object has a method of given name
+ *
+ * @since 0.8.0
+ * @param {object} obj - object to check
+ * @returns {boolean} - true if the object has a method of the given name, false otherwise
  */
-const hasMethod = (obj, methodName) => obj && isFunction(obj[methodName]);
+const hasMethod = (obj, name) => obj && isFunction(obj[name]);
 /**
  * Check if a given value is a functor
  *
@@ -42,7 +32,7 @@ const hasMethod = (obj, methodName) => obj && isFunction(obj[methodName]);
  * @param {unknown} value - value to check
  * @returns {boolean} - true if the value is a functor, false otherwise
  */
-const isFunctor = (value) => isAnyContainer(value) && hasMethod(value, 'map');
+const isFunctor = (value) => isDefinedObject(value) && hasMethod(value, 'map');
 /**
  * Check if a given value is nothing
  *
@@ -50,7 +40,8 @@ const isFunctor = (value) => isAnyContainer(value) && hasMethod(value, 'map');
  * @param {unknown} value - value to check
  * @returns {boolean} - true if the value is nothing, false otherwise
  */
-const isNothing = (value) => isNullish(value) || isContainer(TYPE_NOTHING, value);
+const isNothing = (value) => isNullish(value)
+    || (isFunction(value) && 'type' in value && value.type === TYPE_NOTHING);
 /**
  * Create a container for a given value to gracefully handle nullable values
  *
@@ -105,7 +96,7 @@ let active;
 /**
  * Run all effects in the provided set
  *
- * @param {Set<UIEffects>} effects
+ * @param {Set<UIEffect | UIComputed<unknown>>} effects
  */
 const autorun = (effects) => {
     for (const effect of effects)
@@ -131,13 +122,6 @@ const isComputed = (value) => isFunction(value) && hasMethod(value, 'run') && 'e
  * @param {unknown} value - variable to check if it is a reactive signal
  */
 const isSignal = (value) => isState(value) || isComputed(value);
-/**
- * Check if a given variable is a reactive effect
- *
- * @param {unknown} value - variable to check if it is a reactive effect
- * /
-const isEffect = (value: unknown): value is UIEffect => isContainer(TYPE_EFFECT, value)
-
 /**
  * Define a reactive state
  *

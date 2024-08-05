@@ -15,7 +15,6 @@ interface UIRef<T> extends UIFunctor<unknown> {
     style?: (prop: string, state?: PropertyKey) => UIRef<T>;
     first?: (selector: string) => UIRef<T>;
     all?: (selector: string) => UIRef<T>[];
-    targets?: (key: PropertyKey) => UIRef<Element>[];
 }
 type UIMaybeRef<T> = UIRef<T> | UINothing<T>;
 /**

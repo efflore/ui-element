@@ -38,26 +38,13 @@ declare const unwrap: (value: any) => any;
  */
 declare const compose: (...fns: Function[]) => Function;
 /**
- * Check if a given value is a container function
- *
- * @since 0.8.0
- * @param {unknown} value - value to check
- * @returns {boolean} - whether the value is a container function
- */
-declare const isAnyContainer: (value: unknown) => value is UIContainer<unknown>;
-/**
- * Check if a given value is a container function
- *
- * @since 0.8.0
- * @param {string} type - expected container type
- * @param {unknown} value - value to check
- * @returns {boolean} - whether the value is a container function of the given type
- */
-declare const isContainer: (type: string, value: unknown) => boolean;
-/**
  * Check if an object has a method of given name
+ *
+ * @since 0.8.0
+ * @param {object} obj - object to check
+ * @returns {boolean} - true if the object has a method of the given name, false otherwise
  */
-declare const hasMethod: (obj: object, methodName: string) => boolean;
+declare const hasMethod: (obj: object, name: string) => boolean;
 /**
  * Check if a given value is a functor
  *
@@ -105,4 +92,4 @@ declare const something: <T>(value: T) => UISomething<T>;
  * @returns {UINothing<T>} - container of "nothing" at all
  */
 declare const nothing: <T>() => UINothing<T>;
-export { type UIContainer, type UIFunctor, type UIMaybe, type UISomething, type UINothing, unwrap, compose, isAnyContainer, isContainer, hasMethod, isFunctor, isNothing, isSomething, maybe, something, nothing };
+export { type UIContainer, type UIFunctor, type UIMaybe, type UISomething, type UINothing, unwrap, compose, hasMethod, isFunctor, isNothing, isSomething, maybe, something, nothing };

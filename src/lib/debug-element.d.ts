@@ -65,6 +65,13 @@ declare class DebugElement extends UIElement {
      */
     pass(element: UIElement, states: UIStateMap, registry?: CustomElementRegistry): Promise<void>;
     /**
+     * Recursively get all target elements of a given state
+     *
+     * @since 0.7.0
+     * @param {PropertyKey} key - state to be observed
+     */
+    targets(key: PropertyKey): Element[];
+    /**
      * Add event listeners to UIElement and sub-elements to auto-highlight targets when hovering or focusing on elements with given attribute
      *
      * @since 0.7.0
