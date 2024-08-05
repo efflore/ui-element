@@ -75,8 +75,10 @@ declare class DebugElement extends UIElement {
      * Log messages in debug mode
      *
      * @since 0.5.0
-     * @param {string} msg - debug message to be logged
+     * @param {string} label - debug label for value to be logged
+     * @param {T} value - value to be logged in debug mode
+     * @returns {T} - return the value for chaining
      */
-    log(msg: string): void;
+    log<T>(label: string, value: T): T;
 }
 export { DEV_MODE, DebugElement as default };

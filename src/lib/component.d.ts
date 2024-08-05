@@ -35,9 +35,9 @@ declare const component: (tag: string, props: UIComponentProps, connect: (host: 
         delete(key: PropertyKey): boolean;
         delete(key: PropertyKey): boolean;
         pass(element: UIElement, states: import("../ui-element").UIStateMap, registry?: CustomElementRegistry): Promise<void>;
-        pass(element: UIElement, states: import("../ui-element").UIStateMap, registry?: CustomElementRegistry): Promise<void>;
-        targets(key: PropertyKey): Set<Element>;
-        targets(key: PropertyKey): Set<Element>;
+        pass(target: UIElement, states: import("../ui-element").UIStateMap, registry?: CustomElementRegistry): Promise<void>;
+        signal<V>(key: PropertyKey): import("../cause-effect").UISignal<V>;
+        signal<T>(key: PropertyKey): import("../cause-effect").UISignal<T> | undefined;
         "__#1@#states": Map<PropertyKey, import("../cause-effect").UISignal<any>>;
         accessKey: string;
         readonly accessKeyLabel: string;

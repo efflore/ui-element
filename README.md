@@ -299,12 +299,12 @@ The last option comes with a bit more library code (around 1.6 kB gzipped), but 
     consumedContexts: [], // for static consumedContexts an array of keys can be provided optionally
     providedContexts: [], // for static providedContexts an array of keys can be provided optionally
   },
-  (el, my) => {
+  (el, ui) => {
     // `el` is `this` of your custom element
-    // `my` is a UI reference of your custom element
-    my.first('.decrement').on('click', () => el.set('value', v => --v));
-    my.first('.increment').on('click', () => el.set('value', v => ++v));
-    my.first('span').text('value');
+    // `ui` is a UI reference of your custom element
+    ui.first('.decrement').on('click', () => el.set('value', v => --v));
+    ui.first('.increment').on('click', () => el.set('value', v => ++v));
+    ui.first('span').text('value');
   });
 </script>
 ```
@@ -313,7 +313,7 @@ Where has the JavaScript gone? – It almost disappeared. To explain the magic:
 
 1. Web Components observe `observedAttributes` and call the `attributeChangedCallback()` (keys of attribute map passed as second parameter)
 2. `UIElement` **auto-parses** the `'value'` attribute as an integer and creates a state signal with the same key
-3. `my.first('span').text('value');` looks for the first `span` in the DOM sub-tree and **auto-creates** an effect for it
+3. `ui.first('span').text('value');` looks for the first `span` in the DOM sub-tree and **auto-creates** an effect for it
 4. `UIElement` **auto-tracks** the use of the `'value'` signal in the effect you did not even write
 5. The `on('click')` handlers will increment or decrement the `'value'` signal value on button clicks
 6. `UIElement` **auto-runs** the effect you did not even write again with a new `'value'` value
@@ -329,29 +329,29 @@ import { component, ui } from './component';
 component('my-counter', {}, (el, my) => {
   // third parameter of component is called in connectedCallback()
   // `el` is `this` of your custom element
-  // `my` is a UI reference of your custom the element with convenience methods to query sub-elements, bind events, and auto-create effects
+  // `ui` is a UI reference of your custom the element with convenience methods to query sub-elements, bind events, and auto-create effects
 
   // console.log(my()); // calling the UI reference returns the native DOM element
-  const count = my.first('.count'); // first does querySelector and returns a UI reference
+  const count = ui.first('.count'); // first does querySelector and returns a UI reference
   el.set('value', count().textContent); // get initial value from textContent instead of observed attribute
-  my.first('.decrement').on('click', () => el.set('value', v => --v));
-  my.first('.increment').on('click', () => el.set('value', v => ++v));
+  ui.first('.decrement').on('click', () => el.set('value', v => --v));
+  ui.first('.increment').on('click', () => el.set('value', v => ++v));
 
   // you can explicitly write your own effects ...
   /* effect(enqueue => {
-    const double = my.first('.double');
+    const double = ui.first('.double');
     const value = el.get('value');
     enqueue(count(), () => count().textContent = value);
     enqueue(double(), () => double().textContent = value * 2);
-    enqueue(my(), () => my().classList.toggle('odd', value % 2));
+    enqueue(el, () => el.classList.toggle('odd', value % 2));
   }); */
 
   // ... or auto-create effects with UI reference methods
   count.text('value');
   el.set('double', () => el.get(value) * 2); // but then you have to first create a derived state for it
-  my.first('.double').text('double');
+  ui.first('.double').text('double');
   el.set('odd', () => el.get(value) % 2);
-  my.class('odd');
+  ui.class('odd');
 });
 ```
 

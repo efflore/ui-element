@@ -40,13 +40,17 @@ const isAnyContainer = (value) => isFunction(value) && 'type' in value;
  */
 const isContainer = (type, value) => isAnyContainer(value) && value.type === type;
 /**
+ * Check if an object has a method of given name
+ */
+const hasMethod = (obj, methodName) => obj && isFunction(obj[methodName]);
+/**
  * Check if a given value is a functor
  *
  * @since 0.8.0
  * @param {unknown} value - value to check
  * @returns {boolean} - true if the value is a functor, false otherwise
  */
-const isFunctor = (value) => isAnyContainer(value) && 'map' in value;
+const isFunctor = (value) => isAnyContainer(value) && hasMethod(value, 'map');
 /**
  * Check if a given value is nothing
  *
@@ -100,9 +104,9 @@ const nothing = () => new Proxy(() => undefined, {
 });
 
 /* === Constants === */
-const TYPE_STATE = 'state';
-const TYPE_COMPUTED = 'computed';
-const TYPE_EFFECT = 'effect';
+/* const TYPE_STATE = 'state'
+const TYPE_COMPUTED = 'computed'
+const TYPE_EFFECT = 'effect' */
 /* === Internal === */
 // hold the currently active effect
 let active;
@@ -122,13 +126,13 @@ const autorun = (effects) => {
  * @param {unknown} value - variable to check if it is a reactive state
  * @returns {boolean} true if supplied parameter is a reactive state
  */
-const isState = (value) => isContainer(TYPE_STATE, value);
+const isState = (value) => isFunction(value) && hasMethod(value, 'set');
 /**
  * Check if a given variable is a reactive computed state
  *
  * @param {unknown} value - variable to check if it is a reactive computed state
  */
-const isComputed = (value) => isContainer(TYPE_COMPUTED, value);
+const isComputed = (value) => isFunction(value) && hasMethod(value, 'run') && 'effects' in value;
 /**
  * Check if a given variable is a reactive signal (state or computed state)
  *
@@ -154,11 +158,11 @@ const cause = (value) => {
         active && s.effects.add(active);
         return value;
     };
-    s.type = TYPE_STATE;
+    // s.type = TYPE_STATE
     s.effects = new Set(); // set of listeners
     s.set = (updater) => {
         const old = value;
-        value = isFunction(updater) && !isAnyContainer(updater)
+        value = isFunction(updater) && !isSignal(updater)
             ? isFunctor(value)
                 ? value.map(updater)
                 : updater(value)
@@ -190,7 +194,7 @@ const effect = (fn) => {
         active = prev;
         isFunction(cleanup) && queueMicrotask(cleanup);
     };
-    n.type = TYPE_EFFECT;
+    // n.type = TYPE_EFFECT
     n.run = () => n();
     n.targets = targets;
     n();
@@ -355,38 +359,30 @@ class UIElement extends HTMLElement {
      * Passes states from the current UIElement to another UIElement
      *
      * @since 0.5.0
-     * @param {UIElement} element - child element to pass the states to
+     * @param {UIElement} target - child element to pass the states to
      * @param {UIStateMap} states - object of states to be passed; target state keys as keys, source state keys or function as values
      * @param {CustomElementRegistry} [registry=customElements] - custom element registry to be used; defaults to `customElements`
      */
-    async pass(element, states, registry = customElements) {
-        await registry.whenDefined(element.localName);
+    async pass(target, states, registry = customElements) {
+        await registry.whenDefined(target.localName);
+        if (!hasMethod(target, 'set'))
+            throw new TypeError('Expected UIElement');
         for (const [key, source] of Object.entries(states))
-            element.set(key, isSignal(source)
+            target.set(key, isSignal(source)
                 ? source
                 : isFunction(source)
                     ? cause(source)
                     : this.#states.get(source));
     }
     /**
-     * Return a Set of elements that have effects dependent on the given state
+     * Return the signal for a state
      *
-     * @since 0.7.0
-     * @param {PropertyKey} key - state to get targets for
-     * @returns {Set<Element>} set of elements that have effects dependent on the given state
+     * @since 0.8.0
+     * @param {PropertyKey} key - state to get signal for
+     * @returns {UISignal<T> | undefined} signal for the given state; undefined if
      */
-    targets(key) {
-        const targets = new Set();
-        const state = this.#states.get(key);
-        if (!state || !state.effects)
-            return targets;
-        for (const effect of state.effects) {
-            const t = effect.targets?.keys();
-            if (t)
-                for (const target of t)
-                    targets.add(target);
-        }
-        return targets;
+    signal(key) {
+        return this.#states.get(key);
     }
 }
 
@@ -464,40 +460,6 @@ const isStylable = (node) => {
     }
     return false;
 };
-/**
- * Return selector string for the id of the element
- *
- * @param {string} id
- * @returns {string} - id string for the element with '#' prefix
- * /
-const idString = (id: string): string => id ? `#${id}` : '';
-
-/**
- * Return a selector string for classes of the element
- *
- * @param {DOMTokenList} classList - DOMTokenList to convert to a string
- * @returns {string} - class string for the DOMTokenList with '.' prefix if any
- * /
-const classString = (classList: DOMTokenList): string => classList.length ? `.${Array.from(classList).join('.')}` : '';
-
-/* === Exported functions === */
-/**
- * Create a "list" container for an array of whatever, providing a chainable API for handling multiple values
- *
- * @since 0.8.0
- * @param {unknown} items - array of items to wrap in a list container
- * @returns {UIList} - UIList instance for the given array
- */
-const list = (items) => {
-    const l = () => items;
-    l.type = 'list';
-    // l.toString = () => items.map(n => n.toString()).join('\n')
-    l.map = (fn) => list(items.map((item) => fn(item)));
-    l.chain = (fn) => fn(items);
-    l.filter = (fn) => list(items.filter((item) => fn(item)));
-    // l.apply = <U>(other: UIFunctor<U>): UIFunctor<U> => other.map(l)
-    return l;
-};
 /* === Default export === */
 /**
  * Wrapper around a native DOM element for DOM manipulation
@@ -509,19 +471,12 @@ const list = (items) => {
  */
 const ui = (host, node = host) => {
     const el = () => node;
-    el.type = node.localName;
+    // el.type = node.localName
     // el.toString = () => `<${node.localName}${idString(node.id)}${classString(node.classList)}>`
     el.map = (fn) => ui(host, fn(host, node));
     el.chain = (fn) => fn(host, node);
     el.filter = (fn) => fn(host, node) ? ui(host, node) : nothing();
     // el.apply = <U>(other: UIFunctor<U>): UIFunctor<U> => other.map(el)
-    el.first = (selector) => {
-        const match = (host.shadowRoot || host).querySelector(selector);
-        return match ? ui(host, match) : nothing();
-    };
-    el.all = (selector) => {
-        return list(Array.from((host.shadowRoot || host).querySelectorAll(selector)).map(node => ui(host, node)));
-    };
     el.on = (event, handler) => {
         node.addEventListener(event, handler);
         return el;
@@ -530,49 +485,43 @@ const ui = (host, node = host) => {
         node.removeEventListener(event, handler);
         return el;
     };
-    el.text = (state) => {
-        const fallback = node.textContent || '';
+    const autoEffect = (state, fallback, setter) => {
         host.set(state, fallback, false);
-        effect((q) => host.has(state) && q(node, () => {
-            const content = host.get(state);
-            Array.from(node.childNodes).filter(isComment).forEach(match => match.remove());
-            node.append(document.createTextNode(isDefined(content) ? String(content) : fallback));
-        }));
+        effect((q) => host.has(state) && q(node, () => setter(host.get(state), fallback)));
         return el;
     };
-    el.prop = (key, state = key) => {
-        host.set(state, node[key], false);
-        effect((q) => host.has(state) && q(node, () => node[key] = host.get(state)));
-        return el;
-    };
-    el.attr = (name, state = name) => {
-        host.set(state, node.getAttribute(name), false);
-        effect((q) => host.has(state) && q(node, () => {
-            const value = host.get(state);
-            isDefined(value) ? node.setAttribute(name, String(value)) : node.removeAttribute(name);
-        }));
-        return el;
-    };
-    el.bool = (name, state = name) => {
-        host.set(state, node.hasAttribute(name), false);
-        effect((q) => host.has(state) && q(node, () => node.toggleAttribute(name, !!host.get(state))));
-        return el;
-    };
-    el.class = (token, state = token) => {
-        host.set(state, node.classList.contains(token), false);
-        effect((q) => host.has(state) && q(node, () => node.classList.toggle(token, !!host.get(state))));
-        return el;
-    };
-    el.style = (prop, state = prop) => {
-        if (isStylable(node)) {
-            host.set(state, node.style[prop], false);
-            effect((q) => host.has(state) && q(node, () => node.style[prop] = host.get(state)));
-        }
-        else {
-            console.error(`Style effect not supported for element type ${node.localName}`);
-        }
-        return el;
-    };
+    el.text = (state) => autoEffect(state, node.textContent || '', (content, fallback) => {
+        Array.from(node.childNodes).filter(isComment).forEach(match => match.remove());
+        node.append(document.createTextNode(isDefined(content) ? String(content) : fallback));
+    });
+    el.prop = (key, state = key) => autoEffect(state, node[key], (value) => node[key] = value);
+    el.attr = (name, state = name) => autoEffect(state, node.getAttribute(name), (value) => isDefined(value) ? node.setAttribute(name, String(value)) : node.removeAttribute(name));
+    el.bool = (name, state = name) => autoEffect(state, node.hasAttribute(name), (value) => node.toggleAttribute(name, value));
+    el.class = (token, state = token) => autoEffect(state, node.classList.contains(token), (value) => node.classList[value ? 'add' : 'remove'](token));
+    if (isStylable(node)) {
+        el.style = (prop, state = prop) => autoEffect(state, node.style[prop], (value) => isDefined(value) ? node.style[prop] = String(value) : node.style.removeProperty(prop));
+    }
+    if (host === node) {
+        const root = (host.shadowRoot || host);
+        el.first = (selector) => {
+            const match = root.querySelector(selector);
+            return match ? ui(host, match) : nothing();
+        };
+        el.all = (selector) => Array.from(root.querySelectorAll(selector)).map(node => ui(host, node));
+        el.targets = (key) => {
+            const targets = [];
+            const state = host.signal(key);
+            if (!state || !state.effects)
+                return targets;
+            for (const effect of state.effects) {
+                const t = effect.targets?.keys();
+                if (t)
+                    for (const target of t)
+                        targets.push(ui(host, target));
+            }
+            return targets;
+        };
+    }
     return el;
 };
 

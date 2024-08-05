@@ -1,5 +1,5 @@
-import { isFunction, isInstanceOf } from "./is-type"
-import { unwrap, maybe } from "./maybe"
+import { isFunction } from "./is-type"
+import { unwrap, maybe, hasMethod } from "./maybe"
 import { type UISignal, isState, isSignal, cause } from "./cause-effect"
 import { type UnknownContext, CONTEXT_REQUEST, ContextRequestEvent } from "./context-request"
 
@@ -25,7 +25,7 @@ interface UIElement extends HTMLElement {
   set<V>(key: PropertyKey, value: V | ((old: V | undefined) => V) | UISignal<V>, update?: boolean): void
   delete(key: PropertyKey): boolean
   pass(element: UIElement, states: UIStateMap, registry?: CustomElementRegistry): Promise<void>
-  targets(key: PropertyKey): Set<Element>
+  signal<V>(key: PropertyKey): UISignal<V>
 }
 
 /* === Default export === */
@@ -171,18 +171,19 @@ class UIElement extends HTMLElement {
    * Passes states from the current UIElement to another UIElement
    * 
    * @since 0.5.0
-   * @param {UIElement} element - child element to pass the states to
+   * @param {UIElement} target - child element to pass the states to
    * @param {UIStateMap} states - object of states to be passed; target state keys as keys, source state keys or function as values
    * @param {CustomElementRegistry} [registry=customElements] - custom element registry to be used; defaults to `customElements`
    */
   async pass(
-    element: UIElement,
+    target: UIElement,
     states: UIStateMap,
     registry: CustomElementRegistry = customElements
   ): Promise<void> {
-    await registry.whenDefined(element.localName)
+    await registry.whenDefined(target.localName)
+    if (!hasMethod(target, 'set')) throw new TypeError('Expected UIElement')
     for (const [key, source] of Object.entries(states))
-      element.set(key, isSignal(source)
+      target.set(key, isSignal(source)
         ? source
         : isFunction(source)
           ? cause(source)
@@ -191,26 +192,16 @@ class UIElement extends HTMLElement {
   }
 
   /**
-   * Return a Set of elements that have effects dependent on the given state
+   * Return the signal for a state
    * 
-   * @since 0.7.0
-   * @param {PropertyKey} key - state to get targets for
-   * @returns {Set<Element>} set of elements that have effects dependent on the given state
+   * @since 0.8.0
+   * @param {PropertyKey} key - state to get signal for
+   * @returns {UISignal<T> | undefined} signal for the given state; undefined if
    */
-  targets(key: PropertyKey): Set<Element> {
-    const targets = new Set<Element>()
-    const state = this.#states.get(key)
-    if (!state || !state.effects) return targets
-    for (const effect of state.effects) {
-      const t = effect.targets?.keys()
-      if (t) for (const target of t)
-        targets.add(target)
-    }
-    return targets
+  signal<T>(key: PropertyKey): UISignal<T> | undefined {
+    return this.#states.get(key)
   }
 
 }
 
-const isUIElement = isInstanceOf(UIElement)
-
-export { type UIStateMap, type UIAttributeMap, UIElement as default, isUIElement }
+export { type UIStateMap, type UIAttributeMap, UIElement as default }

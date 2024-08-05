@@ -20,14 +20,9 @@ const unwrap = (value) => isFunction(value) ? unwrap(value()) : value;
  */
 const isAnyContainer = (value) => isFunction(value) && 'type' in value;
 /**
- * Check if a given value is a container function
- *
- * @since 0.8.0
- * @param {string} type - expected container type
- * @param {unknown} value - value to check
- * @returns {boolean} - whether the value is a container function of the given type
+ * Check if an object has a method of given name
  */
-const isContainer = (type, value) => isAnyContainer(value) && value.type === type;
+const hasMethod = (obj, methodName) => obj && isFunction(obj[methodName]);
 /**
  * Check if a given value is a functor
  *
@@ -35,12 +30,12 @@ const isContainer = (type, value) => isAnyContainer(value) && value.type === typ
  * @param {unknown} value - value to check
  * @returns {boolean} - true if the value is a functor, false otherwise
  */
-const isFunctor = (value) => isAnyContainer(value) && 'map' in value;
+const isFunctor = (value) => isAnyContainer(value) && hasMethod(value, 'map');
 
 /* === Constants === */
-const TYPE_STATE = 'state';
-const TYPE_COMPUTED = 'computed';
-const TYPE_EFFECT = 'effect';
+/* const TYPE_STATE = 'state'
+const TYPE_COMPUTED = 'computed'
+const TYPE_EFFECT = 'effect' */
 /* === Internal === */
 // hold the currently active effect
 let active;
@@ -60,13 +55,13 @@ const autorun = (effects) => {
  * @param {unknown} value - variable to check if it is a reactive state
  * @returns {boolean} true if supplied parameter is a reactive state
  */
-const isState = (value) => isContainer(TYPE_STATE, value);
+const isState = (value) => isFunction(value) && hasMethod(value, 'set');
 /**
  * Check if a given variable is a reactive computed state
  *
  * @param {unknown} value - variable to check if it is a reactive computed state
  */
-const isComputed = (value) => isContainer(TYPE_COMPUTED, value);
+const isComputed = (value) => isFunction(value) && hasMethod(value, 'run') && 'effects' in value;
 /**
  * Check if a given variable is a reactive signal (state or computed state)
  *
@@ -92,7 +87,7 @@ const cause = (value) => {
         active && s.effects.add(active);
         return value;
     };
-    s.type = TYPE_STATE;
+    // s.type = TYPE_STATE
     s.effects = new Set(); // set of listeners
     s.set = (updater) => {
         const old = value;
@@ -127,7 +122,7 @@ const derive = (fn, memo = false) => {
         active = prev;
         return value;
     };
-    c.type = TYPE_COMPUTED;
+    // c.type = TYPE_COMPUTED
     c.effects = new Set(); // set of listeners
     c.run = () => {
         dirty = true;
@@ -158,7 +153,7 @@ const effect = (fn) => {
         active = prev;
         isFunction(cleanup) && queueMicrotask(cleanup);
     };
-    n.type = TYPE_EFFECT;
+    // n.type = TYPE_EFFECT
     n.run = () => n();
     n.targets = targets;
     n();

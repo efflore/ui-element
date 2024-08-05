@@ -13,7 +13,7 @@ interface UIElement extends HTMLElement {
     set<V>(key: PropertyKey, value: V | ((old: V | undefined) => V) | UISignal<V>, update?: boolean): void;
     delete(key: PropertyKey): boolean;
     pass(element: UIElement, states: UIStateMap, registry?: CustomElementRegistry): Promise<void>;
-    targets(key: PropertyKey): Set<Element>;
+    signal<V>(key: PropertyKey): UISignal<V>;
 }
 /**
  * Base class for reactive custom elements
@@ -41,5 +41,4 @@ declare class UIElement extends HTMLElement {
      */
     attributeMap: UIAttributeMap;
 }
-declare const isUIElement: (value: Node) => value is Element;
-export { type UIStateMap, type UIAttributeMap, UIElement as default, isUIElement };
+export { type UIStateMap, type UIAttributeMap, UIElement as default };

@@ -1,9 +1,9 @@
 interface UIContainer<T> {
     (): T;
-    type: string;
+    type?: string;
     toString?: () => string;
 }
-interface UIFunctor<T> extends UIContainer<T> {
+interface UIFunctor<T> {
     map: (fn: Function) => UIFunctor<T>;
 }
 interface UISomething<T> extends UIFunctor<T> {
@@ -30,6 +30,14 @@ type UIMaybe<T> = UISomething<T> | UINothing<T>;
  */
 declare const unwrap: (value: any) => any;
 /**
+ * Compose functions from right to left
+ *
+ * @since 0.8.0
+ * @param {Function[]} fns - functions to compose
+ * @returns {Function} - composed function
+ */
+declare const compose: (...fns: Function[]) => Function;
+/**
  * Check if a given value is a container function
  *
  * @since 0.8.0
@@ -46,6 +54,10 @@ declare const isAnyContainer: (value: unknown) => value is UIContainer<unknown>;
  * @returns {boolean} - whether the value is a container function of the given type
  */
 declare const isContainer: (type: string, value: unknown) => boolean;
+/**
+ * Check if an object has a method of given name
+ */
+declare const hasMethod: (obj: object, methodName: string) => boolean;
 /**
  * Check if a given value is a functor
  *
@@ -93,4 +105,4 @@ declare const something: <T>(value: T) => UISomething<T>;
  * @returns {UINothing<T>} - container of "nothing" at all
  */
 declare const nothing: <T>() => UINothing<T>;
-export { type UIContainer, type UIFunctor, type UIMaybe, type UISomething, type UINothing, unwrap, isAnyContainer, isContainer, isFunctor, isNothing, isSomething, maybe, something, nothing };
+export { type UIContainer, type UIFunctor, type UIMaybe, type UISomething, type UINothing, unwrap, compose, isAnyContainer, isContainer, hasMethod, isFunctor, isNothing, isSomething, maybe, something, nothing };
