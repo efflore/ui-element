@@ -1,8 +1,8 @@
 import { type UIFunctor, type UINothing } from '../maybe';
 import UIElement from '../ui-element';
-interface UIRef<T> extends UIFunctor<unknown> {
+interface UIRef<T> extends UIFunctor<T> {
     (): T;
-    map: (fn: (host: UIElement, node: T) => T) => UIMaybeRef<T>;
+    map: <V>(fn: (node: T, host: UIElement) => V) => UIMaybeRef<V>;
     on: (event: string, handler: EventListenerOrEventListenerObject) => UIRef<T>;
     off: (event: string, handler: EventListenerOrEventListenerObject) => UIRef<T>;
     text: (state: PropertyKey) => UIRef<T>;
@@ -14,7 +14,7 @@ interface UIRef<T> extends UIFunctor<unknown> {
     first?: (selector: string) => UIRef<T>;
     all?: (selector: string) => UIRef<T>[];
 }
-type UIMaybeRef<T> = UIRef<T> | UINothing<T>;
+type UIMaybeRef<T> = UIRef<T> | UINothing;
 /**
  * Wrapper around a native DOM element for DOM manipulation
  *

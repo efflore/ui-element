@@ -118,10 +118,10 @@
     class UpdatingComponent extends UIElement {
       static observedAttributes = ['heading', 'count', 'step', 'value', 'selected'];
       static attributeMap = {
-        count: v => parseInt(v, 10),
-        step: v => parseFloat(v),
-        value: (v, el) => Number.isInteger(el.get('step')) ? parseInt(v, 10) : parseFloat(v),
-        selected: v => typeof v === 'string',
+        count: maybe => maybe.map(v => parseInt(v, 10)),
+        step: maybe => maybe.map(v => parseFloat(v)),
+        value: (maybe, el) => maybe.map(v => Number.isInteger(el.get('step')) ? parseInt(v, 10) : parseFloat(v)),
+        selected: maybe => maybe.map(() => true).or(() => false),
       };
 
       connectedCallback() {
@@ -178,7 +178,7 @@
 
     class MyCounter extends UIElement {
       static observedAttributes = ['value'];
-      static attributeMap = { value: v => parseInt(v, 10) };
+      static attributeMap = { value: maybe => maybe.map(v => parseInt(v, 10)) };
 
       connectedCallback() {
         this.querySelector('.decrement').onclick = () => this.set('value', v => --v);

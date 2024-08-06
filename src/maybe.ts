@@ -10,28 +10,28 @@ interface UIContainer<T> {                        // Unit
 
 // We deliberately don't extends UIContainer so native arrays also satify the UIFunctor interface
 interface UIFunctor<T> {                          // Unit
-  map: (fn: Function) => UIFunctor<T>             // Functor pattern
+  map: <V>(fn: (value: T) => V) => UIFunctor<V>   // Functor pattern
 }
 
 interface UISomething<T> extends UIFunctor<T> {   // Unit: Something monad
   (): T                                           // Flat: unwraps the container function
-  // or: (_: unknown) => unknown                     // fallback value; ignored for "something" containers
-  map: (fn: Function) => UIMaybe<T>               // Functor pattern
+  map: <V>(fn: (value: T) => V) => UIMaybe<V>     // Functor pattern; returned for "something" containers
+  or: () => UISomething<T>                        // Fallback value; ignored for "something" containers
   // chain: (fn: Function) => unknown                // Monad pattern
   // filter: (fn: Function) => UIMaybe<T>            // Filterable pattern
   // apply: <U>(other: UIFunctor<U>) => UIFunctor<U> // Applicative pattern
 }
 
-interface UINothing<T> extends UIFunctor<T> {      // Unit: Nothing monad
-  (): T                                            // Flat: unwraps the container function
-  // or: (value: unknown) => unknown                  // fallback value; returned for "nothing" containers
-  map: (fn: Function) => UINothing<T>              // Functor pattern
+interface UINothing extends UIFunctor<void> {      // Unit: Nothing monad
+  (): void                                         // Flat: unwraps the container function
+  map: () => UINothing                             // Functor pattern; ignored for "nothing" containers
+  or: <V>(fn: () => V) => UIMaybe<V>               // Fallback value; returned for "nothing" containers
   // chain: (fn: Function) => unknown                 // Monad pattern
-  // filter: (fn: Function) => UINothing<T>           // Filterable pattern
+  // filter: (fn: Function) => UINothing              // Filterable pattern
   // apply: <U>(other: UIFunctor<U>) => UIFunctor<U>  // Applicative pattern
 }
 
-type UIMaybe<T> = UISomething<T> | UINothing<T>     // Unit: Maybe monad
+type UIMaybe<T> = UISomething<T> | UINothing        // Unit: Maybe monad
 
 /* === Constants === */
 
@@ -113,9 +113,9 @@ const maybe = <T>(value: T): UIMaybe<T> => isNothing(value) ? nothing() : someth
 const something = <T>(value: T): UISomething<T> => {
   const j = (): T => value
   j.type = typeof value
-  // j.toString = (): string => isDefinedObject(value) ? JSON.stringify(value) : String(value)
-  // j.or = (_: unknown): unknown => value
-  j.map = (fn: Function): UIMaybe<T> => maybe(fn(value))
+  j.toString = (): string => isDefinedObject(value) ? JSON.stringify(value) : String(value)
+  j.map = <V>(fn: (value: T) => V): UIMaybe<V> => maybe(fn(value))
+  j.or = (): UISomething<T> => something(value)
   // j.chain = (fn: Function): unknown => fn(value)
   // j.filter = (fn: Function): UIMaybe<T> => fn(value) ? something(value) : nothing()
   // j.apply = <T>(other: UIFunctor<T>): UIFunctor<T> => isFunction(value) ? other.map(value) : other.map(j)
@@ -126,15 +126,15 @@ const something = <T>(value: T): UISomething<T> => {
  * Create a "nothing" container for a given value, providing a chainable API for handling nullable values
  * 
  * @since 0.8.0
- * @returns {UINothing<T>} - container of "nothing" at all
+ * @returns {UINothing} - container of "nothing" at all
  */
-const nothing = <T>(): UINothing<T> => new Proxy((): void => {}, {
+const nothing = (): UINothing => new Proxy((): void => {}, {
   get: (_: any, prop: string): unknown => {
     return (prop === 'type') ? TYPE_NOTHING
       : (prop === 'toString') ? () => ''
-      // : (prop === 'or') ? (value: unknown): unknown => value
+      : (prop === 'or') ? <V>(fn: () => V): UIMaybe<V> => maybe(fn())
       // : (prop === 'chain') ? (fn: Function): unknown => fn()
-      : (): UINothing<T> => nothing()
+      : (): UINothing => nothing()
   }
 });
 

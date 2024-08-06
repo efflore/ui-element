@@ -2,7 +2,6 @@
 const isType = (type) => (value) => typeof value === type;
 const isNullish = (value) => value == null;
 const isDefined = (value) => value != null;
-const isString = isType('string');
 const isObject = isType('object');
 const isFunction = isType('function');
 const isDefinedObject = (value) => isDefined(value) && (isObject(value) || isFunction(value));
@@ -74,9 +73,9 @@ const maybe = (value) => isNothing(value) ? nothing() : something(value);
 const something = (value) => {
     const j = () => value;
     j.type = typeof value;
-    // j.toString = (): string => isDefinedObject(value) ? JSON.stringify(value) : String(value)
-    // j.or = (_: unknown): unknown => value
+    j.toString = () => isDefinedObject(value) ? JSON.stringify(value) : String(value);
     j.map = (fn) => maybe(fn(value));
+    j.or = () => something(value);
     // j.chain = (fn: Function): unknown => fn(value)
     // j.filter = (fn: Function): UIMaybe<T> => fn(value) ? something(value) : nothing()
     // j.apply = <T>(other: UIFunctor<T>): UIFunctor<T> => isFunction(value) ? other.map(value) : other.map(j)
@@ -86,15 +85,15 @@ const something = (value) => {
  * Create a "nothing" container for a given value, providing a chainable API for handling nullable values
  *
  * @since 0.8.0
- * @returns {UINothing<T>} - container of "nothing" at all
+ * @returns {UINothing} - container of "nothing" at all
  */
 const nothing = () => new Proxy(() => { }, {
     get: (_, prop) => {
         return (prop === 'type') ? TYPE_NOTHING
             : (prop === 'toString') ? () => ''
-                // : (prop === 'or') ? (value: unknown): unknown => value
-                // : (prop === 'chain') ? (fn: Function): unknown => fn()
-                : () => nothing();
+                : (prop === 'or') ? (fn) => maybe(fn())
+                    // : (prop === 'chain') ? (fn: Function): unknown => fn()
+                    : () => nothing();
     }
 });
 
@@ -139,7 +138,7 @@ const isSignal = (value) => isState(value) || isComputed(value);
  *
  * @since 0.1.0
  * @param {any} value - initial value of the state; may be a function for derived state
- * @returns {UIState<unknown>} getter function for the current value with a `set` method to update the value
+ * @returns {UIState<T>} getter function for the current value with a `set` method to update the value
  */
 const cause = (value) => {
     const s = () => {
@@ -265,9 +264,7 @@ class UIElement extends HTMLElement {
             return;
         const parser = this.constructor.attributeMap[name];
         const maybeValue = maybe(value);
-        this.set(name, isFunction(parser)
-            ? maybeValue.map((v) => parser(v, this, old))
-            : maybeValue);
+        this.set(name, isFunction(parser) ? parser(maybeValue, this, old) : maybeValue);
     }
     connectedCallback() {
         const proto = this.constructor;
@@ -381,52 +378,51 @@ const toFinite = (value) => Number.isFinite(value) ? value : undefined;
  * Parse a boolean attribute as an actual boolean value
  *
  * @since 0.7.0
- * @param {string | undefined} value
- * @returns {boolean}
+ * @param {UIMaybe<string>} maybe - maybe string value or nothing
+ * @returns {UIMaybe<boolean>}
  */
-const asBoolean = (value) => isString(value);
+const asBoolean = (maybe) => maybe.map(() => true).or(() => false);
 /**
  * Parse an attribute as a number forced to integer
  *
  * @since 0.7.0
- * @param {string | undefined} value
- * @returns {number | undefined}
+ * @param {UIMaybe<string>} maybe - maybe string value or nothing
+ * @returns {UIMaybe<number>}
  */
-const asInteger = (value) => toFinite(parseInt(value, 10));
+const asInteger = (maybe) => maybe.map(v => toFinite(parseInt(v, 10)));
 /**
  * Parse an attribute as a number
  *
  * @since 0.7.0
- * @param {string | undefined} value
- * @returns {number | undefined}
+ * @param {UIMaybe<string>} maybe - maybe string value or nothing
+ * @returns {UIMaybe<number>}
  */
-const asNumber = (value) => toFinite(parseFloat(value));
+const asNumber = (maybe) => maybe.map(v => toFinite(parseFloat(v)));
 /**
  * Parse an attribute as a string
  *
  * @since 0.7.0
- * @param {string | undefined} value
- * @returns {string | undefined}
+ * @param {UIMaybe<string>} maybe - maybe string value or nothing
+ * @returns {UIMaybe<string>}
  */
-const asString = (value) => isDefined(value) ? value : undefined;
+const asString = (maybe) => maybe; // just return; nothing will evaluate to empty string if no fallback is provided later on
 /**
  * Parse an attribute as a JSON serialized object
  *
  * @since 0.7.2
- * @param {string | undefined} value
- * @returns {Record<string, unknown> | undefined}
+ * @param {UIMaybe<string>} maybe - maybe string value or nothing
+ * @returns {UIMaybe<unknown>}
  */
-const asJSON = (value) => {
+const asJSON = (maybe) => maybe.map((v) => {
     let result;
     try {
-        result = JSON.parse(value);
+        result = JSON.parse(v);
     }
     catch (error) {
         console.error(error);
-        result = undefined;
     }
     return result;
-};
+});
 
 /* Internal functions === */
 /**
@@ -525,4 +521,4 @@ const component = (tag, props = {}, connect, disconnect, superClass = UIElement)
     return UIComponent;
 };
 
-export { asBoolean, asInteger, asJSON, asNumber, asString, component, UIElement as default, effect, ui };
+export { asBoolean, asInteger, asJSON, asNumber, asString, component, UIElement as default, effect, maybe, ui };

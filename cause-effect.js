@@ -81,7 +81,7 @@ const isSignal = (value) => isState(value) || isComputed(value);
  *
  * @since 0.1.0
  * @param {any} value - initial value of the state; may be a function for derived state
- * @returns {UIState<unknown>} getter function for the current value with a `set` method to update the value
+ * @returns {UIState<T>} getter function for the current value with a `set` method to update the value
  */
 const cause = (value) => {
     const s = () => {

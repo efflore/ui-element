@@ -35,9 +35,9 @@ declare const isSignal: (value: unknown) => value is UISignal<unknown>;
  *
  * @since 0.1.0
  * @param {any} value - initial value of the state; may be a function for derived state
- * @returns {UIState<unknown>} getter function for the current value with a `set` method to update the value
+ * @returns {UIState<T>} getter function for the current value with a `set` method to update the value
  */
-declare const cause: (value: any) => UIState<unknown>;
+declare const cause: <T>(value: any) => UIState<T>;
 /**
  * Create a derived state from an existing state
  *

@@ -4,17 +4,19 @@ interface UIContainer<T> {
     toString?: () => string;
 }
 interface UIFunctor<T> {
-    map: (fn: Function) => UIFunctor<T>;
+    map: <V>(fn: (value: T) => V) => UIFunctor<V>;
 }
 interface UISomething<T> extends UIFunctor<T> {
     (): T;
-    map: (fn: Function) => UIMaybe<T>;
+    map: <V>(fn: (value: T) => V) => UIMaybe<V>;
+    or: () => UISomething<T>;
 }
-interface UINothing<T> extends UIFunctor<T> {
-    (): T;
-    map: (fn: Function) => UINothing<T>;
+interface UINothing extends UIFunctor<void> {
+    (): void;
+    map: () => UINothing;
+    or: <V>(fn: () => V) => UIMaybe<V>;
 }
-type UIMaybe<T> = UISomething<T> | UINothing<T>;
+type UIMaybe<T> = UISomething<T> | UINothing;
 /**
  * Unwrap any value wrapped in a function
  *
@@ -84,7 +86,7 @@ declare const something: <T>(value: T) => UISomething<T>;
  * Create a "nothing" container for a given value, providing a chainable API for handling nullable values
  *
  * @since 0.8.0
- * @returns {UINothing<T>} - container of "nothing" at all
+ * @returns {UINothing} - container of "nothing" at all
  */
-declare const nothing: <T>() => UINothing<T>;
+declare const nothing: () => UINothing;
 export { type UIContainer, type UIFunctor, type UIMaybe, type UISomething, type UINothing, unwrap, /* compose, */ hasMethod, isFunctor, isNothing, isSomething, maybe, something, nothing };

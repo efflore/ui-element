@@ -5,13 +5,13 @@ import UIElement from '../ui-element'
 
 /* === Type definitions === */
 
-interface UIRef<T> extends UIFunctor<unknown> {                        // Unit: UI monad
+interface UIRef<T> extends UIFunctor<T> {                        // Unit: UI monad
   (): T                                                                // Flat: unwraps the container function
   // type: string
   // toString: () => string
-  map: (fn: (host: UIElement, node: T) => T) => UIMaybeRef<T>          // Functor pattern
-  // chain: (fn: (host: UIElement, node: T) => unknown) => unknown        // Monad pattern
-  // filter: (fn: (host: UIElement, node: T) => boolean) => UIMaybeRef<T> // Filterable pattern
+  map: <V>(fn: (node: T, host: UIElement) => V) => UIMaybeRef<V>       // Functor pattern
+  // chain: (fn: (node: T, host: UIElement) => unknown) => unknown        // Monad pattern
+  // filter: (fn: (node: T, host: UIElement) => boolean) => UIMaybeRef<T> // Filterable pattern
   // apply: <U>(other: UIFunctor<U>) => UIFunctor<U>                      // Applicative pattern
   on: (event: string, handler: EventListenerOrEventListenerObject) => UIRef<T>
   off: (event: string, handler: EventListenerOrEventListenerObject) => UIRef<T>
@@ -27,7 +27,7 @@ interface UIRef<T> extends UIFunctor<unknown> {                        // Unit: 
   all?: (selector: string) => UIRef<T>[]
 }
 
-type UIMaybeRef<T> = UIRef<T> | UINothing<T>
+type UIMaybeRef<T> = UIRef<T> | UINothing
 
 /* Internal functions === */
 

@@ -69,9 +69,9 @@ const maybe = (value) => isNothing(value) ? nothing() : something(value);
 const something = (value) => {
     const j = () => value;
     j.type = typeof value;
-    // j.toString = (): string => isDefinedObject(value) ? JSON.stringify(value) : String(value)
-    // j.or = (_: unknown): unknown => value
+    j.toString = () => isDefinedObject(value) ? JSON.stringify(value) : String(value);
     j.map = (fn) => maybe(fn(value));
+    j.or = () => something(value);
     // j.chain = (fn: Function): unknown => fn(value)
     // j.filter = (fn: Function): UIMaybe<T> => fn(value) ? something(value) : nothing()
     // j.apply = <T>(other: UIFunctor<T>): UIFunctor<T> => isFunction(value) ? other.map(value) : other.map(j)
@@ -81,15 +81,15 @@ const something = (value) => {
  * Create a "nothing" container for a given value, providing a chainable API for handling nullable values
  *
  * @since 0.8.0
- * @returns {UINothing<T>} - container of "nothing" at all
+ * @returns {UINothing} - container of "nothing" at all
  */
 const nothing = () => new Proxy(() => { }, {
     get: (_, prop) => {
         return (prop === 'type') ? TYPE_NOTHING
             : (prop === 'toString') ? () => ''
-                // : (prop === 'or') ? (value: unknown): unknown => value
-                // : (prop === 'chain') ? (fn: Function): unknown => fn()
-                : () => nothing();
+                : (prop === 'or') ? (fn) => maybe(fn())
+                    // : (prop === 'chain') ? (fn: Function): unknown => fn()
+                    : () => nothing();
     }
 });
 
@@ -134,7 +134,7 @@ const isSignal = (value) => isState(value) || isComputed(value);
  *
  * @since 0.1.0
  * @param {any} value - initial value of the state; may be a function for derived state
- * @returns {UIState<unknown>} getter function for the current value with a `set` method to update the value
+ * @returns {UIState<T>} getter function for the current value with a `set` method to update the value
  */
 const cause = (value) => {
     const s = () => {
@@ -260,9 +260,7 @@ class UIElement extends HTMLElement {
             return;
         const parser = this.constructor.attributeMap[name];
         const maybeValue = maybe(value);
-        this.set(name, isFunction(parser)
-            ? maybeValue.map((v) => parser(v, this, old))
-            : maybeValue);
+        this.set(name, isFunction(parser) ? parser(maybeValue, this, old) : maybeValue);
     }
     connectedCallback() {
         const proto = this.constructor;

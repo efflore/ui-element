@@ -1,6 +1,7 @@
+import { type UIMaybe } from "./maybe";
 import { type UISignal } from "./cause-effect";
 import { type UnknownContext } from "./context-request";
-type UIAttributeParser = ((value: string | undefined, element?: HTMLElement, old?: string | undefined) => unknown);
+type UIAttributeParser = ((value: UIMaybe<string>, element?: HTMLElement, old?: string | undefined) => unknown);
 type UIAttributeMap = Record<string, UIAttributeParser>;
 type UIStateMap = Record<PropertyKey, PropertyKey | UISignal<unknown> | (() => unknown)>;
 interface UIElement extends HTMLElement {

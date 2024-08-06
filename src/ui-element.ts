@@ -1,12 +1,12 @@
 import { isFunction } from "./is-type"
-import { unwrap, maybe, hasMethod } from "./maybe"
+import { type UIMaybe, unwrap, maybe, hasMethod } from "./maybe"
 import { type UISignal, isState, isSignal, cause } from "./cause-effect"
 import { type UnknownContext, CONTEXT_REQUEST, ContextRequestEvent } from "./context-request"
 
 /* === Types === */
 
 type UIAttributeParser = ((
-  value: string | undefined,
+  value: UIMaybe<string>,
   element?: HTMLElement,
   old?: string | undefined,
 ) => unknown)
@@ -75,9 +75,7 @@ class UIElement extends HTMLElement {
     if (value === old) return
     const parser = (this.constructor as typeof UIElement).attributeMap[name]
     const maybeValue = maybe(value);
-    this.set(name, isFunction(parser)
-      ? maybeValue.map((v: string | undefined) => parser(v, this, old))
-      : maybeValue
+    this.set(name, isFunction(parser) ? parser(maybeValue, this, old) : maybeValue
     )
   }
 

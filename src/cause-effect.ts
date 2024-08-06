@@ -1,5 +1,5 @@
 import { isFunction } from './is-type'
-import { type UIContainer, unwrap, isFunctor, hasMethod } from './maybe';
+import { type UIContainer, unwrap, isFunctor, hasMethod, UIFunctor } from './maybe';
 
 /* === Types === */
 
@@ -83,20 +83,20 @@ const isSignal = (value: unknown): value is UISignal<unknown> => isState(value) 
  * 
  * @since 0.1.0
  * @param {any} value - initial value of the state; may be a function for derived state
- * @returns {UIState<unknown>} getter function for the current value with a `set` method to update the value
+ * @returns {UIState<T>} getter function for the current value with a `set` method to update the value
  */
-const cause = (value: any): UIState<unknown> => {
-  const s: UIState<unknown> = () => { // getter function
+const cause = <T>(value: any): UIState<T> => {
+  const s: UIState<T> = (): T => { // getter function
     active && s.effects.add(active)
     return value
   }
   // s.type = TYPE_STATE
   s.effects = new Set<UIEffect | UIComputed<unknown>>() // set of listeners
-  s.set = (updater: unknown) => { // setter function
+  s.set = (updater: unknown | ((value: T) => unknown)) => { // setter function
     const old = value
     value = isFunction(updater) && !isSignal(updater)
       ? isFunctor(value)
-        ? value.map(updater)
+        ? (value as UIFunctor<T>).map(updater as (value: T) => unknown)
         : updater(value)
       : updater
     !Object.is(unwrap(value), unwrap(old)) && autorun(s.effects)

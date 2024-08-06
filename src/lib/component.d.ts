@@ -1,3 +1,4 @@
+import { maybe } from "../maybe";
 import { effect } from "../cause-effect";
 import UIElement, { type UIAttributeMap } from "../ui-element";
 import type { UnknownContext } from "../context-request";
@@ -373,4 +374,4 @@ declare const component: (tag: string, props: UIComponentProps, connect: (host: 
     registry: CustomElementRegistry;
     define(tag: string): void;
 };
-export { type UIComponentProps, UIElement as default, effect, component, ui, asBoolean, asInteger, asNumber, asString, asJSON };
+export { type UIComponentProps, UIElement as default, maybe, effect, component, ui, asBoolean, asInteger, asNumber, asString, asJSON };
