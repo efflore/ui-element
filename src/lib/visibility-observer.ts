@@ -1,4 +1,4 @@
-import type UIElement from '../ui-element'
+import type { UIElement } from '../ui-element'
 
 const VISIBILITY_STATE = 'visible'
 
@@ -19,7 +19,7 @@ class VisibilityObserver {
   }
 
   disconnect() {
-    this.observer && this.observer.disconnect()
+    if (this.observer) this.observer.disconnect()
   }
 }
 

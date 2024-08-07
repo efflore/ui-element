@@ -1,27 +1,22 @@
-interface UIEffect {
+import { type UIContainer } from './maybe';
+interface UIEffect extends UIContainer<void> {
     (): void;
     run(): void;
     targets?: Map<Element, Set<() => void>>;
 }
 interface UIComputed<T> extends UIEffect {
     (): T;
-    effects: Set<UIEffect>;
+    effects: Set<UIEffect | UIComputed<unknown>>;
 }
-interface UIState<T> {
+interface UIState<T> extends UIContainer<T> {
     (): T;
-    effects: Set<UIEffect>;
+    effects: Set<UIEffect | UIComputed<unknown>>;
     set(value: unknown): void;
 }
+type UISignal<T> = UIState<T> | UIComputed<T>;
 type UIDOMInstructionQueue = (element: Element, fn: () => void) => void;
 type UIMaybeCleanup = void | (() => void);
 type UIEffectCallback = (enqueue: UIDOMInstructionQueue) => UIMaybeCleanup;
-/**
- * Check if a given variable is a function
- *
- * @param {unknown} fn - variable to check if it is a function
- * @returns {boolean} true if supplied parameter is a function
- */
-declare const isFunction: (fn: unknown) => fn is Function;
 /**
  * Check if a given variable is a reactive state
  *
@@ -29,6 +24,12 @@ declare const isFunction: (fn: unknown) => fn is Function;
  * @returns {boolean} true if supplied parameter is a reactive state
  */
 declare const isState: (value: unknown) => value is UIState<unknown>;
+/**
+ * Check if a given variable is a reactive signal (state or computed state)
+ *
+ * @param {unknown} value - variable to check if it is a reactive signal
+ */
+declare const isSignal: (value: unknown) => value is UISignal<unknown>;
 /**
  * Define a reactive state
  *
@@ -53,4 +54,4 @@ declare const derive: <T>(fn: () => T, memo?: boolean) => UIComputed<T>;
  * @param {UIEffectCallback} fn - callback function to be executed when a state changes
  */
 declare const effect: (fn: UIEffectCallback) => void;
-export { type UIState, type UIComputed, type UIEffect, type UIDOMInstructionQueue, isFunction, isState, cause, derive, effect };
+export { type UIState, type UIComputed, type UISignal, type UIEffect, type UIDOMInstructionQueue, isState, isSignal, cause, derive, effect };

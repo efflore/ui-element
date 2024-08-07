@@ -1,4 +1,4 @@
-import UIElement, { type UIStateMap } from '../ui-element';
+import { type UIStateMap, UIElement } from '../ui-element';
 declare const DEV_MODE = true;
 /**
  * Add debug capabilities to UIElement classes
@@ -26,8 +26,8 @@ declare class DebugElement extends UIElement {
      *
      * @since 0.5.0
      * @param {string} name
-     * @param {string|undefined} old
-     * @param {string|undefined} value
+     * @param {string | undefined} old
+     * @param {string | undefined} value
      */
     attributeChangedCallback(name: string, old: string | undefined, value: string | undefined): void;
     /**
@@ -37,7 +37,7 @@ declare class DebugElement extends UIElement {
      * @param {PropertyKey} key - state to get
      * @returns {unknown} - current value of the state
      */
-    get(key: PropertyKey): unknown;
+    get<T>(key: PropertyKey): T;
     /**
      * Wrap set() to log signal writes to the console
      *
@@ -61,9 +61,15 @@ declare class DebugElement extends UIElement {
      * @since 0.7.0
      * @param {UIElement} element - UIElement to be passed to
      * @param {UIStateMap} states - states to be passed to the element
-     * @param {CustomElementRegistry} [registry=customElements] - custom element registry
      */
-    pass(element: UIElement, states: UIStateMap, registry?: CustomElementRegistry): Promise<void>;
+    pass(element: UIElement, states: UIStateMap): Promise<void>;
+    /**
+     * Recursively get all target elements of a given state
+     *
+     * @since 0.7.0
+     * @param {PropertyKey} key - state to be observed
+     */
+    targets(key: PropertyKey): Element[];
     /**
      * Add event listeners to UIElement and sub-elements to auto-highlight targets when hovering or focusing on elements with given attribute
      *
@@ -75,8 +81,10 @@ declare class DebugElement extends UIElement {
      * Log messages in debug mode
      *
      * @since 0.5.0
-     * @param {string} msg - debug message to be logged
+     * @param {string} label - debug label for value to be logged
+     * @param {T} value - value to be logged in debug mode
+     * @returns {T} - return the value for chaining
      */
-    log(msg: string): void;
+    log<T>(label: string, value: T): T;
 }
 export { DEV_MODE, DebugElement as default };

@@ -95,7 +95,7 @@
   <script type="module">
     import { runTests } from '@web/test-runner-mocha';
     import { assert } from '@esm-bundle/chai';
-    import UIElement, { effect } from '../index.js';
+    import { UIElement, effect } from '../index.js';
 
     const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
     const paint = () => new Promise(resolve => requestAnimationFrame(resolve));
@@ -117,11 +117,11 @@
 
     class UpdatingComponent extends UIElement {
       static observedAttributes = ['heading', 'count', 'step', 'value', 'selected'];
-      attributeMap = {
-        count: v => parseInt(v, 10),
-        step: v => parseFloat(v),
-        value: (v, el) => Number.isInteger(el.get('step')) ? parseInt(v, 10) : parseFloat(v),
-        selected: v => typeof v === 'string',
+      static attributeMap = {
+        count: maybe => maybe.map(v => parseInt(v, 10)),
+        step: maybe => maybe.map(v => parseFloat(v)),
+        value: (maybe, el) => maybe.map(v => Number.isInteger(el.get('step')) ? parseInt(v, 10) : parseFloat(v)),
+        selected: maybe => maybe.map(() => true).or(() => false),
       };
 
       connectedCallback() {
@@ -178,7 +178,7 @@
 
     class MyCounter extends UIElement {
       static observedAttributes = ['value'];
-      static attributeMap = { value: v => parseInt(v, 10) };
+      static attributeMap = { value: maybe => maybe.map(v => parseInt(v, 10)) };
 
       connectedCallback() {
         this.querySelector('.decrement').onclick = () => this.set('value', v => --v);
@@ -491,7 +491,7 @@
             updatingComponent.removeAttribute('selected');
             await paint();
             const className = updatingComponent.querySelector('h1').className;
-            assert.equal(className, '', 'Should update text remove class from removing selected attribute');
+            assert.equal(className, '', 'Should remove class from removing selected attribute');
           });
 
           it('should update when state is set', async function () {

@@ -1,12 +1,6 @@
-import UIElement, { type UIStateMap, isString } from '../ui-element'
-import { isDefined } from './ui'
-
-/* === Types === */
-
-/* interface DebugElement extends UIElement {
-  highlight: (className?: string) => void
-  log(msg: string): void
-}; */
+import { isString, isDefined } from '../is-type';
+import type { UIComputed, UIEffect } from '../cause-effect'
+import { type UIStateMap, UIElement } from '../ui-element'
 
 /* === Constants === */
 
@@ -20,6 +14,23 @@ const EFFECT_CLASS = 'ui-effect'
 /* === Internal variables and functions to the module === */
 
 /**
+ * Return selector string for the id of the element
+ * 
+ * @param {string} id 
+ * @returns {string} - id string for the element with '#' prefix
+ */
+const idString = (id: string): string => id ? `#${id}` : '';
+
+/**
+ * Return a selector string for classes of the element
+ * 
+ * @param {DOMTokenList} classList - DOMTokenList to convert to a string
+ * @returns {string} - class string for the DOMTokenList with '.' prefix if any
+ */
+const classString = (classList: DOMTokenList): string =>
+  classList.length ? `.${Array.from(classList).join('.')}` : '';
+
+/**
  * Return a HyperScript string representation of the Element instance
  * 
  * @since 0.7.0
@@ -27,7 +38,7 @@ const EFFECT_CLASS = 'ui-effect'
  * @returns {string}
  */
 const elementName = (el: Element): string =>
-  `<${el.localName}${el.id && `#${el.id}`}${el.className && `.${el.className.replace(' ', '.')}`}>`
+  `<${el.localName}${idString(el.id)}${classString(el.classList)}>`
 
 /**
  * Return a string representation of a JavaScript variable
@@ -36,13 +47,18 @@ const elementName = (el: Element): string =>
  * @param {unknown} value 
  * @returns {string}
  */
-const valueString = (value: unknown): string => isString(value)
-  ? `"${value}"`
-  : typeof value === 'object'
-    ? JSON.stringify(value)
-    : isDefined(value)
-      ? value.toString()
-      : 'undefined'
+const valueString = (value: unknown): string =>
+  isString(value) ? `"${value}"`
+    : typeof value === 'object' ? JSON.stringify(value)
+      : isDefined(value) ? value.toString()
+        : 'undefined'
+
+/* === Exported functions === */
+
+const log = <T>(label: string, value: T) => {
+  console.debug(`${label}: ${valueString(value)}`)
+  return value
+}
 
 /* === Exported class === */
 
@@ -60,23 +76,23 @@ class DebugElement extends UIElement {
    * Wrap connectedCallback to log to the console
    */
   connectedCallback() {
-    isString(this.getAttribute(DEBUG_STATE)) && this.set(DEBUG_STATE, true)
+    if (isString(this.getAttribute(DEBUG_STATE))) this.set(DEBUG_STATE, true)
     super.connectedCallback()
-    this.log(`Connected ${elementName(this)}`)
+    this.log('Connected', elementName(this))
   }
 
   /**
    * Wrap disconnectedCallback to log to the console
    */
   disconnectedCallback() {
-    this.log(`Disconnected ${elementName(this)}`)
+    this.log('Disconnected', elementName(this))
   }
 
   /**
    * Wrap adoptedCallback to log to the console
    */
   adoptedCallback() {
-    this.log(`Adopted ${elementName(this)}`)
+    this.log('Adopted', elementName(this))
   }
 
   /**
@@ -84,11 +100,11 @@ class DebugElement extends UIElement {
    * 
    * @since 0.5.0
    * @param {string} name
-   * @param {string|undefined} old
-   * @param {string|undefined} value
+   * @param {string | undefined} old
+   * @param {string | undefined} value
    */
   attributeChangedCallback(name: string, old: string | undefined, value: string | undefined) {
-    this.log(`Attribute "${name}" of ${elementName(this)} changed from ${valueString(old)} to ${valueString(value)}`)
+    this.log(`Attribute "${name}" of ${elementName(this)} changed`, `${valueString(old)} => ${valueString(value)}`)
     super.attributeChangedCallback(name, old, value)
   }
 
@@ -99,10 +115,8 @@ class DebugElement extends UIElement {
    * @param {PropertyKey} key - state to get
    * @returns {unknown} - current value of the state
    */
-  get(key: PropertyKey): unknown {
-    const value = super.get(key)
-    this.log(`Get current value of state ${valueString(key)} in ${elementName(this)} (value: ${valueString(value)}) and track its use in effect`)
-    return value
+  get<T>(key: PropertyKey): T {
+    return this.log(`Get current value of state ${valueString(key)} in ${elementName(this)}`, super.get(key))
   }
 
   /**
@@ -113,12 +127,8 @@ class DebugElement extends UIElement {
    * @param {unknown} value - value to be set
    * @param {boolean} [update=true] - whether to update the state
    */
-  set(
-    key: PropertyKey,
-    value: unknown,
-    update: boolean = true
-  ): void {
-    this.log(`Set ${update ? '' : 'default '}value of state ${valueString(key)} in ${elementName(this)} to ${valueString(value)} and trigger dependent effects`)
+  set(key: PropertyKey, value: unknown, update: boolean = true): void {
+    this.log(`Set ${update ? '' : 'default '}value of state ${valueString(key)} in ${elementName(this)} to`, value)
     super.set(key, value, update)
   }
 
@@ -130,8 +140,7 @@ class DebugElement extends UIElement {
    * @returns {boolean} - whether the state was deleted
    */
   delete(key: PropertyKey): boolean {
-    this.log(`Delete state ${valueString(key)} from ${elementName(this)}`)
-    return super.delete(key)
+    return this.log(`Delete state ${valueString(key)} from ${elementName(this)}`, super.delete(key))
   }
 
   /**
@@ -140,11 +149,30 @@ class DebugElement extends UIElement {
    * @since 0.7.0
    * @param {UIElement} element - UIElement to be passed to
    * @param {UIStateMap} states - states to be passed to the element
-   * @param {CustomElementRegistry} [registry=customElements] - custom element registry
    */
-  async pass(element: UIElement, states: UIStateMap, registry: CustomElementRegistry = customElements) {
-    this.log(`Pass state(s) ${valueString(Object.keys(states))} to ${elementName(element as HTMLElement)} from ${elementName(this)}`)
-    super.pass(element, states, registry)
+  async pass(element: UIElement, states: UIStateMap) {
+    this.log(`Pass state(s) from ${elementName(this)} to ${elementName(element as HTMLElement)}`, Object.keys(states))
+    super.pass(element, states)
+  }
+
+  /**
+   * Recursively get all target elements of a given state
+   * 
+   * @since 0.7.0
+   * @param {PropertyKey} key - state to be observed
+   */
+  targets(key: PropertyKey): Element[] {
+    let targets = []
+    const state = this.signal(key)
+    if (!state || !state.effects) return targets
+    const recurse = (effects: Set<UIEffect | UIComputed<unknown>>) => {
+      for (const effect of effects) {
+        if ('effects' in effect) recurse(effect.effects)
+        else targets = [...targets, ...Array.from(effect.targets?.keys())]
+      }
+    }
+    recurse(state.effects)
+    return targets
   }
 
   /**
@@ -153,27 +181,23 @@ class DebugElement extends UIElement {
    * @since 0.7.0
    * @param {string} [className=EFFECT_CLASS] - CSS class to be added to highlighted targets
    */
-  highlight(className: string = EFFECT_CLASS) {
+  highlight(className: string = EFFECT_CLASS): void {
     [HOVER_SUFFIX, FOCUS_SUFFIX].forEach(suffix => {
-      const [onOn, onOff] = suffix === HOVER_SUFFIX
-        ? ['mouseenter','mouseleave']
-        : ['focus', 'blur']
+      const [onOn, onOff] = suffix === HOVER_SUFFIX ? ['mouseenter','mouseleave'] : ['focus', 'blur']
       const attr = `${SELECTOR_PREFIX}-${this.localName}-${suffix}`
       const apply = (node: Element) => {
         const key = this.getAttribute(attr).trim()
         const on = (type: string, force: boolean) =>
           node.addEventListener(type, () => {
-            for (const target of this.targets(key))
-              target.classList.toggle(className, force)
+            for (const target of this.targets(key)) target.classList.toggle(className, force)
           })
         on(onOn, true)
         on(onOff, false)
         node.removeAttribute(attr)
       }
 
-      this.hasAttribute(attr) && apply(this)
-      for (const node of (this.shadowRoot || this).querySelectorAll(`[${attr}]`))
-        apply(node)
+      if (this.hasAttribute(attr)) apply(this)
+      for (const node of (this.shadowRoot || this).querySelectorAll(`[${attr}]`)) apply(node)
     })
   }
 
@@ -181,10 +205,13 @@ class DebugElement extends UIElement {
    * Log messages in debug mode
    * 
    * @since 0.5.0
-   * @param {string} msg - debug message to be logged
+   * @param {string} label - debug label for value to be logged
+   * @param {T} value - value to be logged in debug mode
+   * @returns {T} - return the value for chaining
    */
-  log(msg: string): void {
-    this.has(DEBUG_STATE) && console.debug(msg)
+  log<T>(label: string, value: T): T {
+    if (this.has(DEBUG_STATE)) log(label, value)
+    return value
   }
 }
 

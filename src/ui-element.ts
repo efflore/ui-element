@@ -1,40 +1,15 @@
-import { type UIState, isFunction, isState, cause } from "./cause-effect"
+import { isFunction } from "./is-type"
+import { type UIMaybe, unwrap, maybe, hasMethod } from "./maybe"
+import { type UISignal, isState, isSignal, cause } from "./cause-effect"
 import { type UnknownContext, CONTEXT_REQUEST, ContextRequestEvent } from "./context-request"
 
 /* === Types === */
 
-type UIAttributeParser = ((
-  value: string | undefined,
-  element?: HTMLElement,
-  old?: string | undefined,
-) => unknown)
+type UIAttributeParser = ((value: UIMaybe<string>, element?: HTMLElement, old?: string | undefined) => unknown)
 
 type UIAttributeMap = Record<string, UIAttributeParser>
 
-type UIStateMap = Record<PropertyKey, PropertyKey | UIState<unknown>>
-
-interface UIElement extends HTMLElement {
-  attributeMap: UIAttributeMap
-  connectedCallback(): void
-  disconnectedCallback(): void
-  attributeChangedCallback(name: string, old: string | undefined, value: string | undefined): void
-  has(key: PropertyKey): boolean
-  get<V>(key: PropertyKey): V
-  set<V>(key: PropertyKey, value: V | ((old: V | undefined) => V) | UIState<V>, update?: boolean): void
-  delete(key: PropertyKey): boolean
-  pass(element: UIElement, states: UIStateMap, registry?: CustomElementRegistry): Promise<void>
-  targets(key: PropertyKey): Set<Element>
-}
-
-/* === Exported functions === */
-
-/**
- * Check if a given value is a string
- * 
- * @param {unknown} value - value to check if it is a string
- * @returns {boolean} true if supplied parameter is a string
- */
-const isString = (value: unknown): value is string => typeof value === 'string';
+type UIStateMap = Record<PropertyKey, PropertyKey | UISignal<unknown> | (() => unknown)>
 
 /* === Default export === */
 
@@ -46,6 +21,8 @@ const isString = (value: unknown): value is string => typeof value === 'string';
  * @type {UIElement}
  */
 class UIElement extends HTMLElement {
+  static registry: CustomElementRegistry = customElements
+  static attributeMap: UIAttributeMap = {}
   static consumedContexts: UnknownContext[]
   static providedContexts: UnknownContext[]
 
@@ -54,45 +31,31 @@ class UIElement extends HTMLElement {
    * 
    * @since 0.5.0
    * @param {string} tag - name of the custom element
-   * @param {CustomElementRegistry} [registry=customElements] - custom element registry to be used; defaults to `customElements`
    */
-  static define(
-    tag: string,
-    registry: CustomElementRegistry = customElements
-  ): void {
+  static define(tag: string): void {
     try {
-      registry.get(tag) || registry.define(tag, this)
+      if (!this.registry.get(tag)) this.registry.define(tag, this)
     } catch (err) {
       console.error(err)
     }
   }
 
-  /**
-   * @since 0.5.0
-   * @property
-   * @type {UIAttributeMap}
-   */
-  attributeMap: UIAttributeMap = {}
-
   // @private hold states – use `has()`, `get()`, `set()` and `delete()` to access and modify
-  #states = new Map<PropertyKey, UIState<any>>()
+  #states = new Map<PropertyKey, UISignal<any>>()
 
   /**
    * Native callback function when an observed attribute of the custom element changes
    * 
    * @since 0.1.0
    * @param {string} name - name of the modified attribute
-   * @param {string|undefined} old - old value of the modified attribute
-   * @param {string|undefined} value - new value of the modified attribute
+   * @param {string | undefined} old - old value of the modified attribute
+   * @param {string | undefined} value - new value of the modified attribute
    */
-  attributeChangedCallback(
-    name: string,
-    old: string | undefined,
-    value: string | undefined
-  ): void {
+  attributeChangedCallback(name: string, old: string | undefined, value: string | undefined): void {
     if (value === old) return
-    const parser = this.attributeMap[name]
-    this.set(name, isFunction(parser) ? parser(value, this, old) : value)
+    const parser = (this.constructor as typeof UIElement).attributeMap[name]
+    const maybeValue = maybe(value);
+    this.set(name, isFunction(parser) ? parser(maybeValue, this, old) : maybeValue)
   }
 
   connectedCallback(): void {
@@ -103,7 +66,8 @@ class UIElement extends HTMLElement {
     for (const context of consumed) this.set(String(context), undefined)
     setTimeout(() => { // wait for all custom elements to be defined
       for (const context of consumed)
-        this.dispatchEvent(new ContextRequestEvent(context, (value: unknown) => this.set(String(context), value)))
+        this.dispatchEvent(new ContextRequestEvent(context, (value: unknown) =>
+          this.set(String(context), value)))
     })
 
     // context provider: listen to context request events
@@ -116,6 +80,8 @@ class UIElement extends HTMLElement {
       callback(this.#states.get(String(context)))
     })
   }
+
+  disconnectedCallback(): void {}
 
   /**
    * Check whether a state is set
@@ -136,8 +102,6 @@ class UIElement extends HTMLElement {
    * @returns {T | undefined} current value of state; undefined if state does not exist
    */
   get<T>(key: PropertyKey): T | undefined {
-    const unwrap = (value: T | undefined | (() => T) | UIState<T>): T | undefined => 
-      isFunction(value) ? unwrap(value()) : value
     return unwrap(this.#states.get(key))
   }
 
@@ -146,19 +110,15 @@ class UIElement extends HTMLElement {
    * 
    * @since 0.2.0
    * @param {PropertyKey} key - state to set value to
-   * @param {T | ((old: T | undefined) => T) | UIState<T>} value - initial or new value; may be a function (gets old value as parameter) to be evaluated when value is retrieved
-   * @param {boolean} [update=true] - if `true` (default), the state is updated; if `false`, just return existing value
+   * @param {T | ((old: T | undefined) => T) | UISignal<T>} value - initial or new value; may be a function (gets old value as parameter) to be evaluated when value is retrieved
+   * @param {boolean} [update=true] - if `true` (default), the state is updated; if `false`, do nothing if state already exists
    */
-  set<T>(
-    key: PropertyKey,
-    value: T | ((old: T | undefined) => T) | UIState<T>,
-    update: boolean = true
-  ): void {
-    if (this.#states.has(key)) {
+  set<T>(key: PropertyKey, value: T | ((old: T | undefined) => T) | UISignal<T>, update: boolean = true): void {
+    if (!this.#states.has(key)) {
+      this.#states.set(key, isSignal(value) ? value : cause(value))
+    } else if (update) {
       const state = this.#states.get(key)
-      update && isState(state) && state.set(value)
-    } else {
-      this.#states.set(key, isState(value) ? value : cause(value))
+      if (isState(state)) state.set(value)
     }
   }
 
@@ -177,39 +137,33 @@ class UIElement extends HTMLElement {
    * Passes states from the current UIElement to another UIElement
    * 
    * @since 0.5.0
-   * @param {UIElement} element - child element to pass the states to
+   * @param {UIElement} target - child element to pass the states to
    * @param {UIStateMap} states - object of states to be passed; target state keys as keys, source state keys or function as values
-   * @param {CustomElementRegistry} [registry=customElements] - custom element registry to be used; defaults to `customElements`
    */
-  async pass(
-    element: UIElement,
-    states: UIStateMap,
-    registry: CustomElementRegistry = customElements
-  ): Promise<void> {
-    await registry.whenDefined(element.localName)
+  async pass(target: UIElement, states: UIStateMap): Promise<void> {
+    await (this.constructor as typeof UIElement).registry.whenDefined(target.localName)
+    if (!hasMethod(target, 'set')) throw new TypeError('Expected UIElement')
     for (const [key, source] of Object.entries(states))
-      element.set(key, cause(isFunction(source) ? source : this.#states.get(source)))
+      target.set(key, isSignal(source) ? source
+        : isFunction(source) ? cause(source)
+          : this.#states.get(source)
+      )
   }
 
   /**
-   * Return a Set of elements that have effects dependent on the given state
+   * Return the signal for a state
    * 
-   * @since 0.7.0
-   * @param {PropertyKey} key - state to get targets for
-   * @returns {Set<Element>} set of elements that have effects dependent on the given state
+   * @since 0.8.0
+   * @param {PropertyKey} key - state to get signal for
+   * @returns {UISignal<T> | undefined} signal for the given state; undefined if
    */
-  targets(key: PropertyKey): Set<Element> {
-    const targets = new Set<Element>()
-    const state = this.#states.get(key)
-    if (!state || !state.effects) return targets
-    for (const effect of state.effects) {
-      const t = effect.targets?.keys()
-      if (t) for (const target of t)
-        targets.add(target)
-    }
-    return targets
+  signal<T>(key: PropertyKey): UISignal<T> | undefined {
+    return this.#states.get(key) as UISignal<T> | undefined
   }
 
 }
 
-export { type UIStateMap, type UIAttributeMap, UIElement as default, isString }
+export {
+  type UIStateMap, type UIAttributeMap,
+  UIElement
+}

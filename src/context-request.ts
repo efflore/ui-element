@@ -19,17 +19,14 @@ type UnknownContext = Context<unknown, unknown>
 /**
  * A helper type which can extract a Context value type from a Context type
  */
-type ContextType<T extends UnknownContext> =
-  T extends Context<infer _, infer V> ? V : never
+/* eslint-disable @typescript-eslint/no-unused-vars */
+type ContextType<T extends UnknownContext> = T extends Context<infer _, infer V> ? V : never
 
 /**
  * A callback which is provided by a context requester and is called with the value satisfying the request.
  * This callback can be called multiple times by context providers as the requested value is changed.
  */
-type ContextCallback<V> = (
-  value: V,
-  unsubscribe?: () => void
-) => void
+type ContextCallback<V> = (value: V, unsubscribe?: () => void) => void
 
 declare global {
   interface HTMLElementEventMap {
@@ -81,4 +78,7 @@ class ContextRequestEvent<T extends UnknownContext> extends Event {
  */
 const createContext = <V>(key: unknown) => key as Context<typeof key, V>
 
-export { type Context, type UnknownContext, CONTEXT_REQUEST, ContextRequestEvent, createContext }
+export {
+  type Context, type UnknownContext,
+  CONTEXT_REQUEST, ContextRequestEvent, createContext
+}

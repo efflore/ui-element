@@ -1,17 +1,19 @@
 {
   "compileOnSave": false,
   "compilerOptions": {
-    "noEmit": true,
-    "allowJs": true,
+    "allowJs": false,
     "checkJs": false,
     "target": "esnext",
     "resolveJsonModule": true,
     "outDir": "./",
+    "declaration": true,
+    "declarationDir": "./types",
+    "emitDeclarationOnly": true,
     "noUncheckedIndexedAccess": true,
     "moduleDetection": "force",
     "module": "Preserve",
     "verbatimModuleSyntax": true
   },
-  "include": ["./"],
+  "include": ["./src"],
   "exclude": ["node_modules", "test"],
 }

@@ -1,22 +1,32 @@
+import { isComment, isDefined } from '../is-type'
+import { nothing, type UIFunctor, type UINothing } from '../maybe'
 import { type UIDOMInstructionQueue, effect } from '../cause-effect'
-import UIElement from '../ui-element'
+import type { UIElement } from '../ui-element'
 
 /* === Type definitions === */
 
-type UIRef = {
-  (): Element
-  first: (selector: string) => UIRef | undefined
-  all: (selector: string) => UIRef[]
-  on: (event: string, handler: EventListenerOrEventListenerObject) => UIRef | undefined
-  off: (event: string, handler: EventListenerOrEventListenerObject) => UIRef | undefined
-  setText: (content: string) => void
-  text: (stateKey: PropertyKey) => UIRef | undefined
-  prop: (propKey: PropertyKey, stateKey?: PropertyKey) => UIRef | undefined
-  attr: (name: string, stateKey?: PropertyKey) => UIRef | undefined
-  bool: (name: string, stateKey?: PropertyKey) => UIRef | undefined
-  class: (token: string, stateKey?: PropertyKey) => UIRef | undefined
-  style: (prop: string, stateKey?: PropertyKey) => UIRef | undefined
+interface UIRef<T> extends UIFunctor<T> {                              // Unit: UI monad
+  (): T                                                                // Flat: unwraps the container function
+  // type: string
+  // toString: () => string
+  map: <V>(fn: (node: T, host: UIElement) => V) => UIMaybeRef<V>       // Functor pattern
+  // chain: (fn: (node: T, host: UIElement) => unknown) => unknown        // Monad pattern
+  // filter: (fn: (node: T, host: UIElement) => boolean) => UIMaybeRef<T> // Filterable pattern
+  // apply: <U>(other: UIFunctor<U>) => UIFunctor<U>                      // Applicative pattern
+  on: (event: string, handler: EventListenerOrEventListenerObject) => () => void
+  text: (state: PropertyKey) => UIRef<T>
+  prop: (key: PropertyKey, state?: PropertyKey) => UIRef<T>
+  attr: (name: string, state?: PropertyKey) => UIRef<T>
+  bool: (name: string, state?: PropertyKey) => UIRef<T>
+  class: (token: string, state?: PropertyKey) => UIRef<T>
+  // only if the element has a style property, which is the case for HTMLElement, SVGElement, and MathMLElement
+  style?: (prop: string, state?: PropertyKey) => UIRef<T>
+  // the following methods are defined for UIElement
+  first?: (selector: string) => UIRef<T>
+  all?: (selector: string) => UIRef<T>[]
 }
+
+type UIMaybeRef<T> = UIRef<T> | UINothing
 
 /* Internal functions === */
 
@@ -33,131 +43,81 @@ const isStylable = (node: Element): node is HTMLElement | SVGElement | MathMLEle
   return false
 }
 
-/* === Exported function === */
-
-/**
- * Check if a given variable is defined
- * 
- * @since 0.7.0
- * @param {unknown} value - variable to check if it is defined
- * @returns {boolean} true if supplied parameter is defined
- */
-const isDefined = (value: unknown): value is NonNullable<unknown> => typeof value !== 'undefined' && value !== null
+/* === Default export === */
 
 /**
  * Wrapper around a native DOM element for DOM manipulation
  * 
  * @since 0.7.2
- * @param {UIElement} host - host UIElement for the UIRef instance
  * @param {Element} node - native DOM element to wrap
+ * @param {UIElement} host - host UIElement for the UIRef instance
  * @returns {UIRef} - UIRef instance for the given element
  */
-const ui = (host: UIElement, node: Element = host): UIRef => {
-  const root = host.shadowRoot || host
-  const autoEffect = (
-    stateKey: PropertyKey,
-    fallback: any,
-    setter: () => void
-  ): void => {
-    if (!node) return
-    host.set(stateKey, fallback, false)
-    effect((q: UIDOMInstructionQueue) => host.has(stateKey) && q(node, setter))
-  }
-
-  // return native DOM element
+const ui = <T>(node: Element, host: UIElement): UIRef<T> => {
   const el = (): Element => node
+  // el.type = node.localName
+  // el.toString = () => `<${node.localName}${idString(node.id)}${classString(node.classList)}>`
+  el.map = (fn: (node: Element, host: UIElement) => Element): UIMaybeRef<T> => ui(fn(node, host), host)
+  // el.chain = (fn: (node: Element, host: UIElement) => unknown): unknown => fn(node, host)
+  // el.filter = (fn: (node: Element, host: UIElement) => boolean): UIMaybeRef<T> => fn(node, host) ? ui(node, host) : nothing()
+  // el.apply = <U>(other: UIFunctor<U>): UIFunctor<U> => other.map(el)
 
-  // return first matching selector as UIRef or undefined
-  el.first = (selector: string): UIRef | undefined => {
-    const match = root.querySelector(selector)
-    return match && ui(host, match)
+  el.on = (event: string, handler: EventListenerOrEventListenerObject): (() => void) => {
+    node.addEventListener(event, handler)
+    return () => node.removeEventListener(event, handler)
   }
 
-  // return all matching selectors as UIRef array
-  el.all = (selector: string): UIRef[] =>
-    Array.from(root.querySelectorAll(selector)).map(match => ui(host, match))
-
-  el.on = (event: string, handler: EventListenerOrEventListenerObject): UIRef | undefined => {
-    node && node.addEventListener(event, handler)
-    return el
+  const autoEffect = <V>(state: PropertyKey, fallback: V, setter: (value: V, fallback: V) => void): UIRef<T> => {
+    host.set(state, fallback, false)
+    effect((q: UIDOMInstructionQueue) => host.has(state) && q(node, () => setter(host.get(state), fallback)))
+    return el as UIRef<T>
   }
 
-  el.off = (event: string, handler: EventListenerOrEventListenerObject): UIRef | undefined => {
-    node && node.removeEventListener(event, handler)
-    return el
-  }
-
-  // set text content of the element while preserving comments
-  el.setText = (content: string): void => {
-    if (!node) return
-    Array.from(node.childNodes)
-      .filter(match => match.nodeType !== Node.COMMENT_NODE)
-      .forEach(match => match.remove())
-    node.append(document.createTextNode(content))
-  }
-
-  // sync text content of the element with given state by key
-  el.text = (stateKey: PropertyKey): UIRef | undefined => {
-    const fallback = node?.textContent || ''
-    autoEffect(stateKey, fallback, () => {
-      const content = host.get(stateKey)
-      el.setText(isDefined(content) ? String(content) : fallback)
+  el.text = (state: PropertyKey): UIRef<T> =>
+    autoEffect<string>(state, node.textContent || '', (content: string, fallback: string) => {
+      Array.from(node.childNodes).filter(isComment).forEach(match => match.remove())
+      node.append(document.createTextNode(isDefined(content) ? content : fallback))
     })
-    return el
-  }
 
-  // sync given property of the element with given state by key
-  el.prop = (
-    key: PropertyKey,
-    stateKey: PropertyKey = key
-  ): UIRef | undefined => {
-    autoEffect(stateKey, node[key], () => el[key] = host.get(stateKey))
-    return el
-  }
+  el.prop = (key: PropertyKey, state: PropertyKey = key): UIRef<T> =>
+    autoEffect<unknown>(state, node[key], (value: unknown) => node[key] = value)
 
-  // sync given attribute of the element with given state by key
-  el.attr = (
-    name: string,
-    stateKey: PropertyKey = name
-  ): UIRef | undefined => {
-      autoEffect(stateKey, node.getAttribute(name), () => {
-      const value = host.get(stateKey)
+  el.attr = (name: string, state: PropertyKey = name): UIRef<T> =>
+    autoEffect<string | undefined>(state, node.getAttribute(name), (value: string | undefined) =>
       isDefined(value) ? node.setAttribute(name, String(value)) : node.removeAttribute(name)
-    })
-    return el
+    )
+
+  el.bool = (name: string, state: PropertyKey = name): UIRef<T> =>
+    autoEffect<boolean>(state, node.hasAttribute(name), (value: boolean) => node.toggleAttribute(name,  value))
+
+  el.class = (token: string, state: PropertyKey = token): UIRef<T> =>
+    autoEffect<boolean>(state, node.classList.contains(token), (value: boolean) =>
+      node.classList[value? 'add' : 'remove'](token)
+    )
+
+  if (isStylable(node)) {
+    el.style = (prop: string, state: PropertyKey = prop): UIRef<T> =>
+      autoEffect<string | undefined>(state, node.style[prop], (value: string | undefined) =>
+        isDefined(value) ? node.style[prop] = String(value) : node.style.removeProperty(prop)
+      )
   }
 
-  // sync given boolean attribute of the element with given state by key
-  el.bool = (
-    name: string,
-    stateKey: PropertyKey = name
-  ): UIRef | undefined => {
-    autoEffect(stateKey, node.hasAttribute(name), () => node.toggleAttribute(name, !!host.get(stateKey)))
-    return el
+  if (host === node) {
+    const root = host.shadowRoot || host
+
+    el.first = (selector: string): UIMaybeRef<T> => {
+      const match = root.querySelector(selector)
+      return match ? ui(match, host) : nothing()
+    }
+  
+    el.all = (selector: string): UIRef<Element>[] =>
+      Array.from(root.querySelectorAll(selector)).map(node => ui(node, host)) // Arrays are monads too :-)
   }
 
-  // sync given class of the element with given state by key
-  el.class = (
-    token: string,
-    stateKey: PropertyKey = token
-  ): UIRef | undefined => {
-    autoEffect(stateKey, node.classList.contains(token), () => node.classList.toggle(token, !!host.get(stateKey)))
-    return el
-  }
-
-  // sync given style property of the element with given state by key
-  el.style = (
-    prop: string,
-    stateKey: PropertyKey = prop
-  ): UIRef | undefined => {
-    isStylable(node)
-      ? autoEffect(stateKey, node.style.getPropertyValue(prop), () => node.style.setProperty(prop, String(host.get(stateKey))))
-      : console.warn('Cannot sync style property', prop, 'on non-stylable element')
-    return el
-  }
-
-  // return UIRef instance
-  return el
+  return el as UIRef<T>
 }
 
-export { type UIRef, ui as default, isDefined }
+export {
+  type UIRef, type UIMaybeRef,
+  ui
+}

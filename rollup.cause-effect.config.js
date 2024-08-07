@@ -2,7 +2,7 @@ import typescript from '@rollup/plugin-typescript';
 import terser from '@rollup/plugin-terser';
 
 export default {
-  input: 'index.ts',
+  input: 'src/cause-effect.ts',
   output: {
     dir: './',
     format: 'esm',

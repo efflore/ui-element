@@ -1,8 +1,9 @@
-import UIElement, { type UIAttributeMap } from "../ui-element";
+import { maybe } from "../maybe";
 import { effect } from "../cause-effect";
+import { type UIAttributeMap, UIElement } from "../ui-element";
 import type { UnknownContext } from "../context-request";
 import { asBoolean, asInteger, asNumber, asString, asJSON } from "./parse-attribute";
-import ui, { type UIRef } from "./ui";
+import { type UIRef, ui } from "./ui";
 type UIComponentProps = {
     attributeMap?: UIAttributeMap;
     consumedContexts?: UnknownContext[];
@@ -14,31 +15,23 @@ type UIComponentProps = {
  * @since 0.7.0
  * @param {string} tag - custom element tag name
  * @param {UIComponentProps} props - object of observed attributes and their corresponding state keys and parser functions
- * @param {(host: UIElement, my: UIRef) => void} connect - callback to be called when the element is connected to the DOM
- * @param {(host: UIElement) => void} disconnect - callback to be called when the element is disconnected from the DOM
+ * @param {(host: UIElement, my: UIRef<Element>) => void | (() => void)} connect - callback to be called when the element is connected to the DOM; may return a disconnect callback to be called when the element is disconnected from the DOM
  * @param {typeof UIElement} superClass - parent class to extend; defaults to `UIElement`
  * @returns {typeof FxComponent} - custom element class
  */
-declare const component: (tag: string, props: UIComponentProps, connect: (host: UIElement, my: UIRef) => void, disconnect: (host: UIElement) => void, superClass?: typeof UIElement) => {
+declare const component: (tag: string, props: UIComponentProps, connect: (host: UIElement, my: UIRef<Element>) => void | (() => void), superClass?: typeof UIElement) => {
     new (): {
-        attributeMap: UIAttributeMap;
+        disconnect: (() => void) | undefined;
         connectedCallback(): void;
         disconnectedCallback(): void;
-        attributeChangedCallback(name: string, old: string | undefined, value: string | undefined): void;
+        "__#1@#states": Map<PropertyKey, import("../cause-effect").UISignal<any>>;
         attributeChangedCallback(name: string, old: string | undefined, value: string | undefined): void;
         has(key: PropertyKey): boolean;
-        has(key: PropertyKey): boolean;
-        get<V>(key: PropertyKey): V;
         get<T>(key: PropertyKey): T | undefined;
-        set<V>(key: PropertyKey, value: V | import("../cause-effect").UIState<V> | ((old: V) => V), update?: boolean): void;
-        set<T>(key: PropertyKey, value: T | ((old: T) => T) | import("../cause-effect").UIState<T>, update?: boolean): void;
+        set<T>(key: PropertyKey, value: T | ((old: T | undefined) => T) | import("../cause-effect").UISignal<T>, update?: boolean): void;
         delete(key: PropertyKey): boolean;
-        delete(key: PropertyKey): boolean;
-        pass(element: UIElement, states: import("../ui-element").UIStateMap, registry?: CustomElementRegistry): Promise<void>;
-        pass(element: UIElement, states: import("../ui-element").UIStateMap, registry?: CustomElementRegistry): Promise<void>;
-        targets(key: PropertyKey): Set<Element>;
-        targets(key: PropertyKey): Set<Element>;
-        "__#1@#states": Map<PropertyKey, import("../cause-effect").UIState<any>>;
+        pass(target: UIElement, states: import("../ui-element").UIStateMap): Promise<void>;
+        signal<T>(key: PropertyKey): import("../cause-effect").UISignal<T> | undefined;
         accessKey: string;
         readonly accessKeyLabel: string;
         autocapitalize: string;
@@ -92,10 +85,10 @@ declare const component: (tag: string, props: UIComponentProps, connect: (host: 
         readonly tagName: string;
         attachShadow(init: ShadowRootInit): ShadowRoot;
         checkVisibility(options?: CheckVisibilityOptions): boolean;
-        closest<K extends keyof HTMLElementTagNameMap>(selector: K): HTMLElementTagNameMap[K] | null;
-        closest<K extends keyof SVGElementTagNameMap>(selector: K): SVGElementTagNameMap[K] | null;
-        closest<K extends keyof MathMLElementTagNameMap>(selector: K): MathMLElementTagNameMap[K] | null;
-        closest<E extends Element = Element>(selectors: string): E | null;
+        closest<K extends keyof HTMLElementTagNameMap>(selector: K): HTMLElementTagNameMap[K];
+        closest<K extends keyof SVGElementTagNameMap>(selector: K): SVGElementTagNameMap[K];
+        closest<K extends keyof MathMLElementTagNameMap>(selector: K): MathMLElementTagNameMap[K];
+        closest<E extends Element = Element>(selectors: string): E;
         computedStyleMap(): StylePropertyMapReadOnly;
         getAttribute(qualifiedName: string): string | null;
         getAttributeNS(namespace: string | null, localName: string): string | null;
@@ -368,8 +361,10 @@ declare const component: (tag: string, props: UIComponentProps, connect: (host: 
         focus(options?: FocusOptions): void;
     };
     observedAttributes: string[];
+    attributeMap: UIAttributeMap;
     providedContexts: UnknownContext[];
     consumedContexts: UnknownContext[];
-    define(tag: string, registry?: CustomElementRegistry): void;
+    registry: CustomElementRegistry;
+    define(tag: string): void;
 };
-export { type UIComponentProps, UIElement as default, effect, component, ui, asBoolean, asInteger, asNumber, asString, asJSON };
+export { type UIComponentProps, UIElement as default, maybe, effect, component, ui, asBoolean, asInteger, asNumber, asString, asJSON };

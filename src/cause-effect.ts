@@ -1,21 +1,28 @@
+import { isFunction } from './is-type'
+import { type UIContainer, type UIFunctor, unwrap, isFunctor, /* isContainerOf, */ hasMethod } from './maybe';
+
 /* === Types === */
 
-interface UIEffect {
+interface UIEffect extends UIContainer<void> {
   (): void
+  // type: symbol
   run(): void
   targets?: Map<Element, Set<() => void>>
 }
 
 interface UIComputed<T> extends UIEffect {
   (): T
-  effects: Set<UIEffect>
+  effects: Set<UIEffect | UIComputed<unknown>>
 }
 
-interface UIState<T> {
+interface UIState<T> extends UIContainer<T> {
   (): T
-  effects: Set<UIEffect>
+  // type: symbol
+  effects: Set<UIEffect | UIComputed<unknown>>
   set(value: unknown): void
 }
+
+type UISignal<T> = UIState<T> | UIComputed<T>
 
 type UIDOMInstructionQueue = (
   element: Element,
@@ -26,6 +33,12 @@ type UIMaybeCleanup = void | (() => void)
 
 type UIEffectCallback = (enqueue: UIDOMInstructionQueue) => UIMaybeCleanup
 
+/* === Constants === */
+
+/* const TYPE_STATE = Symbol()
+const TYPE_COMPUTED = Symbol()
+const TYPE_EFFECT = Symbol() */
+
 /* === Internal === */
 
 // hold the currently active effect
@@ -34,22 +47,13 @@ let active: UIEffect | undefined
 /**
  * Run all effects in the provided set
  * 
- * @param {Set<UIEffects>} effects 
+ * @param {Set<UIEffect | UIComputed<unknown>>} effects 
  */
-const autorun = (effects: Set<UIEffect>) => {
-  for (const effect of effects)
-    effect.run()
+const autorun = (effects: Set<UIEffect | UIComputed<unknown>>) => {
+  for (const effect of effects) effect.run()
 }
 
 /* === Exported functions === */
-
-/**
- * Check if a given variable is a function
- * 
- * @param {unknown} fn - variable to check if it is a function
- * @returns {boolean} true if supplied parameter is a function
- */
-const isFunction = (fn: unknown): fn is Function => typeof fn === 'function'
 
 /**
  * Check if a given variable is a reactive state
@@ -57,7 +61,27 @@ const isFunction = (fn: unknown): fn is Function => typeof fn === 'function'
  * @param {unknown} value - variable to check if it is a reactive state
  * @returns {boolean} true if supplied parameter is a reactive state
  */
-const isState = (value: unknown): value is UIState<unknown> => isFunction(value) && isFunction((value as UIState<unknown>).set)
+const isState = (value: unknown): value is UIState<unknown> =>
+  isFunction(value) && hasMethod(value, 'set')
+  // isContainerOf(value, [TYPE_STATE])
+
+/**
+ * Check if a given variable is a reactive computed state
+ * 
+ * @param {unknown} value - variable to check if it is a reactive computed state
+ */
+const isComputed = (value: unknown): value is UIComputed<unknown> =>
+  isFunction(value) && hasMethod(value, 'run') && 'effects' in value
+  // isContainerOf(value, [TYPE_COMPUTED])
+
+/**
+ * Check if a given variable is a reactive signal (state or computed state)
+ * 
+ * @param {unknown} value - variable to check if it is a reactive signal
+ */
+const isSignal = (value: unknown): value is UISignal<unknown> =>
+  isState(value) || isComputed(value)
+  // isContainerOf(value, [TYPE_STATE, TYPE_COMPUTED])
 
 /**
  * Define a reactive state
@@ -67,19 +91,22 @@ const isState = (value: unknown): value is UIState<unknown> => isFunction(value)
  * @returns {UIState<T>} getter function for the current value with a `set` method to update the value
  */
 const cause = <T>(value: any): UIState<T> => {
-  const state: UIState<T> = () => { // getter function
-    active && state.effects.add(active)
+  const s: UIState<T> = (): T => { // getter function
+    if (active) s.effects.add(active)
     return value
   }
-  state.effects = new Set<UIEffect>(); // set of listeners
-  state.set = (updater: unknown) => { // setter function
+  // s.type = TYPE_STATE
+  s.effects = new Set<UIEffect | UIComputed<unknown>>() // set of listeners
+  s.set = (updater: unknown | ((value: T) => unknown)) => { // setter function
     const old = value
-    value = isFunction(updater) && !isState(updater)
-      ? updater(old)
+    value = isFunction(updater) && !isSignal(updater)
+      ? isFunctor(value)
+        ? (value as UIFunctor<T>).map(updater as (value: T) => unknown)
+        : updater(value)
       : updater
-    !Object.is(value, old) && autorun(state.effects)
+    if (!Object.is(unwrap(value), unwrap(old))) autorun(s.effects)
   }
-  return state
+  return s
 }
 
 /**
@@ -93,22 +120,23 @@ const cause = <T>(value: any): UIState<T> => {
 const derive = <T>(fn: () => T, memo: boolean = false): UIComputed<T> => {
   let value: T
   let dirty = true
-  const computed = () => {
-    active && computed.effects.add(active)
+  const c = () => {
+    if (active) c.effects.add(active)
     if (memo && !dirty) return value
     const prev = active
-    active = computed
+    active = c
     value = fn()
     dirty = false
     active = prev
     return value
   }
-  computed.effects = new Set<UIEffect>(); // set of listeners
-  computed.run = () => {
+  // c.type = TYPE_COMPUTED
+  c.effects = new Set<UIEffect | UIComputed<unknown>>(); // set of listeners
+  c.run = () => {
     dirty = true
-    memo && autorun(computed.effects)
+    if (memo) autorun(c.effects)
   }
-  return computed
+  return c
 }
 
 /**
@@ -119,26 +147,27 @@ const derive = <T>(fn: () => T, memo: boolean = false): UIComputed<T> => {
  */
 const effect = (fn: UIEffectCallback) => {
   const targets = new Map<Element, Set<() => void>>()
-  const next = () => {
+  const n = () => {
     const prev = active
-    active = next
-    const cleanup = fn((
-      element: Element,
-      domFn: () => void
-    ): void => {
-      !targets.has(element) && targets.set(element, new Set<() => void>())
+    active = n
+    const cleanup = fn((element: Element, domFn: () => void): void => {
+      if (!targets.has(element)) targets.set(element, new Set<() => void>())
       targets.get(element)?.add(domFn)
     })
     for (const domFns of targets.values()) {
-      for (const domFn of domFns)
-        domFn()
+      for (const domFn of domFns) domFn()
+      domFns.clear()
     }   
     active = prev
-    isFunction(cleanup) && queueMicrotask(cleanup)
+    if (isFunction(cleanup)) queueMicrotask(cleanup)
   }
-  next.run = () => next()
-  next.targets = targets
-  next()
+  // n.type = TYPE_EFFECT
+  n.run = () => n()
+  n.targets = targets
+  n()
 }
 
-export { type UIState, type UIComputed, type UIEffect, type UIDOMInstructionQueue, isFunction, isState, cause, derive, effect }
+export {
+  type UIState, type UIComputed, type UISignal, type UIEffect, type UIDOMInstructionQueue,
+  isState, isSignal, cause, derive, effect
+}
