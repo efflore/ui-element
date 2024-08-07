@@ -1,4 +1,4 @@
-import type UIElement from '../ui-element';
+import type { UIElement } from '../ui-element';
 declare class VisibilityObserver {
     observer: IntersectionObserver | void;
     /**

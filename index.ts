@@ -1,4 +1,4 @@
-import UIElement from './src/ui-element'
+import { UIElement } from './src/ui-element'
 import { effect } from './src/cause-effect'
 
 /**
@@ -6,4 +6,4 @@ import { effect } from './src/cause-effect'
  * @version 0.8.0
  */
 
-export { UIElement as default, effect }
+export { UIElement, effect }

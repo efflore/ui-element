@@ -1,4 +1,4 @@
-import { UIMaybe } from "../maybe"
+import type { UIMaybe } from "../maybe"
 
 /* === Internal === */
 

@@ -1,4 +1,4 @@
-import { UIMaybe } from "../maybe";
+import type { UIMaybe } from "../maybe";
 /**
  * Parse a boolean attribute as an actual boolean value
  *

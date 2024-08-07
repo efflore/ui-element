@@ -1,6 +1,6 @@
 import { isString, isDefined } from '../is-type';
-import { UIComputed, UIEffect } from '../cause-effect'
-import UIElement, { type UIStateMap } from '../ui-element'
+import type { UIComputed, UIEffect } from '../cause-effect'
+import { type UIStateMap, UIElement } from '../ui-element'
 
 /* === Constants === */
 
@@ -76,7 +76,7 @@ class DebugElement extends UIElement {
    * Wrap connectedCallback to log to the console
    */
   connectedCallback() {
-    isString(this.getAttribute(DEBUG_STATE)) && this.set(DEBUG_STATE, true)
+    if (isString(this.getAttribute(DEBUG_STATE))) this.set(DEBUG_STATE, true)
     super.connectedCallback()
     this.log('Connected', elementName(this))
   }
@@ -115,7 +115,7 @@ class DebugElement extends UIElement {
    * @param {PropertyKey} key - state to get
    * @returns {unknown} - current value of the state
    */
-  get(key: PropertyKey): unknown {
+  get<T>(key: PropertyKey): T {
     return this.log(`Get current value of state ${valueString(key)} in ${elementName(this)}`, super.get(key))
   }
 
@@ -149,11 +149,10 @@ class DebugElement extends UIElement {
    * @since 0.7.0
    * @param {UIElement} element - UIElement to be passed to
    * @param {UIStateMap} states - states to be passed to the element
-   * @param {CustomElementRegistry} [registry=customElements] - custom element registry
    */
-  async pass(element: UIElement, states: UIStateMap, registry: CustomElementRegistry = customElements) {
+  async pass(element: UIElement, states: UIStateMap) {
     this.log(`Pass state(s) from ${elementName(this)} to ${elementName(element as HTMLElement)}`, Object.keys(states))
-    super.pass(element, states, registry)
+    super.pass(element, states)
   }
 
   /**
@@ -168,7 +167,8 @@ class DebugElement extends UIElement {
     if (!state || !state.effects) return targets
     const recurse = (effects: Set<UIEffect | UIComputed<unknown>>) => {
       for (const effect of effects) {
-        'effects' in effect ? recurse(effect.effects) : targets = [...targets, ...Array.from(effect.targets?.keys())]
+        if ('effects' in effect) recurse(effect.effects)
+        else targets = [...targets, ...Array.from(effect.targets?.keys())]
       }
     }
     recurse(state.effects)
@@ -196,7 +196,7 @@ class DebugElement extends UIElement {
         node.removeAttribute(attr)
       }
 
-      this.hasAttribute(attr) && apply(this)
+      if (this.hasAttribute(attr)) apply(this)
       for (const node of (this.shadowRoot || this).querySelectorAll(`[${attr}]`)) apply(node)
     })
   }
@@ -210,7 +210,7 @@ class DebugElement extends UIElement {
    * @returns {T} - return the value for chaining
    */
   log<T>(label: string, value: T): T {
-    this.has(DEBUG_STATE) && log(label, value)
+    if (this.has(DEBUG_STATE)) log(label, value)
     return value
   }
 }

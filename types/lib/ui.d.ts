@@ -1,5 +1,5 @@
 import { type UIFunctor, type UINothing } from '../maybe';
-import UIElement from '../ui-element';
+import type { UIElement } from '../ui-element';
 interface UIRef<T> extends UIFunctor<T> {
     (): T;
     map: <V>(fn: (node: T, host: UIElement) => V) => UIMaybeRef<V>;
@@ -23,4 +23,4 @@ type UIMaybeRef<T> = UIRef<T> | UINothing;
  * @returns {UIRef} - UIRef instance for the given element
  */
 declare const ui: <T>(node: Element, host: UIElement) => UIRef<T>;
-export { type UIRef, type UIMaybeRef, ui as default };
+export { type UIRef, type UIMaybeRef, ui };

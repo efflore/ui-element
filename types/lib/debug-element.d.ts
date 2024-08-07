@@ -1,4 +1,4 @@
-import UIElement, { type UIStateMap } from '../ui-element';
+import { type UIStateMap, UIElement } from '../ui-element';
 declare const DEV_MODE = true;
 /**
  * Add debug capabilities to UIElement classes
@@ -37,7 +37,7 @@ declare class DebugElement extends UIElement {
      * @param {PropertyKey} key - state to get
      * @returns {unknown} - current value of the state
      */
-    get(key: PropertyKey): unknown;
+    get<T>(key: PropertyKey): T;
     /**
      * Wrap set() to log signal writes to the console
      *
@@ -61,9 +61,8 @@ declare class DebugElement extends UIElement {
      * @since 0.7.0
      * @param {UIElement} element - UIElement to be passed to
      * @param {UIStateMap} states - states to be passed to the element
-     * @param {CustomElementRegistry} [registry=customElements] - custom element registry
      */
-    pass(element: UIElement, states: UIStateMap, registry?: CustomElementRegistry): Promise<void>;
+    pass(element: UIElement, states: UIStateMap): Promise<void>;
     /**
      * Recursively get all target elements of a given state
      *

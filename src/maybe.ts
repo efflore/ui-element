@@ -1,10 +1,10 @@
-import { isDefinedObject, isFunction, /* isDefinedObject, */ isNullish } from './is-type'
+import { isDefinedObject, isFunction, /* isDefinedObject, */ isNullish, isSymbol } from './is-type'
 
 /* === Types === */
 
 interface UIContainer<T> {                        // Unit
   (): T                                           // Flat: unwraps the container value
-  type?: string                                   // type of the container
+  type: symbol                                   // type of the container
   toString?: () => string                         // string representation of the container
 }
 
@@ -35,7 +35,7 @@ type UIMaybe<T> = UISomething<T> | UINothing        // Unit: Maybe monad
 
 /* === Constants === */
 
-const TYPE_NOTHING = Symbol('nothing')
+const TYPE_NOTHING = Symbol()
 
 /* === Exported Functions === */
 
@@ -67,6 +67,16 @@ const compose = (...fns: Function[]): Function => (x: unknown) => fns.reduceRigh
 const hasMethod = (obj: object, name: string): boolean => obj && isFunction(obj[name])
 
 /**
+ * Check if a given value is a UIContainer of a given type
+ * 
+ * @param {unknown} value - value to check
+ * @param {symbol[]} allowedTypes - allowed types of UIContainer
+ * @returns {(value: unknown) => value is UIContainer<unknown>} - partially applied function that checks if the given value is a UIContainer of the given type
+ */
+const isContainerOf = (value: unknown, allowedTypes: symbol[] = []): value is UIContainer<unknown> =>
+  isFunction(value) && 'type' in value && (!allowedTypes.length || isSymbol(value.type) && allowedTypes.includes(value.type))
+
+/**
  * Check if a given value is a functor
  * 
  * @since 0.8.0
@@ -84,7 +94,7 @@ const isFunctor = (value: unknown): value is UIFunctor<unknown> =>
  * @returns {boolean} - true if the value is nothing, false otherwise
  */
 const isNothing = (value: unknown): boolean =>
-  isNullish(value) || (isFunction(value) && 'type' in value && value.type === TYPE_NOTHING)
+  isNullish(value) || isContainerOf(value, [TYPE_NOTHING])
 
 /**
  * Check if a given value is something
@@ -113,8 +123,8 @@ const maybe = <T>(value: T): UIMaybe<T> => isNothing(value) ? nothing() : someth
  */
 const something = <T>(value: T): UISomething<T> => {
   const j = (): T => value
-  j.type = typeof value
-  j.toString = (): string => isDefinedObject(value) ? JSON.stringify(value) : String(value)
+  j.type = Symbol(typeof value)
+  j.toString = (): string => String(value)
   j.map = <V>(fn: (value: T) => V): UIMaybe<V> => maybe(fn(value))
   j.or = (): UISomething<T> => something(value)
   // j.chain = (fn: Function): unknown => fn(value)
@@ -139,4 +149,7 @@ const nothing = (): UINothing => new Proxy((): void => {}, {
   }
 });
 
-export { type UIContainer, type UIFunctor, type UIMaybe, type UISomething, type UINothing, unwrap, /* compose, */ hasMethod, isFunctor, isNothing, isSomething, maybe, something, nothing }
+export {
+  type UIContainer, type UIFunctor, type UIMaybe, type UISomething, type UINothing,
+  unwrap, /* compose, */ hasMethod, isContainerOf, isFunctor, isNothing, isSomething, maybe, something, nothing
+}

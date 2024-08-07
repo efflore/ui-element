@@ -1,10 +1,10 @@
 import { isDefinedObject, isFunction } from "../is-type"
 import { maybe } from "../maybe"
 import { effect } from "../cause-effect"
-import UIElement, { type UIAttributeMap } from "../ui-element"
+import { type UIAttributeMap, UIElement } from "../ui-element"
 import type { UnknownContext } from "../context-request"
 import { asBoolean, asInteger, asNumber, asString, asJSON } from "./parse-attribute"
-import ui, { type UIRef } from "./ui"
+import { type UIRef, ui } from "./ui"
 
 /* === Types === */
 
@@ -38,19 +38,25 @@ const component = (
     static providedContexts: UnknownContext[] = props.providedContexts || []
     static consumedContexts: UnknownContext[] = props.consumedContexts || []
 
-    connectedCallback() {
+    disconnect: (() => void) | undefined
+
+    connectedCallback(): void {
       super.connectedCallback()
       if (!isFunction(connect)) return
-      const disconnect = connect(this, ui(this, this))
-      if (!isFunction(disconnect)) return
-      this.disconnectedCallback = () => {
-        super.disconnectedCallback()
-        disconnect()
-      }
+      const cleanup = connect(this, ui(this, this))
+      if (isFunction(cleanup)) this.disconnect = cleanup
+    }
+    
+    disconnectedCallback(): void {
+      if ('disconnectedCallback' in superClass) super.disconnectedCallback()
+      this.disconnect()
     }
   }
   UIComponent.define(tag)
   return UIComponent
 }
 
-export { type UIComponentProps, UIElement as default, maybe, effect, component, ui, asBoolean, asInteger, asNumber, asString, asJSON }
+export {
+  type UIComponentProps,
+  UIElement as default, maybe, effect, component, ui, asBoolean, asInteger, asNumber, asString, asJSON
+}

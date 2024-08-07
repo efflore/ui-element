@@ -1,6 +1,6 @@
 interface UIContainer<T> {
     (): T;
-    type?: string;
+    type: symbol;
     toString?: () => string;
 }
 interface UIFunctor<T> {
@@ -42,6 +42,14 @@ const compose = (...fns: Function[]): Function => (x: unknown) => fns.reduceRigh
  * @returns {boolean} - true if the object has a method of the given name, false otherwise
  */
 declare const hasMethod: (obj: object, name: string) => boolean;
+/**
+ * Check if a given value is a UIContainer of a given type
+ *
+ * @param {unknown} value - value to check
+ * @param {symbol[]} allowedTypes - allowed types of UIContainer
+ * @returns {(value: unknown) => value is UIContainer<unknown>} - partially applied function that checks if the given value is a UIContainer of the given type
+ */
+declare const isContainerOf: (value: unknown, allowedTypes?: symbol[]) => value is UIContainer<unknown>;
 /**
  * Check if a given value is a functor
  *
@@ -89,4 +97,4 @@ declare const something: <T>(value: T) => UISomething<T>;
  * @returns {UINothing} - container of "nothing" at all
  */
 declare const nothing: () => UINothing;
-export { type UIContainer, type UIFunctor, type UIMaybe, type UISomething, type UINothing, unwrap, /* compose, */ hasMethod, isFunctor, isNothing, isSomething, maybe, something, nothing };
+export { type UIContainer, type UIFunctor, type UIMaybe, type UISomething, type UINothing, unwrap, /* compose, */ hasMethod, isContainerOf, isFunctor, isNothing, isSomething, maybe, something, nothing };

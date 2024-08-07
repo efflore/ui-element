@@ -1,47 +1,52 @@
 /* === Exported Functions === */
 
-const isType: <T>(type: string) =>
-  ((value: unknown) => value is T) = (type: string) =>
-    <T>(value: unknown): value is T => typeof value === type
+const isOfType: <T>(type: string) =>
+  (value: unknown) => value is T = (type: string) => <T>(value: unknown): value is T =>
+    typeof value === type
 
-const isUndefined: (value: unknown) =>
-  value is undefined = isType('undefined')
-const isNull: (value: unknown) =>
-  value is null = (value: unknown): value is null => value === null
-const isNullish: (value: unknown) =>
-  value is null | undefined = (value: unknown): value is null | undefined => value == null
-const isDefined: <T>(value: unknown) =>
-  value is NonNullable<T> = <T>(value: unknown): value is NonNullable<T> => value != null
-const isBoolean: (value: unknown) =>
-  value is boolean = isType('boolean')
-const isFalse: (value: unknown) => boolean = (value: unknown): boolean => value === false
-const isFalsy: (value: unknown) => boolean = (value: unknown): boolean => !value
+const isUndefined: (value: unknown) => value is undefined = isOfType('undefined')
+const isSymbol: (value: unknown) => value is undefined = isOfType('symbol')
+const isBoolean: (value: unknown) => value is boolean = isOfType('boolean')
+const isNumber: (value: unknown) => value is number = isOfType('number')
+const isString: (value: unknown) => value is string = isOfType('string')
+const isObject: (value: unknown) => value is object = isOfType('object')
+const isFunction: (value: unknown) => value is ((...args: any []) => any) = isOfType('function')
 
-const isTrue: (value: unknown) => boolean = (value: unknown): boolean => value === true
+const isNull: (value: unknown) => value is null = (value: unknown): value is null =>
+  value === null
 
-const isTruthy: (value: unknown) => boolean = (value: unknown): boolean => !!value
+const isNullish: (value: unknown) => value is null | undefined = (value: unknown): value is null | undefined =>
+  value == null
 
-const isNumber: (value: unknown) =>
-  value is number = isType('number')
+const isDefined: <T>(value: unknown) => value is NonNullable<T> = <T>(value: unknown): value is NonNullable<T> =>
+  value != null
 
-const isString: (value: unknown) =>
-  value is string = isType('string')
+const isFalse: (value: unknown) => boolean = (value: unknown): boolean =>
+  value === false
 
-const isObject: (value: unknown) =>
-  value is Object = isType('object')
+const isFalsy: (value: unknown) => boolean = (value: unknown): boolean =>
+  !value
 
-const isFunction: (value: unknown) =>
-  value is Function = isType('function')
+const isTrue: (value: unknown) => boolean = (value: unknown): boolean =>
+  value === true
 
-const isDefinedObject: (value: unknown) =>
-  value is {} | Function = (value: unknown) =>
-    isDefined(value) && (isObject(value) || isFunction(value))
+const isTruthy: (value: unknown) => boolean = (value: unknown): boolean =>
+  !!value
 
-const isInstanceOf = (constructor: typeof Element) => (value: Node) => value instanceof constructor
+/* eslint-disable @typescript-eslint/no-empty-object-type */
+const isDefinedObject: (value: unknown) => value is {} | ((...args: any []) => any) = (value: unknown) =>
+  isDefined(value) && (isObject(value) || isFunction(value))
+
+const isInstanceOf = (constructor: typeof Element) => (value: Node) =>
+  value instanceof constructor
+
 const isElement: (node: Node) => boolean = isInstanceOf(Element)
-// const isHTMLElement: (node: Node) => boolean = isInstanceOf(HTMLElement)
-// const isSVGElement: (node: Node) => boolean = isInstanceOf(SVGElement)
-// const isMathMLElement: (node: Node) => boolean = isInstanceOf(MathMLElement)
-const isComment: (node: Node) => boolean = (node: Node) => node.nodeType !== Node.COMMENT_NODE
 
-export { isType, isUndefined, isNull, isNullish, isDefined, isBoolean, isFalse, isFalsy, isTrue, isTruthy, isNumber, isString, isObject, isDefinedObject, isFunction, isInstanceOf, isElement, /* isHTMLElement, isSVGElement, isMathMLElement, */ isComment }
+const isComment: (node: Node) => boolean = (node: Node) =>
+  node.nodeType !== Node.COMMENT_NODE
+
+export {
+  isOfType, isUndefined, isSymbol, isBoolean, isNumber, isString, isObject, isFunction,
+  isNull, isNullish, isDefined, isFalse, isFalsy, isTrue, isTruthy, isDefinedObject,
+  isInstanceOf, isElement, isComment
+}

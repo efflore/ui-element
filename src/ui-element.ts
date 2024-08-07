@@ -11,18 +11,6 @@ type UIAttributeMap = Record<string, UIAttributeParser>
 
 type UIStateMap = Record<PropertyKey, PropertyKey | UISignal<unknown> | (() => unknown)>
 
-interface UIElement extends HTMLElement {
-  connectedCallback(): void
-  disconnectedCallback(): void
-  attributeChangedCallback(name: string, old: string | undefined, value: string | undefined): void
-  has(key: PropertyKey): boolean
-  get<V>(key: PropertyKey): V
-  set<V>(key: PropertyKey, value: V | ((old: V | undefined) => V) | UISignal<V>, update?: boolean): void
-  delete(key: PropertyKey): boolean
-  pass(element: UIElement, states: UIStateMap, registry?: CustomElementRegistry): Promise<void>
-  signal<V>(key: PropertyKey): UISignal<V>
-}
-
 /* === Default export === */
 
 /**
@@ -46,7 +34,7 @@ class UIElement extends HTMLElement {
    */
   static define(tag: string): void {
     try {
-      this.registry.get(tag) || this.registry.define(tag, this)
+      if (this.registry.get(tag)) this.registry.define(tag, this)
     } catch (err) {
       console.error(err)
     }
@@ -93,6 +81,8 @@ class UIElement extends HTMLElement {
     })
   }
 
+  disconnectedCallback(): void {}
+
   /**
    * Check whether a state is set
    * 
@@ -128,7 +118,7 @@ class UIElement extends HTMLElement {
       this.#states.set(key, isSignal(value) ? value : cause(value))
     } else if (update) {
       const state = this.#states.get(key)
-      isState(state) && state.set(value)
+      if (isState(state)) state.set(value)
     }
   }
 
@@ -168,9 +158,12 @@ class UIElement extends HTMLElement {
    * @returns {UISignal<T> | undefined} signal for the given state; undefined if
    */
   signal<T>(key: PropertyKey): UISignal<T> | undefined {
-    return this.#states.get(key)
+    return this.#states.get(key) as UISignal<T> | undefined
   }
 
 }
 
-export { type UIStateMap, type UIAttributeMap, UIElement as default }
+export {
+  type UIStateMap, type UIAttributeMap,
+  UIElement
+}

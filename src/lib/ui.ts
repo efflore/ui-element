@@ -1,7 +1,7 @@
 import { isComment, isDefined } from '../is-type'
 import { nothing, type UIFunctor, type UINothing } from '../maybe'
 import { type UIDOMInstructionQueue, effect } from '../cause-effect'
-import UIElement from '../ui-element'
+import type { UIElement } from '../ui-element'
 
 /* === Type definitions === */
 
@@ -117,4 +117,7 @@ const ui = <T>(node: Element, host: UIElement): UIRef<T> => {
   return el as UIRef<T>
 }
 
-export { type UIRef, type UIMaybeRef, ui as default }
+export {
+  type UIRef, type UIMaybeRef,
+  ui
+}
