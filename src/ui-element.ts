@@ -34,7 +34,7 @@ class UIElement extends HTMLElement {
    */
   static define(tag: string): void {
     try {
-      if (this.registry.get(tag)) this.registry.define(tag, this)
+      if (!this.registry.get(tag)) this.registry.define(tag, this)
     } catch (err) {
       console.error(err)
     }

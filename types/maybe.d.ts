@@ -1,6 +1,6 @@
 interface UIContainer<T> {
     (): T;
-    type: symbol;
+    type?: symbol;
     toString?: () => string;
 }
 interface UIFunctor<T> {

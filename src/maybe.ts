@@ -4,7 +4,7 @@ import { isDefinedObject, isFunction, /* isDefinedObject, */ isNullish, isSymbol
 
 interface UIContainer<T> {                        // Unit
   (): T                                           // Flat: unwraps the container value
-  type: symbol                                   // type of the container
+  type?: symbol                                   // type of the container
   toString?: () => string                         // string representation of the container
 }
 
@@ -123,7 +123,7 @@ const maybe = <T>(value: T): UIMaybe<T> => isNothing(value) ? nothing() : someth
  */
 const something = <T>(value: T): UISomething<T> => {
   const j = (): T => value
-  j.type = Symbol(typeof value)
+  // j.type = Symbol(typeof value)
   j.toString = (): string => String(value)
   j.map = <V>(fn: (value: T) => V): UIMaybe<V> => maybe(fn(value))
   j.or = (): UISomething<T> => something(value)

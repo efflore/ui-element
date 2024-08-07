@@ -1,7 +1,6 @@
 import { type UIContainer } from './maybe';
 interface UIEffect extends UIContainer<void> {
     (): void;
-    type: symbol;
     run(): void;
     targets?: Map<Element, Set<() => void>>;
 }
@@ -11,7 +10,6 @@ interface UIComputed<T> extends UIEffect {
 }
 interface UIState<T> extends UIContainer<T> {
     (): T;
-    type: symbol;
     effects: Set<UIEffect | UIComputed<unknown>>;
     set(value: unknown): void;
 }

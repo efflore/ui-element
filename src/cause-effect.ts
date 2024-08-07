@@ -5,7 +5,7 @@ import { type UIContainer, type UIFunctor, unwrap, isFunctor, /* isContainerOf, 
 
 interface UIEffect extends UIContainer<void> {
   (): void
-  type: symbol
+  // type: symbol
   run(): void
   targets?: Map<Element, Set<() => void>>
 }
@@ -17,7 +17,7 @@ interface UIComputed<T> extends UIEffect {
 
 interface UIState<T> extends UIContainer<T> {
   (): T
-  type: symbol
+  // type: symbol
   effects: Set<UIEffect | UIComputed<unknown>>
   set(value: unknown): void
 }
@@ -35,9 +35,9 @@ type UIEffectCallback = (enqueue: UIDOMInstructionQueue) => UIMaybeCleanup
 
 /* === Constants === */
 
-const TYPE_STATE = Symbol()
+/* const TYPE_STATE = Symbol()
 const TYPE_COMPUTED = Symbol()
-const TYPE_EFFECT = Symbol()
+const TYPE_EFFECT = Symbol() */
 
 /* === Internal === */
 
@@ -95,7 +95,7 @@ const cause = <T>(value: any): UIState<T> => {
     if (active) s.effects.add(active)
     return value
   }
-  s.type = TYPE_STATE
+  // s.type = TYPE_STATE
   s.effects = new Set<UIEffect | UIComputed<unknown>>() // set of listeners
   s.set = (updater: unknown | ((value: T) => unknown)) => { // setter function
     const old = value
@@ -130,7 +130,7 @@ const derive = <T>(fn: () => T, memo: boolean = false): UIComputed<T> => {
     active = prev
     return value
   }
-  c.type = TYPE_COMPUTED
+  // c.type = TYPE_COMPUTED
   c.effects = new Set<UIEffect | UIComputed<unknown>>(); // set of listeners
   c.run = () => {
     dirty = true
@@ -161,7 +161,7 @@ const effect = (fn: UIEffectCallback) => {
     active = prev
     if (isFunction(cleanup)) queueMicrotask(cleanup)
   }
-  n.type = TYPE_EFFECT
+  // n.type = TYPE_EFFECT
   n.run = () => n()
   n.targets = targets
   n()
