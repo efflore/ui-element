@@ -15,12 +15,11 @@ type UIComponentProps = {
  * @since 0.7.0
  * @param {string} tag - custom element tag name
  * @param {UIComponentProps} props - object of observed attributes and their corresponding state keys and parser functions
- * @param {(host: UIElement, my: UIRef<Element>) => void} connect - callback to be called when the element is connected to the DOM
- * @param {(host: UIElement) => void} disconnect - callback to be called when the element is disconnected from the DOM
+ * @param {(host: UIElement, my: UIRef<Element>) => void | (() => void)} connect - callback to be called when the element is connected to the DOM; may return a disconnect callback to be called when the element is disconnected from the DOM
  * @param {typeof UIElement} superClass - parent class to extend; defaults to `UIElement`
  * @returns {typeof FxComponent} - custom element class
  */
-declare const component: (tag: string, props: UIComponentProps, connect: (host: UIElement, my: UIRef<Element>) => void, disconnect: (host: UIElement) => void, superClass?: typeof UIElement) => {
+declare const component: (tag: string, props: UIComponentProps, connect: (host: UIElement, my: UIRef<Element>) => void | (() => void), superClass?: typeof UIElement) => {
     new (): {
         connectedCallback(): void;
         disconnectedCallback(): void;
@@ -29,7 +28,7 @@ declare const component: (tag: string, props: UIComponentProps, connect: (host: 
         has(key: PropertyKey): boolean;
         has(key: PropertyKey): boolean;
         get<V>(key: PropertyKey): V;
-        get<T>(key: PropertyKey): T | undefined;
+        get<T>(key: PropertyKey): T;
         set<V>(key: PropertyKey, value: V | import("../cause-effect").UISignal<V> | ((old: V) => V), update?: boolean): void;
         set<T>(key: PropertyKey, value: T | ((old: T) => T) | import("../cause-effect").UISignal<T>, update?: boolean): void;
         delete(key: PropertyKey): boolean;
@@ -37,7 +36,7 @@ declare const component: (tag: string, props: UIComponentProps, connect: (host: 
         pass(element: UIElement, states: import("../ui-element").UIStateMap, registry?: CustomElementRegistry): Promise<void>;
         pass(target: UIElement, states: import("../ui-element").UIStateMap): Promise<void>;
         signal<V>(key: PropertyKey): import("../cause-effect").UISignal<V>;
-        signal<T>(key: PropertyKey): import("../cause-effect").UISignal<T> | undefined;
+        signal<T>(key: PropertyKey): import("../cause-effect").UISignal<T>;
         "__#1@#states": Map<PropertyKey, import("../cause-effect").UISignal<any>>;
         accessKey: string;
         readonly accessKeyLabel: string;
@@ -92,10 +91,10 @@ declare const component: (tag: string, props: UIComponentProps, connect: (host: 
         readonly tagName: string;
         attachShadow(init: ShadowRootInit): ShadowRoot;
         checkVisibility(options?: CheckVisibilityOptions): boolean;
-        closest<K extends keyof HTMLElementTagNameMap>(selector: K): HTMLElementTagNameMap[K] | null;
-        closest<K extends keyof SVGElementTagNameMap>(selector: K): SVGElementTagNameMap[K] | null;
-        closest<K extends keyof MathMLElementTagNameMap>(selector: K): MathMLElementTagNameMap[K] | null;
-        closest<E extends Element = Element>(selectors: string): E | null;
+        closest<K extends keyof HTMLElementTagNameMap>(selector: K): HTMLElementTagNameMap[K];
+        closest<K extends keyof SVGElementTagNameMap>(selector: K): SVGElementTagNameMap[K];
+        closest<K extends keyof MathMLElementTagNameMap>(selector: K): MathMLElementTagNameMap[K];
+        closest<E extends Element = Element>(selectors: string): E;
         computedStyleMap(): StylePropertyMapReadOnly;
         getAttribute(qualifiedName: string): string | null;
         getAttributeNS(namespace: string | null, localName: string): string | null;

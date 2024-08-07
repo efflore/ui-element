@@ -1,22 +1,41 @@
 /* === Exported Functions === */
 
-const isType: <T>(type: string) => ((value: unknown) => value is T) = (type: string) =>
-  <T>(value: unknown): value is T => typeof value === type
+const isType: <T>(type: string) =>
+  ((value: unknown) => value is T) = (type: string) =>
+    <T>(value: unknown): value is T => typeof value === type
 
-const isUndefined: (value: unknown) => value is undefined = isType('undefined')
-const isNull: (value: unknown) => value is null = (value: unknown): value is null => value === null
-const isNullish: (value: unknown) => value is null | undefined = (value: unknown): value is null | undefined => value == null
-const isDefined: <T>(value: unknown) => value is NonNullable<T> = <T>(value: unknown): value is NonNullable<T> => value != null
-const isBoolean: (value: unknown) => value is boolean = isType('boolean')
+const isUndefined: (value: unknown) =>
+  value is undefined = isType('undefined')
+const isNull: (value: unknown) =>
+  value is null = (value: unknown): value is null => value === null
+const isNullish: (value: unknown) =>
+  value is null | undefined = (value: unknown): value is null | undefined => value == null
+const isDefined: <T>(value: unknown) =>
+  value is NonNullable<T> = <T>(value: unknown): value is NonNullable<T> => value != null
+const isBoolean: (value: unknown) =>
+  value is boolean = isType('boolean')
 const isFalse: (value: unknown) => boolean = (value: unknown): boolean => value === false
 const isFalsy: (value: unknown) => boolean = (value: unknown): boolean => !value
+
 const isTrue: (value: unknown) => boolean = (value: unknown): boolean => value === true
+
 const isTruthy: (value: unknown) => boolean = (value: unknown): boolean => !!value
-const isNumber: (value: unknown) => value is number = isType('number')
-const isString: (value: unknown) => value is string = isType('string')
-const isObject: (value: unknown) => value is Object = isType('object')
-const isFunction: (value: unknown) => value is Function = isType('function')
-const isDefinedObject: (value: unknown) => value is {} | Function = (value: unknown) => isDefined(value) && (isObject(value) || isFunction(value))
+
+const isNumber: (value: unknown) =>
+  value is number = isType('number')
+
+const isString: (value: unknown) =>
+  value is string = isType('string')
+
+const isObject: (value: unknown) =>
+  value is Object = isType('object')
+
+const isFunction: (value: unknown) =>
+  value is Function = isType('function')
+
+const isDefinedObject: (value: unknown) =>
+  value is {} | Function = (value: unknown) =>
+    isDefined(value) && (isObject(value) || isFunction(value))
 
 const isInstanceOf = (constructor: typeof Element) => (value: Node) => value instanceof constructor
 const isElement: (node: Node) => boolean = isInstanceOf(Element)

@@ -50,8 +50,7 @@ let active: UIEffect | undefined
  * @param {Set<UIEffect | UIComputed<unknown>>} effects 
  */
 const autorun = (effects: Set<UIEffect | UIComputed<unknown>>) => {
-  for (const effect of effects)
-    effect.run()
+  for (const effect of effects) effect.run()
 }
 
 /* === Exported functions === */
@@ -62,21 +61,24 @@ const autorun = (effects: Set<UIEffect | UIComputed<unknown>>) => {
  * @param {unknown} value - variable to check if it is a reactive state
  * @returns {boolean} true if supplied parameter is a reactive state
  */
-const isState = (value: unknown): value is UIState<unknown> => isFunction(value) && hasMethod(value, 'set')
+const isState = (value: unknown): value is UIState<unknown> =>
+  isFunction(value) && hasMethod(value, 'set')
 
 /**
  * Check if a given variable is a reactive computed state
  * 
  * @param {unknown} value - variable to check if it is a reactive computed state
  */
-const isComputed = (value: unknown): value is UIComputed<unknown> => isFunction(value) && hasMethod(value, 'run') && 'effects' in value
+const isComputed = (value: unknown): value is UIComputed<unknown> =>
+  isFunction(value) && hasMethod(value, 'run') && 'effects' in value
 
 /**
  * Check if a given variable is a reactive signal (state or computed state)
  * 
  * @param {unknown} value - variable to check if it is a reactive signal
  */
-const isSignal = (value: unknown): value is UISignal<unknown> => isState(value) || isComputed(value)
+const isSignal = (value: unknown): value is UISignal<unknown> =>
+  isState(value) || isComputed(value)
 
 /**
  * Define a reactive state
@@ -145,16 +147,12 @@ const effect = (fn: UIEffectCallback) => {
   const n = () => {
     const prev = active
     active = n
-    const cleanup = fn((
-      element: Element,
-      domFn: () => void
-    ): void => {
+    const cleanup = fn((element: Element, domFn: () => void): void => {
       !targets.has(element) && targets.set(element, new Set<() => void>())
       targets.get(element)?.add(domFn)
     })
     for (const domFns of targets.values()) {
-      for (const domFn of domFns)
-        domFn()
+      for (const domFn of domFns) domFn()
       domFns.clear()
     }   
     active = prev

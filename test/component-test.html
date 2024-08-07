@@ -205,11 +205,12 @@
       });
       const loadingEl = ui.first('.loading');
       const errorEl = ui.first('.error');
+      const remove = (enqueue, ref) => enqueue(ref(), () => ref().remove())
 
       effect(enqueue => {
         const error = el.get('error');
         if (!error) return;
-        enqueue(loadingEl(), () => loadingEl().remove()); // remove placeholder for pending state
+        remove(enqueue, loadingEl); // remove placeholder for pending state
         enqueue(errorEl(), () => errorEl().textContent = error);
       });
 
@@ -220,8 +221,8 @@
           const shadow = el.shadowRoot || el.attachShadow({ mode: 'open' }); // we use shadow DOM to encapsulate styles
           shadow.innerHTML = content; // UNSAFE!, use only trusted sources in 'src' attribute
         });
-        enqueue(loadingEl(), () => loadingEl().remove()); // remove placeholder for pending state
-        enqueue(errorEl(), () => errorEl().remove()); // remove placeholder for pending state
+        remove(enqueue, loadingEl); // remove placeholder for pending state
+        remove(enqueue, errorEl); // remove placeholder for error message
       });
     });
 

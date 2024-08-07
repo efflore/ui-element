@@ -73,7 +73,8 @@ const hasMethod = (obj: object, name: string): boolean => obj && isFunction(obj[
  * @param {unknown} value - value to check
  * @returns {boolean} - true if the value is a functor, false otherwise
  */
-const isFunctor = (value: unknown): value is UIFunctor<unknown> => isDefinedObject(value) && hasMethod(value, 'map')
+const isFunctor = (value: unknown): value is UIFunctor<unknown> =>
+  isDefinedObject(value) && hasMethod(value, 'map')
 
 /**
  * Check if a given value is nothing
@@ -82,8 +83,8 @@ const isFunctor = (value: unknown): value is UIFunctor<unknown> => isDefinedObje
  * @param {unknown} value - value to check
  * @returns {boolean} - true if the value is nothing, false otherwise
  */
-const isNothing = (value: unknown): boolean => isNullish(value)
-  || (isFunction(value) && 'type' in value && value.type === TYPE_NOTHING)
+const isNothing = (value: unknown): boolean =>
+  isNullish(value) || (isFunction(value) && 'type' in value && value.type === TYPE_NOTHING)
 
 /**
  * Check if a given value is something

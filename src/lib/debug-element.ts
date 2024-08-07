@@ -47,13 +47,11 @@ const elementName = (el: Element): string =>
  * @param {unknown} value 
  * @returns {string}
  */
-const valueString = (value: unknown): string => isString(value)
-  ? `"${value}"`
-  : typeof value === 'object'
-    ? JSON.stringify(value)
-    : isDefined(value)
-      ? value.toString()
-      : 'undefined'
+const valueString = (value: unknown): string =>
+  isString(value) ? `"${value}"`
+    : typeof value === 'object' ? JSON.stringify(value)
+      : isDefined(value) ? value.toString()
+        : 'undefined'
 
 /* === Exported functions === */
 
@@ -129,11 +127,7 @@ class DebugElement extends UIElement {
    * @param {unknown} value - value to be set
    * @param {boolean} [update=true] - whether to update the state
    */
-  set(
-    key: PropertyKey,
-    value: unknown,
-    update: boolean = true
-  ): void {
+  set(key: PropertyKey, value: unknown, update: boolean = true): void {
     this.log(`Set ${update ? '' : 'default '}value of state ${valueString(key)} in ${elementName(this)} to`, value)
     super.set(key, value, update)
   }
@@ -174,9 +168,7 @@ class DebugElement extends UIElement {
     if (!state || !state.effects) return targets
     const recurse = (effects: Set<UIEffect | UIComputed<unknown>>) => {
       for (const effect of effects) {
-        'effects' in effect
-          ? recurse(effect.effects)
-          : targets = [...targets, ...Array.from(effect.targets?.keys())]
+        'effects' in effect ? recurse(effect.effects) : targets = [...targets, ...Array.from(effect.targets?.keys())]
       }
     }
     recurse(state.effects)
@@ -191,16 +183,13 @@ class DebugElement extends UIElement {
    */
   highlight(className: string = EFFECT_CLASS): void {
     [HOVER_SUFFIX, FOCUS_SUFFIX].forEach(suffix => {
-      const [onOn, onOff] = suffix === HOVER_SUFFIX
-        ? ['mouseenter','mouseleave']
-        : ['focus', 'blur']
+      const [onOn, onOff] = suffix === HOVER_SUFFIX ? ['mouseenter','mouseleave'] : ['focus', 'blur']
       const attr = `${SELECTOR_PREFIX}-${this.localName}-${suffix}`
       const apply = (node: Element) => {
         const key = this.getAttribute(attr).trim()
         const on = (type: string, force: boolean) =>
           node.addEventListener(type, () => {
-            for (const target of this.targets(key))
-              target.classList.toggle(className, force)
+            for (const target of this.targets(key)) target.classList.toggle(className, force)
           })
         on(onOn, true)
         on(onOff, false)
@@ -208,8 +197,7 @@ class DebugElement extends UIElement {
       }
 
       this.hasAttribute(attr) && apply(this)
-      for (const node of (this.shadowRoot || this).querySelectorAll(`[${attr}]`))
-        apply(node)
+      for (const node of (this.shadowRoot || this).querySelectorAll(`[${attr}]`)) apply(node)
     })
   }
 

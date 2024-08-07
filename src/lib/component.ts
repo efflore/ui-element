@@ -1,4 +1,4 @@
-import { isDefinedObject } from "../is-type"
+import { isDefinedObject, isFunction } from "../is-type"
 import { maybe } from "../maybe"
 import { effect } from "../cause-effect"
 import UIElement, { type UIAttributeMap } from "../ui-element"
@@ -22,16 +22,14 @@ type UIComponentProps = {
  * @since 0.7.0
  * @param {string} tag - custom element tag name
  * @param {UIComponentProps} props - object of observed attributes and their corresponding state keys and parser functions
- * @param {(host: UIElement, my: UIRef<Element>) => void} connect - callback to be called when the element is connected to the DOM
- * @param {(host: UIElement) => void} disconnect - callback to be called when the element is disconnected from the DOM
+ * @param {(host: UIElement, my: UIRef<Element>) => void | (() => void)} connect - callback to be called when the element is connected to the DOM; may return a disconnect callback to be called when the element is disconnected from the DOM
  * @param {typeof UIElement} superClass - parent class to extend; defaults to `UIElement`
  * @returns {typeof FxComponent} - custom element class
  */
 const component = (
   tag: string,
   props: UIComponentProps = {},
-  connect: (host: UIElement, my: UIRef<Element>) => void,
-  disconnect: (host: UIElement) => void,
+  connect: (host: UIElement, my: UIRef<Element>) => void | (() => void),
   superClass: typeof UIElement = UIElement
 ): typeof UIComponent => {
   const UIComponent = class extends superClass {
@@ -42,12 +40,13 @@ const component = (
 
     connectedCallback() {
       super.connectedCallback()
-      connect && connect(this, ui(this))
-    }
-
-    disconnectedCallback() {
-      super.disconnectedCallback()
-      disconnect && disconnect(this)
+      if (!isFunction(connect)) return
+      const disconnect = connect(this, ui(this, this))
+      if (!isFunction(disconnect)) return
+      this.disconnectedCallback = () => {
+        super.disconnectedCallback()
+        disconnect()
+      }
     }
   }
   UIComponent.define(tag)
