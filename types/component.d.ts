@@ -1,9 +1,9 @@
-import { maybe } from '../maybe';
-import { effect } from '../cause-effect';
-import { type UIAttributeMap, UIElement } from '../ui-element';
-import type { UnknownContext } from '../context-request';
-import { asBoolean, asInteger, asNumber, asString, asJSON } from './parse-attribute';
-import { type UIRef, ui } from './ui';
+import { maybe } from './lib/maybe';
+import { effect } from './cause-effect';
+import { type UIAttributeMap, UIElement } from './ui-element';
+import type { UnknownContext } from './lib/context-request';
+import { asBoolean, asInteger, asNumber, asString, asJSON } from './lib/parse-attribute';
+import { type UIRef, ui } from './lib/ui';
 type UIComponentProps = {
     attributeMap?: UIAttributeMap;
     consumedContexts?: UnknownContext[];
@@ -24,14 +24,14 @@ declare const component: (tag: string, props: UIComponentProps, connect: (host: 
         disconnect: (() => void) | undefined;
         connectedCallback(): void;
         disconnectedCallback(): void;
-        "__#1@#states": Map<PropertyKey, import("../cause-effect").UISignal<any>>;
+        "__#1@#states": Map<PropertyKey, import("./cause-effect").UISignal<any>>;
         attributeChangedCallback(name: string, old: string | undefined, value: string | undefined): void;
         has(key: PropertyKey): boolean;
         get<T>(key: PropertyKey): T | undefined;
-        set<T>(key: PropertyKey, value: T | ((old: T | undefined) => T) | import("../cause-effect").UISignal<T>, update?: boolean): void;
+        set<T>(key: PropertyKey, value: T | ((old: T | undefined) => T) | import("./cause-effect").UISignal<T>, update?: boolean): void;
         delete(key: PropertyKey): boolean;
-        pass(target: UIElement, states: import("../ui-element").UIStateMap): Promise<void>;
-        signal<T>(key: PropertyKey): import("../cause-effect").UISignal<T> | undefined;
+        pass(target: UIElement, states: import("./ui-element").UIStateMap): Promise<void>;
+        signal<T>(key: PropertyKey): import("./cause-effect").UISignal<T> | undefined;
         accessKey: string;
         readonly accessKeyLabel: string;
         autocapitalize: string;

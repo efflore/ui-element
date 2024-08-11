@@ -1,10 +1,10 @@
-import { isDefinedObject, isFunction } from "../is-type"
-import { maybe } from "../maybe"
-import { effect } from "../cause-effect"
-import { type UIAttributeMap, UIElement } from "../ui-element"
-import type { UnknownContext } from "../context-request"
-import { asBoolean, asInteger, asNumber, asString, asJSON } from "./parse-attribute"
-import { type UIRef, ui } from "./ui"
+import { isDefinedObject, isFunction } from './lib/is-type'
+import { maybe } from './lib/maybe'
+import { effect } from './cause-effect'
+import { type UIAttributeMap, UIElement } from './ui-element'
+import type { UnknownContext } from './lib/context-request'
+import { asBoolean, asInteger, asNumber, asString, asJSON } from './lib/parse-attribute'
+import { type UIRef, ui } from './lib/ui'
 
 /* === Types === */
 

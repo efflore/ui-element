@@ -1,5 +1,4 @@
-import { type UIContainer } from './maybe';
-interface UIEffect extends UIContainer<void> {
+interface UIEffect {
     (): void;
     run(): void;
     targets?: Map<Element, Set<() => void>>;
@@ -8,15 +7,15 @@ interface UIComputed<T> extends UIEffect {
     (): T;
     effects: Set<UIEffect | UIComputed<unknown>>;
 }
-interface UIState<T> extends UIContainer<T> {
+interface UIState<T> {
     (): T;
     effects: Set<UIEffect | UIComputed<unknown>>;
-    set(value: unknown): void;
+    set(value: T): void;
 }
 type UISignal<T> = UIState<T> | UIComputed<T>;
 type UIDOMInstructionQueue = (element: Element, fn: () => void) => void;
-type UIMaybeCleanup = void | (() => void);
-type UIEffectCallback = (enqueue: UIDOMInstructionQueue) => UIMaybeCleanup;
+type MaybeCleanup = void | (() => void);
+type UIEffectCallback = (enqueue: UIDOMInstructionQueue) => MaybeCleanup;
 /**
  * Check if a given variable is a reactive state
  *

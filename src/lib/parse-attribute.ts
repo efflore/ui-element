@@ -1,4 +1,6 @@
-import type { UIMaybe } from "../maybe"
+import { type Maybe, maybe } from './maybe'
+import { attempt } from './attempt'
+import { log, LOG_ERROR } from './log'
 
 /* === Internal === */
 
@@ -8,7 +10,8 @@ import type { UIMaybe } from "../maybe"
  * @param {number} value
  * @returns {number | undefined}
  */
-const toFinite = (value: number): number | undefined => Number.isFinite(value) ? value : undefined
+const toFinite = (value: number): number | undefined =>
+  Number.isFinite(value) ? value : undefined
 
 /* === Exported functions === */
 
@@ -16,53 +19,52 @@ const toFinite = (value: number): number | undefined => Number.isFinite(value) ?
  * Parse a boolean attribute as an actual boolean value
  * 
  * @since 0.7.0
- * @param {UIMaybe<string>} maybe - maybe string value or nothing
- * @returns {UIMaybe<boolean>}
+ * @param {Maybe<string>} value - maybe string value or nothing
+ * @returns {Maybe<boolean>}
  */
-const asBoolean = (maybe: UIMaybe<string>): UIMaybe<boolean> => maybe.map(() => true).or(() => false)
+const asBoolean = (value: Maybe<string>): Maybe<boolean> =>
+  maybe(value.fold(() => false, () => true))
 
 /**
  * Parse an attribute as a number forced to integer
  * 
  * @since 0.7.0
- * @param {UIMaybe<string>} maybe - maybe string value or nothing
- * @returns {UIMaybe<number>}
+ * @param {Maybe<string>} value - maybe string value or nothing
+ * @returns {Maybe<number>}
  */
-const asInteger = (maybe: UIMaybe<string>): UIMaybe<number> => maybe.map(v => toFinite(parseInt(v, 10)))
+const asInteger = (value: Maybe<string>): Maybe<number> =>
+  value.map(v => parseInt(v, 10)).map(toFinite);
 
 /**
  * Parse an attribute as a number
  * 
  * @since 0.7.0
- * @param {UIMaybe<string>} maybe - maybe string value or nothing
- * @returns {UIMaybe<number>}
+ * @param {Maybe<string>} value - maybe string value or nothing
+ * @returns {Maybe<number>}
  */
-const asNumber = (maybe: UIMaybe<string>): UIMaybe<number> => maybe.map(v => toFinite(parseFloat(v)))
+const asNumber = (value: Maybe<string>): Maybe<number> =>
+  value.map(parseFloat).map(toFinite);
 
 /**
  * Parse an attribute as a string
  * 
  * @since 0.7.0
- * @param {UIMaybe<string>} maybe - maybe string value or nothing
- * @returns {UIMaybe<string>}
+ * @param {Maybe<string>} value - maybe string value or nothing
+ * @returns {Maybe<string>}
  */
-const asString = (maybe: UIMaybe<string>): UIMaybe<string> => maybe // just return; nothing will evaluate to empty string if no fallback is provided later on
+const asString = (value: Maybe<string>): Maybe<string> => value
 
 /**
  * Parse an attribute as a JSON serialized object
  * 
  * @since 0.7.2
- * @param {UIMaybe<string>} maybe - maybe string value or nothing
- * @returns {UIMaybe<unknown>}
+ * @param {Maybe<string>} value - maybe string value or nothing
+ * @returns {Maybe<unknown>}
  */
-const asJSON = (maybe: UIMaybe<string>): UIMaybe<unknown> => maybe.map(v => {
-  let result: unknown
-  try {
-    result = JSON.parse(v)
-  } catch (error) {
-    console.error(error)
-  }
-  return result
-})
+const asJSON = (value: Maybe<string>): Maybe<unknown> =>
+  value.map(v => attempt(() => JSON.parse(v)).fold(
+    error => log(undefined, `Failed to parse JSON: ${error.message}`, LOG_ERROR),
+    v => v
+  ))
 
 export { asBoolean, asInteger, asNumber, asString, asJSON }

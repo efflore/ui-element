@@ -1,9 +1,8 @@
-import { isFunction } from './is-type'
-import { type UIContainer, type UIFunctor, unwrap, isFunctor, /* isContainerOf, */ hasMethod } from './maybe';
+import { isFunction, hasMethod, isDefinedObject } from './lib/is-type'
 
 /* === Types === */
 
-interface UIEffect extends UIContainer<void> {
+interface UIEffect {
   (): void
   // type: symbol
   run(): void
@@ -15,11 +14,11 @@ interface UIComputed<T> extends UIEffect {
   effects: Set<UIEffect | UIComputed<unknown>>
 }
 
-interface UIState<T> extends UIContainer<T> {
+interface UIState<T> {
   (): T
   // type: symbol
   effects: Set<UIEffect | UIComputed<unknown>>
-  set(value: unknown): void
+  set(value: T): void
 }
 
 type UISignal<T> = UIState<T> | UIComputed<T>
@@ -29,15 +28,9 @@ type UIDOMInstructionQueue = (
   fn: () => void
 ) => void
 
-type UIMaybeCleanup = void | (() => void)
+type MaybeCleanup = void | (() => void)
 
-type UIEffectCallback = (enqueue: UIDOMInstructionQueue) => UIMaybeCleanup
-
-/* === Constants === */
-
-/* const TYPE_STATE = Symbol()
-const TYPE_COMPUTED = Symbol()
-const TYPE_EFFECT = Symbol() */
+type UIEffectCallback = (enqueue: UIDOMInstructionQueue) => MaybeCleanup
 
 /* === Internal === */
 
@@ -62,8 +55,7 @@ const autorun = (effects: Set<UIEffect | UIComputed<unknown>>) => {
  * @returns {boolean} true if supplied parameter is a reactive state
  */
 const isState = (value: unknown): value is UIState<unknown> =>
-  isFunction(value) && hasMethod(value, 'set')
-  // isContainerOf(value, [TYPE_STATE])
+  isDefinedObject(value) && hasMethod(value, 'set')
 
 /**
  * Check if a given variable is a reactive computed state
@@ -71,8 +63,7 @@ const isState = (value: unknown): value is UIState<unknown> =>
  * @param {unknown} value - variable to check if it is a reactive computed state
  */
 const isComputed = (value: unknown): value is UIComputed<unknown> =>
-  isFunction(value) && hasMethod(value, 'run') && 'effects' in value
-  // isContainerOf(value, [TYPE_COMPUTED])
+  isDefinedObject(value) && hasMethod(value, 'run') && 'effects' in value
 
 /**
  * Check if a given variable is a reactive signal (state or computed state)
@@ -81,7 +72,6 @@ const isComputed = (value: unknown): value is UIComputed<unknown> =>
  */
 const isSignal = (value: unknown): value is UISignal<unknown> =>
   isState(value) || isComputed(value)
-  // isContainerOf(value, [TYPE_STATE, TYPE_COMPUTED])
 
 /**
  * Define a reactive state
@@ -99,12 +89,8 @@ const cause = <T>(value: any): UIState<T> => {
   s.effects = new Set<UIEffect | UIComputed<unknown>>() // set of listeners
   s.set = (updater: unknown | ((value: T) => unknown)) => { // setter function
     const old = value
-    value = isFunction(updater) && !isSignal(updater)
-      ? isFunctor(value)
-        ? (value as UIFunctor<T>).map(updater as (value: T) => unknown)
-        : updater(value)
-      : updater
-    if (!Object.is(unwrap(value), unwrap(old))) autorun(s.effects)
+    value = isFunction(updater) && !isSignal(updater) ? updater(value) : updater
+    if (!Object.is(value, old)) autorun(s.effects)
   }
   return s
 }

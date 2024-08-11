@@ -1,15 +1,28 @@
-import { isFunction } from "./is-type"
-import { type UIMaybe, unwrap, maybe, hasMethod } from "./maybe"
-import { type UISignal, isState, isSignal, cause } from "./cause-effect"
-import { type UnknownContext, CONTEXT_REQUEST, ContextRequestEvent } from "./context-request"
+import { isFunction, hasMethod } from './lib/is-type'
+import { type Maybe, maybe } from './lib/maybe'
+import { attempt } from './lib/attempt'
+import { type UISignal, isState, isSignal, cause } from './cause-effect'
+import { type UnknownContext, CONTEXT_REQUEST, ContextRequestEvent } from './lib/context-request'
+import { log, LOG_ERROR } from './lib/log'
 
 /* === Types === */
 
-type UIAttributeParser = ((value: UIMaybe<string>, element?: HTMLElement, old?: string | undefined) => unknown)
+type UIAttributeParser = (<T>(value: Maybe<string>, element: UIElement, old: string | undefined) => Maybe<T>)
 
 type UIAttributeMap = Record<string, UIAttributeParser>
 
 type UIStateMap = Record<PropertyKey, PropertyKey | UISignal<unknown> | (() => unknown)>
+
+/* === Internal Functions === */
+
+/**
+ * Unwrap any value wrapped in a function
+ * 
+ * @since 0.8.0
+ * @param {any} value - value to unwrap if it's a function
+ * @returns {any} - unwrapped value, but might still be in a maybe or attempt container
+ */
+const unwrap = (value: any): any => isFunction(value) ? unwrap(value()) : value
 
 /* === Default export === */
 
@@ -33,11 +46,8 @@ class UIElement extends HTMLElement {
    * @param {string} tag - name of the custom element
    */
   static define(tag: string): void {
-    try {
-      if (!this.registry.get(tag)) this.registry.define(tag, this)
-    } catch (err) {
-      console.error(err)
-    }
+    attempt(() => !this.registry.get(tag) && this.registry.define(tag, this))
+      .catch(error => log(tag, error.message, LOG_ERROR))
   }
 
   // @private hold states – use `has()`, `get()`, `set()` and `delete()` to access and modify
@@ -54,8 +64,7 @@ class UIElement extends HTMLElement {
   attributeChangedCallback(name: string, old: string | undefined, value: string | undefined): void {
     if (value === old) return
     const parser = (this.constructor as typeof UIElement).attributeMap[name]
-    const maybeValue = maybe(value);
-    this.set(name, isFunction(parser) ? parser(maybeValue, this, old) : maybeValue)
+    this.set(name, isFunction(parser) ? parser(maybe(value), this, old).fold(() => {}, v => v) : value)
   }
 
   connectedCallback(): void {
@@ -142,11 +151,14 @@ class UIElement extends HTMLElement {
    */
   async pass(target: UIElement, states: UIStateMap): Promise<void> {
     await (this.constructor as typeof UIElement).registry.whenDefined(target.localName)
-    if (!hasMethod(target, 'set')) throw new TypeError('Expected UIElement')
+    if (!hasMethod(target, 'set')) {
+      log(target, 'Expected UIElement', LOG_ERROR)
+      return
+    }
     for (const [key, source] of Object.entries(states))
       target.set(key, isSignal(source) ? source
         : isFunction(source) ? cause(source)
-          : this.#states.get(source)
+        : this.#states.get(source)
       )
   }
 

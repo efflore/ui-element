@@ -1,8 +1,9 @@
-import { type UIFunctor, type UINothing } from '../maybe';
+import { type Functor } from './is-type';
+import { type Maybe } from './maybe';
 import type { UIElement } from '../ui-element';
-interface UIRef<T> extends UIFunctor<T> {
+interface UIRef<T> extends Functor<T> {
     (): T;
-    map: <V>(fn: (node: T, host: UIElement) => V) => UIMaybeRef<V>;
+    map: <V>(fn: (node: T, host: UIElement) => V) => MaybeRef<V>;
     on: (event: string, handler: EventListenerOrEventListenerObject) => () => void;
     text: (state: PropertyKey) => UIRef<T>;
     prop: (key: PropertyKey, state?: PropertyKey) => UIRef<T>;
@@ -13,7 +14,7 @@ interface UIRef<T> extends UIFunctor<T> {
     first?: (selector: string) => UIRef<T>;
     all?: (selector: string) => UIRef<T>[];
 }
-type UIMaybeRef<T> = UIRef<T> | UINothing;
+type MaybeRef<T> = UIRef<T> | Maybe<T>;
 /**
  * Wrapper around a native DOM element for DOM manipulation
  *
@@ -23,4 +24,4 @@ type UIMaybeRef<T> = UIRef<T> | UINothing;
  * @returns {UIRef} - UIRef instance for the given element
  */
 declare const ui: <T>(node: Element, host: UIElement) => UIRef<T>;
-export { type UIRef, type UIMaybeRef, ui };
+export { type UIRef, type MaybeRef, ui };

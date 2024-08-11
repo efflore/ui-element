@@ -1,7 +1,7 @@
-import { type UIMaybe } from "./maybe";
-import { type UISignal } from "./cause-effect";
-import { type UnknownContext } from "./context-request";
-type UIAttributeParser = ((value: UIMaybe<string>, element?: HTMLElement, old?: string | undefined) => unknown);
+import { type Maybe } from './lib/maybe';
+import { type UISignal } from './cause-effect';
+import { type UnknownContext } from './lib/context-request';
+type UIAttributeParser = (<T>(value: Maybe<string>, element: UIElement, old: string | undefined) => Maybe<T>);
 type UIAttributeMap = Record<string, UIAttributeParser>;
 type UIStateMap = Record<PropertyKey, PropertyKey | UISignal<unknown> | (() => unknown)>;
 /**

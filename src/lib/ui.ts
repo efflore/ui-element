@@ -1,18 +1,18 @@
-import { isComment, isDefined } from '../is-type'
-import { nothing, type UIFunctor, type UINothing } from '../maybe'
+import { type Functor, isComment, isDefined } from './is-type'
+import { type Maybe, maybe } from './maybe'
 import { type UIDOMInstructionQueue, effect } from '../cause-effect'
 import type { UIElement } from '../ui-element'
 
 /* === Type definitions === */
 
-interface UIRef<T> extends UIFunctor<T> {                              // Unit: UI monad
+interface UIRef<T> extends Functor<T> {                              // Unit: UI monad
   (): T                                                                // Flat: unwraps the container function
   // type: string
   // toString: () => string
-  map: <V>(fn: (node: T, host: UIElement) => V) => UIMaybeRef<V>       // Functor pattern
+  map: <V>(fn: (node: T, host: UIElement) => V) => MaybeRef<V>       // Functor pattern
   // chain: (fn: (node: T, host: UIElement) => unknown) => unknown        // Monad pattern
-  // filter: (fn: (node: T, host: UIElement) => boolean) => UIMaybeRef<T> // Filterable pattern
-  // apply: <U>(other: UIFunctor<U>) => UIFunctor<U>                      // Applicative pattern
+  // filter: (fn: (node: T, host: UIElement) => boolean) => MaybeRef<T> // Filterable pattern
+  // apply: <U>(other: Functor<U>) => Functor<U>                      // Applicative pattern
   on: (event: string, handler: EventListenerOrEventListenerObject) => () => void
   text: (state: PropertyKey) => UIRef<T>
   prop: (key: PropertyKey, state?: PropertyKey) => UIRef<T>
@@ -26,7 +26,7 @@ interface UIRef<T> extends UIFunctor<T> {                              // Unit: 
   all?: (selector: string) => UIRef<T>[]
 }
 
-type UIMaybeRef<T> = UIRef<T> | UINothing
+type MaybeRef<T> = UIRef<T> | Maybe<T>
 
 /* Internal functions === */
 
@@ -57,10 +57,10 @@ const ui = <T>(node: Element, host: UIElement): UIRef<T> => {
   const el = (): Element => node
   // el.type = node.localName
   // el.toString = () => `<${node.localName}${idString(node.id)}${classString(node.classList)}>`
-  el.map = (fn: (node: Element, host: UIElement) => Element): UIMaybeRef<T> => ui(fn(node, host), host)
+  el.map = (fn: (node: Element, host: UIElement) => Element): MaybeRef<T> => ui(fn(node, host), host)
   // el.chain = (fn: (node: Element, host: UIElement) => unknown): unknown => fn(node, host)
-  // el.filter = (fn: (node: Element, host: UIElement) => boolean): UIMaybeRef<T> => fn(node, host) ? ui(node, host) : nothing()
-  // el.apply = <U>(other: UIFunctor<U>): UIFunctor<U> => other.map(el)
+  // el.filter = (fn: (node: Element, host: UIElement) => boolean): MaybeRef<T> => fn(node, host) ? ui(node, host) : nothing()
+  // el.apply = <U>(other: Functor<U>): Functor<U> => other.map(el)
 
   el.on = (event: string, handler: EventListenerOrEventListenerObject): (() => void) => {
     node.addEventListener(event, handler)
@@ -105,9 +105,9 @@ const ui = <T>(node: Element, host: UIElement): UIRef<T> => {
   if (host === node) {
     const root = host.shadowRoot || host
 
-    el.first = (selector: string): UIMaybeRef<T> => {
+    el.first = (selector: string): MaybeRef<T> => {
       const match = root.querySelector(selector)
-      return match ? ui(match, host) : nothing()
+      return match ? ui(match, host) : maybe(null)
     }
   
     el.all = (selector: string): UIRef<Element>[] =>
@@ -118,6 +118,6 @@ const ui = <T>(node: Element, host: UIElement): UIRef<T> => {
 }
 
 export {
-  type UIRef, type UIMaybeRef,
+  type UIRef, type MaybeRef,
   ui
 }

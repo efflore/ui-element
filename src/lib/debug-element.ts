@@ -1,17 +1,17 @@
-import { isString, isDefined } from '../is-type';
+import { isString, isDefined } from './is-type'
 import type { UIComputed, UIEffect } from '../cause-effect'
 import { type UIStateMap, UIElement } from '../ui-element'
+import { log, DEV_MODE } from './log'
 
 /* === Constants === */
 
-const DEV_MODE = true
 const DEBUG_STATE = 'debug'
 const SELECTOR_PREFIX = 'data-'
 const HOVER_SUFFIX = 'hover'
 const FOCUS_SUFFIX = 'focus'
 const EFFECT_CLASS = 'ui-effect'
 
-/* === Internal variables and functions to the module === */
+/* === Internal Functions === */
 
 /**
  * Return selector string for the id of the element
@@ -28,7 +28,7 @@ const idString = (id: string): string => id ? `#${id}` : '';
  * @returns {string} - class string for the DOMTokenList with '.' prefix if any
  */
 const classString = (classList: DOMTokenList): string =>
-  classList.length ? `.${Array.from(classList).join('.')}` : '';
+  classList.length ? `.${Array.from(classList).join('.')}` : ''
 
 /**
  * Return a HyperScript string representation of the Element instance
@@ -53,14 +53,7 @@ const valueString = (value: unknown): string =>
       : isDefined(value) ? value.toString()
         : 'undefined'
 
-/* === Exported functions === */
-
-const log = <T>(label: string, value: T) => {
-  console.debug(`${label}: ${valueString(value)}`)
-  return value
-}
-
-/* === Exported class === */
+/* === Exported Class === */
 
 /**
  * Add debug capabilities to UIElement classes
@@ -78,21 +71,21 @@ class DebugElement extends UIElement {
   connectedCallback() {
     if (isString(this.getAttribute(DEBUG_STATE))) this.set(DEBUG_STATE, true)
     super.connectedCallback()
-    this.log('Connected', elementName(this))
+    log(elementName(this), 'Connected')
   }
 
   /**
    * Wrap disconnectedCallback to log to the console
    */
   disconnectedCallback() {
-    this.log('Disconnected', elementName(this))
+    log(elementName(this), 'Disconnected')
   }
 
   /**
    * Wrap adoptedCallback to log to the console
    */
   adoptedCallback() {
-    this.log('Adopted', elementName(this))
+    log(elementName(this), 'Adopted')
   }
 
   /**
@@ -104,7 +97,7 @@ class DebugElement extends UIElement {
    * @param {string | undefined} value
    */
   attributeChangedCallback(name: string, old: string | undefined, value: string | undefined) {
-    this.log(`Attribute "${name}" of ${elementName(this)} changed`, `${valueString(old)} => ${valueString(value)}`)
+    log(`${valueString(old)} => ${valueString(value)}`, `Attribute "${name}" of ${elementName(this)} changed`)
     super.attributeChangedCallback(name, old, value)
   }
 
@@ -116,7 +109,7 @@ class DebugElement extends UIElement {
    * @returns {unknown} - current value of the state
    */
   get<T>(key: PropertyKey): T {
-    return this.log(`Get current value of state ${valueString(key)} in ${elementName(this)}`, super.get(key))
+    return log(super.get(key), `Get current value of state ${valueString(key)} in ${elementName(this)}`)
   }
 
   /**
@@ -128,7 +121,7 @@ class DebugElement extends UIElement {
    * @param {boolean} [update=true] - whether to update the state
    */
   set(key: PropertyKey, value: unknown, update: boolean = true): void {
-    this.log(`Set ${update ? '' : 'default '}value of state ${valueString(key)} in ${elementName(this)} to`, value)
+    log(value, `Set ${update ? '' : 'default '}value of state ${valueString(key)} in ${elementName(this)} to`)
     super.set(key, value, update)
   }
 
@@ -140,7 +133,7 @@ class DebugElement extends UIElement {
    * @returns {boolean} - whether the state was deleted
    */
   delete(key: PropertyKey): boolean {
-    return this.log(`Delete state ${valueString(key)} from ${elementName(this)}`, super.delete(key))
+    return log(super.delete(key), `Delete state ${valueString(key)} from ${elementName(this)}`)
   }
 
   /**
@@ -151,7 +144,7 @@ class DebugElement extends UIElement {
    * @param {UIStateMap} states - states to be passed to the element
    */
   async pass(element: UIElement, states: UIStateMap) {
-    this.log(`Pass state(s) from ${elementName(this)} to ${elementName(element as HTMLElement)}`, Object.keys(states))
+    log(Object.keys(states), `Pass state(s) from ${elementName(this)} to ${elementName(element as HTMLElement)}`)
     super.pass(element, states)
   }
 
@@ -201,18 +194,6 @@ class DebugElement extends UIElement {
     })
   }
 
-  /**
-   * Log messages in debug mode
-   * 
-   * @since 0.5.0
-   * @param {string} label - debug label for value to be logged
-   * @param {T} value - value to be logged in debug mode
-   * @returns {T} - return the value for chaining
-   */
-  log<T>(label: string, value: T): T {
-    if (this.has(DEBUG_STATE)) log(label, value)
-    return value
-  }
 }
 
 export { DEV_MODE, DebugElement as default }

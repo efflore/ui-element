@@ -118,7 +118,7 @@
         heading: asString,
         count: asInteger,
         step: asNumber,
-        value: (v, el) => Number.isInteger(el.get('step')) ? parseInt(v, 10) : parseFloat(v),
+        value: (maybe, el) => maybe.map(v => Number.isInteger(el.get('step')) ? parseInt(v, 10) : parseFloat(v)),
         selected: asBoolean,
       }
     },
@@ -136,7 +136,7 @@
     (el, ui) => {
       el.pass(ui.first('child-component')(), {
         heading: 'heading',
-        text: () => el.get('heading').toUpperCase(),
+        text: () => el.get('heading').toUpperCase()
       });
     });
 

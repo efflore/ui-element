@@ -1,5 +1,5 @@
 import { type UIStateMap, UIElement } from '../ui-element';
-declare const DEV_MODE = true;
+import { DEV_MODE } from './log';
 /**
  * Add debug capabilities to UIElement classes
  *
@@ -77,14 +77,5 @@ declare class DebugElement extends UIElement {
      * @param {string} [className=EFFECT_CLASS] - CSS class to be added to highlighted targets
      */
     highlight(className?: string): void;
-    /**
-     * Log messages in debug mode
-     *
-     * @since 0.5.0
-     * @param {string} label - debug label for value to be logged
-     * @param {T} value - value to be logged in debug mode
-     * @returns {T} - return the value for chaining
-     */
-    log<T>(label: string, value: T): T;
 }
 export { DEV_MODE, DebugElement as default };
