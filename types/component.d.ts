@@ -34,7 +34,7 @@ declare const component: (tag: string, props: ComponentProps, connect: (host: UI
         get<T>(key: PropertyKey): T | undefined;
         set<T>(key: PropertyKey, value: T | ((old: T | undefined) => T) | import("./cause-effect").Signal<T>, update?: boolean): void;
         delete(key: PropertyKey): boolean;
-        first(selector: string): import("./core/maybe").Maybe<import("./core/ui").UI<Element>>;
+        first(selector: string): import("./core/ui").UI<Element> | undefined;
         all(selector: string): import("./core/ui").UI<Element>[];
         pass(target: UIElement, stateMap: import("./ui-element").StateMap): Promise<void>;
         signal<T>(key: PropertyKey): import("./cause-effect").Signal<T> | undefined;

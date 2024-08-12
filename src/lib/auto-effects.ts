@@ -104,7 +104,7 @@ const syncClass = (token: string, state: PropertyKey = token) =>
       target,
       target.classList.contains(token),
       () => target.classList.remove(token),
-      () => () => target.classList.add(token)
+      (value: boolean) => () => target.classList.toggle(token, value)
     )
   }
 

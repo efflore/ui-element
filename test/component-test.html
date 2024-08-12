@@ -111,8 +111,7 @@
 
     component('causal-component', {}, el => {
       el.set('heading', 'Hello from Internal State')
-      el.first('h1')
-        .map(syncText('heading'))
+      el.first('h1')?.map(syncText('heading'))
     })
 
     component('updating-component', {
@@ -126,13 +125,13 @@
     },
     el => {
       el.first('h1')
-        .map(syncText('heading'))
-        .map(syncClass('selected'))
+        ?.map(syncText('heading'))
+        ?.map(syncClass('selected'))
       el.first('p span')
-        .map(syncText('count'))
+        ?.map(syncText('count'))
       el.first('input')
-        .map(syncAttr('value'))
-        .map(syncAttr('step'))
+        ?.map(syncAttr('value'))
+        ?.map(syncAttr('step'))
     })
 
     component('parent-component', {
@@ -140,38 +139,41 @@
         heading: asString
       }
     },
-    (el, ui) => {
-      el.pass(ui.first('child-component')(), {
-        heading: 'heading',
-        text: () => el.get('heading').toUpperCase()
-      });
-    });
+    el => el.pass(el.first('child-component').get(), {
+      heading: 'heading',
+      text: () => el.get('heading').toUpperCase()
+    }))
 
-    component('child-component', {}, (el, ui) => {
-      ui.first('h1').text('heading');
-      ui.first('p').text('text');
-    });
+    component('child-component', {}, el => {
+      el.first('h1')?.map(syncText('heading'))
+      el.first('p')?.map(syncText('text'))
+    })
 
     component('my-counter', {
       attributeMap: {
         value: asInteger
       }
     },
-    (el, ui) => {
-      el.set('parity', () => el.get('value') % 2 ? 'odd' : 'even');
-      el.set('double', () => el.get('value') * 2);
-      ui.first('.decrement').on('click', () => el.set('value', v => --v));
-      ui.first('.increment').on('click', () => el.set('value', v => ++v));
-      ui.first('.value').text('value');
-      ui.first('.parity').text('parity');
-      ui.first('.double').text('double');
-    });
+    el => {
+      el.set('parity', () => el.get('value') % 2 ? 'odd' : 'even')
+      el.set('double', () => el.get('value') * 2)
+      el.first('.decrement')
+        ?.map(on('click', null, () => el.set('value', v => --v)))
+      el.first('.increment')
+        ?.map(on('click', null, () => el.set('value', v => ++v)))
+      el.first('.value')
+        ?.map(syncText('value'))
+      el.first('.parity')
+        ?.map(syncText('parity'))
+      el.first('.double')
+        ?.map(syncText('double'))
+    })
 
-    component('greeting-configurator', {}, (el, ui) => {
-      el.pass(ui.first('hello-world')(), {
-        name: () => ui.first('input-checkbox')().get('checked')
-          ? `${ui.first('.first')().get('value')} ${ui.first('.last')().get('value')}`
-          : ui.first('.first')().get('value'),
+    component('greeting-configurator', {}, el => {
+      el.pass(el.first('hello-world').get(), {
+        name: () => el.first('input-checkbox')?.get().get('checked')
+          ? `${el.first('.first')?.get().get('value')} ${el.first('.last')?.get().get('value')}`
+          : el.first('.first')?.get().get('value'),
       });
     });
 
@@ -180,24 +182,28 @@
         greeting: asString
       }
     },
-    (el, ui) => {
-      ui.first('.greeting').text('greeting');
-      ui.first('.name').text('name');
+    el => {
+      el.first('.greeting')
+        ?.map(syncText('greeting'))
+      el.first('.name')
+        ?.map(syncText('name'))
     });
 
-    component('input-field', {}, (el, ui) => {
-      const input = ui.first('input');
-      input && el.set('value', input().value);
-      input.on('change', () => el.set('value', input().value));
-    });
+    component('input-field', {}, el => {
+      const input = el.first('input')
+      if (!input) return
+      el.set('value', input.get().value)
+      input.map(on('change', null, () => el.set('value', input.get().value)))
+    })
 
-    component('input-checkbox', {}, (el, ui) => {
-      const input = ui.first('input');
-      input && el.set('checked', input().checked);
-      input.on('change', () => el.set('checked', input().checked));
-    });
+    component('input-checkbox', {}, el => {
+      const input = el.first('input')
+      if (!input) return
+      el.set('checked', input.get().checked)
+      input.map(on('change', null, () => el.set('checked', input.get().checked)))
+    })
 
-    component('lazy-load', {}, (el, ui) => {
+    component('lazy-load', {}, el => {
       el.set('error', '')
       el.set('content', () => {
         fetch(el.getAttribute('src')) // TODO ensure 'src' attribute is a valid URL from a trusted source
@@ -208,17 +214,17 @@
               : el.set('error', response.statusText)
           })
           .catch(error => el.set('error', error))
-        return; // we don't return a fallback value
-      });
-      const loadingEl = ui.first('.loading')
-      const errorEl = ui.first('.error')
-      const remove = (enqueue, ref) => enqueue(ref(), io(() => ref().remove()))
+        return // we don't return a fallback value
+      })
+      const loadingEl = el.first('.loading').get()
+      const errorEl = el.first('.error').get()
+      const remove = (enqueue, ui) => enqueue(ui, io(() => ui.remove()))
 
       effect(enqueue => {
         const error = el.get('error')
         if (!error) return
         remove(enqueue, loadingEl) // remove placeholder for pending state
-        enqueue(errorEl(), io(() => errorEl().textContent = error))
+        enqueue(errorEl, io(() => errorEl.textContent = error))
       })
 
       effect(enqueue => {

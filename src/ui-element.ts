@@ -159,10 +159,10 @@ class UIElement extends HTMLElement {
    * 
    * @since 0.8.0
    * @param {string} selector - selector to match sub-element
-   * @returns {Maybe<Element>} - first matching sub-element as a maybe of element
+   * @returns {UI<Element> | undefined} - first matching sub-element as a UI of element
    */
-  first(selector: string): Maybe<UI<Element>> {
-    return maybe(getRoot(this).querySelector(selector)).map(node => ui(this, node))
+  first(selector: string): UI<Element> | undefined {
+    return maybe(getRoot(this).querySelector(selector)).fold(() => undefined, node => ui(this, node))
   }
 
   /**
@@ -170,7 +170,7 @@ class UIElement extends HTMLElement {
    * 
    * @since 0.8.0
    * @param {string} selector - selector to match sub-elements
-   * @returns {UI<T>[]} - all matching sub-elements as an array
+   * @returns {UI<Element>[]} - all matching sub-elements as an array of UI of element
    */
   all(selector: string): UI<Element>[] {
     return Array.from(getRoot(this).querySelectorAll(selector)).map(node => ui(this, node))

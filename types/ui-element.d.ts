@@ -74,15 +74,15 @@ declare class UIElement extends HTMLElement {
      *
      * @since 0.8.0
      * @param {string} selector - selector to match sub-element
-     * @returns {Maybe<Element>} - first matching sub-element as a maybe of element
+     * @returns {UI<Element> | undefined} - first matching sub-element as a UI of element
      */
-    first(selector: string): Maybe<UI<Element>>;
+    first(selector: string): UI<Element> | undefined;
     /**
      * Get all sub-elements matching a given selector within the custom element as an array
      *
      * @since 0.8.0
      * @param {string} selector - selector to match sub-elements
-     * @returns {UI<T>[]} - all matching sub-elements as an array
+     * @returns {UI<Element>[]} - all matching sub-elements as an array of UI of element
      */
     all(selector: string): UI<Element>[];
     /**
