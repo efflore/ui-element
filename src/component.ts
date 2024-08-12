@@ -1,15 +1,19 @@
-import { isDefinedObject, isFunction } from './lib/is-type'
-import { maybe } from './lib/maybe'
+import { isDefinedObject, isFunction } from './core/is-type'
+import { maybe } from './core/maybe'
+import { ui } from './core/ui'
+import { io } from './core/io'
+import { pass } from './core/pass.js'
+import type { UnknownContext } from './core/context-request'
 import { effect } from './cause-effect'
-import { type UIAttributeMap, UIElement } from './ui-element'
-import type { UnknownContext } from './lib/context-request'
+import { type AttributeMap, UIElement } from './ui-element'
 import { asBoolean, asInteger, asNumber, asString, asJSON } from './lib/parse-attribute'
-import { type UIRef, ui } from './lib/ui'
+import { on } from './lib/event.js'
+import { syncText, syncProp, syncAttr, syncBool, syncClass, syncStyle } from './lib/auto-effects.js'
 
 /* === Types === */
 
-type UIComponentProps = {
-  attributeMap?: UIAttributeMap
+type ComponentProps = {
+  attributeMap?: AttributeMap
   consumedContexts?: UnknownContext[]
   providedContexts?: UnknownContext[]
 }
@@ -21,20 +25,20 @@ type UIComponentProps = {
  * 
  * @since 0.7.0
  * @param {string} tag - custom element tag name
- * @param {UIComponentProps} props - object of observed attributes and their corresponding state keys and parser functions
- * @param {(host: UIElement, my: UIRef<Element>) => void | (() => void)} connect - callback to be called when the element is connected to the DOM; may return a disconnect callback to be called when the element is disconnected from the DOM
+ * @param {ComponentProps} props - object of observed attributes and their corresponding state keys and parser functions
+ * @param {(host: UIElement) => void | (() => void)} connect - callback to be called when the element is connected to the DOM; may return a disconnect callback to be called when the element is disconnected from the DOM
  * @param {typeof UIElement} superClass - parent class to extend; defaults to `UIElement`
- * @returns {typeof FxComponent} - custom element class
+ * @returns {typeof Component} - custom element class
  */
 const component = (
   tag: string,
-  props: UIComponentProps = {},
-  connect: (host: UIElement, my: UIRef<Element>) => void | (() => void),
+  props: ComponentProps = {},
+  connect: (host: UIElement) => void | (() => void),
   superClass: typeof UIElement = UIElement
-): typeof UIComponent => {
-  const UIComponent = class extends superClass {
+): typeof Component => {
+  const Component = class extends superClass {
     static observedAttributes: string[] = isDefinedObject(props.attributeMap) ? Object.keys(props.attributeMap) : []
-    static attributeMap: UIAttributeMap = props.attributeMap || {}
+    static attributeMap: AttributeMap = props.attributeMap || {}
     static providedContexts: UnknownContext[] = props.providedContexts || []
     static consumedContexts: UnknownContext[] = props.consumedContexts || []
 
@@ -43,7 +47,7 @@ const component = (
     connectedCallback(): void {
       super.connectedCallback()
       if (!isFunction(connect)) return
-      const cleanup = connect(this, ui(this, this))
+      const cleanup = connect(this)
       if (isFunction(cleanup)) this.disconnect = cleanup
     }
     
@@ -52,11 +56,13 @@ const component = (
       this.disconnect()
     }
   }
-  UIComponent.define(tag)
-  return UIComponent
+  Component.define(tag)
+  return Component
 }
 
 export {
-  type UIComponentProps,
-  UIElement as default, maybe, effect, component, ui, asBoolean, asInteger, asNumber, asString, asJSON
+  type ComponentProps,
+  UIElement, effect, component, maybe, ui, io, pass, on,
+  asBoolean, asInteger, asNumber, asString, asJSON,
+  syncText, syncProp, syncAttr, syncBool, syncClass, syncStyle
 }

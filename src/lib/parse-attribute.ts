@@ -1,6 +1,6 @@
-import { type Maybe, maybe } from './maybe'
-import { attempt } from './attempt'
-import { log, LOG_ERROR } from './log'
+import { type Maybe, maybe } from '../core/maybe'
+import { attempt } from '../core/attempt'
+import { log, LOG_ERROR } from '../core/log'
 
 /* === Internal === */
 

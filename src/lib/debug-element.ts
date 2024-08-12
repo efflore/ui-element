@@ -1,7 +1,7 @@
-import { isString, isDefined } from './is-type'
-import type { UIComputed, UIEffect } from '../cause-effect'
-import { type UIStateMap, UIElement } from '../ui-element'
-import { log, DEV_MODE } from './log'
+import { isString, isDefined } from '../core/is-type'
+import type { Computed, Effect } from '../cause-effect'
+import { type StateMap, UIElement } from '../ui-element'
+import { log, DEV_MODE } from '../core/log'
 
 /* === Constants === */
 
@@ -141,11 +141,11 @@ class DebugElement extends UIElement {
    * 
    * @since 0.7.0
    * @param {UIElement} element - UIElement to be passed to
-   * @param {UIStateMap} states - states to be passed to the element
+   * @param {StateMap} stateMap - states to be passed to the element
    */
-  async pass(element: UIElement, states: UIStateMap) {
-    log(Object.keys(states), `Pass state(s) from ${elementName(this)} to ${elementName(element as HTMLElement)}`)
-    super.pass(element, states)
+  async pass(element: UIElement, stateMap: StateMap) {
+    log(Object.keys(stateMap), `Pass state(s) from ${elementName(this)} to ${elementName(element as HTMLElement)}`)
+    super.pass(element, stateMap)
   }
 
   /**
@@ -158,7 +158,7 @@ class DebugElement extends UIElement {
     let targets = []
     const state = this.signal(key)
     if (!state || !state.effects) return targets
-    const recurse = (effects: Set<UIEffect | UIComputed<unknown>>) => {
+    const recurse = (effects: Set<Effect | Computed<unknown>>) => {
       for (const effect of effects) {
         if ('effects' in effect) recurse(effect.effects)
         else targets = [...targets, ...Array.from(effect.targets?.keys())]
@@ -196,4 +196,4 @@ class DebugElement extends UIElement {
 
 }
 
-export { DEV_MODE, DebugElement as default }
+export { DEV_MODE, DebugElement }

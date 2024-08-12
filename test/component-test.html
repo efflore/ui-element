@@ -100,7 +100,8 @@
   <script type="module">
     import { runTests } from '@web/test-runner-mocha';
     import { assert } from '@esm-bundle/chai';
-    import { component, effect, asBoolean, asInteger, asNumber, asString } from '../component.js';
+    import { component, effect, io, asBoolean, asInteger, asNumber, asString, pass, on,
+      syncText, syncProp, syncAttr, syncBool, syncClass, syncStyle } from '../component.js';
 
     const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
     const paint = () => new Promise(resolve => requestAnimationFrame(resolve));
@@ -108,9 +109,10 @@
 
     component('void-component');
 
-    component('causal-component', {}, (el, ui) => {
+    component('causal-component', {}, el => {
       el.set('heading', 'Hello from Internal State')
-      ui.first('h1').text('heading')
+      el.first('h1')
+        .map(syncText('heading'))
     })
 
     component('updating-component', {
@@ -122,11 +124,16 @@
         selected: asBoolean,
       }
     },
-    (el, ui) => {
-      ui.first('h1').text('heading').class('selected');
-      ui.first('p span').text('count');
-      ui.first('input').attr('value').attr('step');
-    });
+    el => {
+      el.first('h1')
+        .map(syncText('heading'))
+        .map(syncClass('selected'))
+      el.first('p span')
+        .map(syncText('count'))
+      el.first('input')
+        .map(syncAttr('value'))
+        .map(syncAttr('step'))
+    })
 
     component('parent-component', {
       attributeMap: {
@@ -191,40 +198,40 @@
     });
 
     component('lazy-load', {}, (el, ui) => {
-      el.set('error', '');
+      el.set('error', '')
       el.set('content', () => {
         fetch(el.getAttribute('src')) // TODO ensure 'src' attribute is a valid URL from a trusted source
           .then(async response => {
             await wait(1500); // we wait a bit, otherwise Promise is already fulfilled when test runs
             return response.ok
               ? el.set('content', await response.text())
-              : el.set('error', response.statusText);
+              : el.set('error', response.statusText)
           })
-          .catch(error => el.set('error', error));
+          .catch(error => el.set('error', error))
         return; // we don't return a fallback value
       });
-      const loadingEl = ui.first('.loading');
-      const errorEl = ui.first('.error');
-      const remove = (enqueue, ref) => enqueue(ref(), () => ref().remove())
+      const loadingEl = ui.first('.loading')
+      const errorEl = ui.first('.error')
+      const remove = (enqueue, ref) => enqueue(ref(), io(() => ref().remove()))
 
       effect(enqueue => {
-        const error = el.get('error');
-        if (!error) return;
-        remove(enqueue, loadingEl); // remove placeholder for pending state
-        enqueue(errorEl(), () => errorEl().textContent = error);
-      });
+        const error = el.get('error')
+        if (!error) return
+        remove(enqueue, loadingEl) // remove placeholder for pending state
+        enqueue(errorEl(), io(() => errorEl().textContent = error))
+      })
 
       effect(enqueue => {
-        const content = el.get('content');
-        if (!content) return;
-        enqueue(el, () => {
-          const shadow = el.shadowRoot || el.attachShadow({ mode: 'open' }); // we use shadow DOM to encapsulate styles
-          shadow.innerHTML = content; // UNSAFE!, use only trusted sources in 'src' attribute
-        });
-        remove(enqueue, loadingEl); // remove placeholder for pending state
-        remove(enqueue, errorEl); // remove placeholder for error message
-      });
-    });
+        const content = el.get('content')
+        if (!content) return
+        enqueue(el, io(() => {
+          const shadow = el.shadowRoot || el.attachShadow({ mode: 'open' }) // we use shadow DOM to encapsulate styles
+          shadow.innerHTML = content // UNSAFE!, use only trusted sources in 'src' attribute
+        }))
+        remove(enqueue, loadingEl) // remove placeholder for pending state
+        remove(enqueue, errorEl) // remove placeholder for error message
+      })
+    })
 
     runTests(() => {
 

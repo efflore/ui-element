@@ -1,9 +1,10 @@
-import { type Maybe } from './lib/maybe';
-import { type UISignal } from './cause-effect';
-import { type UnknownContext } from './lib/context-request';
-type UIAttributeParser = (<T>(value: Maybe<string>, element: UIElement, old: string | undefined) => Maybe<T>);
-type UIAttributeMap = Record<string, UIAttributeParser>;
-type UIStateMap = Record<PropertyKey, PropertyKey | UISignal<unknown> | (() => unknown)>;
+import { type Maybe } from './core/maybe';
+import { type Signal } from './cause-effect';
+import { type UnknownContext } from './core/context-request';
+import { type UI } from './core/ui';
+type AttributeParser = (<T>(value: Maybe<string>, element: UIElement, old: string | undefined) => Maybe<T>);
+type AttributeMap = Record<string, AttributeParser>;
+type StateMap = Record<PropertyKey, PropertyKey | Signal<unknown> | (() => unknown)>;
 /**
  * Base class for reactive custom elements
  *
@@ -14,7 +15,7 @@ type UIStateMap = Record<PropertyKey, PropertyKey | UISignal<unknown> | (() => u
 declare class UIElement extends HTMLElement {
     #private;
     static registry: CustomElementRegistry;
-    static attributeMap: UIAttributeMap;
+    static attributeMap: AttributeMap;
     static consumedContexts: UnknownContext[];
     static providedContexts: UnknownContext[];
     /**
@@ -56,10 +57,10 @@ declare class UIElement extends HTMLElement {
      *
      * @since 0.2.0
      * @param {PropertyKey} key - state to set value to
-     * @param {T | ((old: T | undefined) => T) | UISignal<T>} value - initial or new value; may be a function (gets old value as parameter) to be evaluated when value is retrieved
+     * @param {T | ((old: T | undefined) => T) | Signal<T>} value - initial or new value; may be a function (gets old value as parameter) to be evaluated when value is retrieved
      * @param {boolean} [update=true] - if `true` (default), the state is updated; if `false`, do nothing if state already exists
      */
-    set<T>(key: PropertyKey, value: T | ((old: T | undefined) => T) | UISignal<T>, update?: boolean): void;
+    set<T>(key: PropertyKey, value: T | ((old: T | undefined) => T) | Signal<T>, update?: boolean): void;
     /**
      * Delete a state, also removing all effects dependent on the state
      *
@@ -69,20 +70,36 @@ declare class UIElement extends HTMLElement {
      */
     delete(key: PropertyKey): boolean;
     /**
+     * Get first sub-element matching a given selector within the custom element as a maybe of element
+     *
+     * @since 0.8.0
+     * @param {string} selector - selector to match sub-element
+     * @returns {Maybe<Element>} - first matching sub-element as a maybe of element
+     */
+    first(selector: string): Maybe<UI<Element>>;
+    /**
+     * Get all sub-elements matching a given selector within the custom element as an array
+     *
+     * @since 0.8.0
+     * @param {string} selector - selector to match sub-elements
+     * @returns {UI<T>[]} - all matching sub-elements as an array
+     */
+    all(selector: string): UI<Element>[];
+    /**
      * Passes states from the current UIElement to another UIElement
      *
      * @since 0.5.0
      * @param {UIElement} target - child element to pass the states to
-     * @param {UIStateMap} states - object of states to be passed; target state keys as keys, source state keys or function as values
+     * @param {StateMap} stateMap - object of states to be passed; target state keys as keys, source state keys or function as values
      */
-    pass(target: UIElement, states: UIStateMap): Promise<void>;
+    pass(target: UIElement, stateMap: StateMap): Promise<void>;
     /**
      * Return the signal for a state
      *
      * @since 0.8.0
      * @param {PropertyKey} key - state to get signal for
-     * @returns {UISignal<T> | undefined} signal for the given state; undefined if
+     * @returns {Signal<T> | undefined} signal for the given state; undefined if
      */
-    signal<T>(key: PropertyKey): UISignal<T> | undefined;
+    signal<T>(key: PropertyKey): Signal<T> | undefined;
 }
-export { type UIStateMap, type UIAttributeMap, UIElement };
+export { type StateMap, type AttributeMap, UIElement };

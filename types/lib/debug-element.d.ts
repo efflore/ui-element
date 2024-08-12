@@ -1,5 +1,5 @@
-import { type UIStateMap, UIElement } from '../ui-element';
-import { DEV_MODE } from './log';
+import { type StateMap, UIElement } from '../ui-element';
+import { DEV_MODE } from '../core/log';
 /**
  * Add debug capabilities to UIElement classes
  *
@@ -60,9 +60,9 @@ declare class DebugElement extends UIElement {
      *
      * @since 0.7.0
      * @param {UIElement} element - UIElement to be passed to
-     * @param {UIStateMap} states - states to be passed to the element
+     * @param {StateMap} stateMap - states to be passed to the element
      */
-    pass(element: UIElement, states: UIStateMap): Promise<void>;
+    pass(element: UIElement, stateMap: StateMap): Promise<void>;
     /**
      * Recursively get all target elements of a given state
      *
@@ -78,4 +78,4 @@ declare class DebugElement extends UIElement {
      */
     highlight(className?: string): void;
 }
-export { DEV_MODE, DebugElement as default };
+export { DEV_MODE, DebugElement };

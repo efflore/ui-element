@@ -1,11 +1,15 @@
-import { maybe } from './lib/maybe';
+import { maybe } from './core/maybe';
+import { ui } from './core/ui';
+import { io } from './core/io';
+import { pass } from './core/pass.js';
+import type { UnknownContext } from './core/context-request';
 import { effect } from './cause-effect';
-import { type UIAttributeMap, UIElement } from './ui-element';
-import type { UnknownContext } from './lib/context-request';
+import { type AttributeMap, UIElement } from './ui-element';
 import { asBoolean, asInteger, asNumber, asString, asJSON } from './lib/parse-attribute';
-import { type UIRef, ui } from './lib/ui';
-type UIComponentProps = {
-    attributeMap?: UIAttributeMap;
+import { on } from './lib/event.js';
+import { syncText, syncProp, syncAttr, syncBool, syncClass, syncStyle } from './lib/auto-effects.js';
+type ComponentProps = {
+    attributeMap?: AttributeMap;
     consumedContexts?: UnknownContext[];
     providedContexts?: UnknownContext[];
 };
@@ -14,24 +18,26 @@ type UIComponentProps = {
  *
  * @since 0.7.0
  * @param {string} tag - custom element tag name
- * @param {UIComponentProps} props - object of observed attributes and their corresponding state keys and parser functions
- * @param {(host: UIElement, my: UIRef<Element>) => void | (() => void)} connect - callback to be called when the element is connected to the DOM; may return a disconnect callback to be called when the element is disconnected from the DOM
+ * @param {ComponentProps} props - object of observed attributes and their corresponding state keys and parser functions
+ * @param {(host: UIElement) => void | (() => void)} connect - callback to be called when the element is connected to the DOM; may return a disconnect callback to be called when the element is disconnected from the DOM
  * @param {typeof UIElement} superClass - parent class to extend; defaults to `UIElement`
- * @returns {typeof FxComponent} - custom element class
+ * @returns {typeof Component} - custom element class
  */
-declare const component: (tag: string, props: UIComponentProps, connect: (host: UIElement, my: UIRef<Element>) => void | (() => void), superClass?: typeof UIElement) => {
+declare const component: (tag: string, props: ComponentProps, connect: (host: UIElement) => void | (() => void), superClass?: typeof UIElement) => {
     new (): {
         disconnect: (() => void) | undefined;
         connectedCallback(): void;
         disconnectedCallback(): void;
-        "__#1@#states": Map<PropertyKey, import("./cause-effect").UISignal<any>>;
+        "__#1@#states": Map<PropertyKey, import("./cause-effect").Signal<any>>;
         attributeChangedCallback(name: string, old: string | undefined, value: string | undefined): void;
         has(key: PropertyKey): boolean;
         get<T>(key: PropertyKey): T | undefined;
-        set<T>(key: PropertyKey, value: T | ((old: T | undefined) => T) | import("./cause-effect").UISignal<T>, update?: boolean): void;
+        set<T>(key: PropertyKey, value: T | ((old: T | undefined) => T) | import("./cause-effect").Signal<T>, update?: boolean): void;
         delete(key: PropertyKey): boolean;
-        pass(target: UIElement, states: import("./ui-element").UIStateMap): Promise<void>;
-        signal<T>(key: PropertyKey): import("./cause-effect").UISignal<T> | undefined;
+        first(selector: string): import("./core/maybe").Maybe<import("./core/ui").UI<Element>>;
+        all(selector: string): import("./core/ui").UI<Element>[];
+        pass(target: UIElement, stateMap: import("./ui-element").StateMap): Promise<void>;
+        signal<T>(key: PropertyKey): import("./cause-effect").Signal<T> | undefined;
         accessKey: string;
         readonly accessKeyLabel: string;
         autocapitalize: string;
@@ -361,10 +367,10 @@ declare const component: (tag: string, props: UIComponentProps, connect: (host: 
         focus(options?: FocusOptions): void;
     };
     observedAttributes: string[];
-    attributeMap: UIAttributeMap;
+    attributeMap: AttributeMap;
     providedContexts: UnknownContext[];
     consumedContexts: UnknownContext[];
     registry: CustomElementRegistry;
     define(tag: string): void;
 };
-export { type UIComponentProps, UIElement as default, maybe, effect, component, ui, asBoolean, asInteger, asNumber, asString, asJSON };
+export { type ComponentProps, UIElement, effect, component, maybe, ui, io, pass, on, asBoolean, asInteger, asNumber, asString, asJSON, syncText, syncProp, syncAttr, syncBool, syncClass, syncStyle };

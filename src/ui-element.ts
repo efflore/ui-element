@@ -1,17 +1,18 @@
-import { isFunction, hasMethod } from './lib/is-type'
-import { type Maybe, maybe } from './lib/maybe'
-import { attempt } from './lib/attempt'
-import { type UISignal, isState, isSignal, cause } from './cause-effect'
-import { type UnknownContext, CONTEXT_REQUEST, ContextRequestEvent } from './lib/context-request'
-import { log, LOG_ERROR } from './lib/log'
+import { isFunction, hasMethod } from './core/is-type'
+import { type Maybe, maybe } from './core/maybe'
+import { attempt } from './core/attempt'
+import { type Signal, isState, isSignal, cause } from './cause-effect'
+import { type UnknownContext, CONTEXT_REQUEST, ContextRequestEvent } from './core/context-request'
+import { log, LOG_ERROR } from './core/log'
+import { type UI, ui } from './core/ui'
 
 /* === Types === */
 
-type UIAttributeParser = (<T>(value: Maybe<string>, element: UIElement, old: string | undefined) => Maybe<T>)
+type AttributeParser = (<T>(value: Maybe<string>, element: UIElement, old: string | undefined) => Maybe<T>)
 
-type UIAttributeMap = Record<string, UIAttributeParser>
+type AttributeMap = Record<string, AttributeParser>
 
-type UIStateMap = Record<PropertyKey, PropertyKey | UISignal<unknown> | (() => unknown)>
+type StateMap = Record<PropertyKey, PropertyKey | Signal<unknown> | (() => unknown)>
 
 /* === Internal Functions === */
 
@@ -22,7 +23,18 @@ type UIStateMap = Record<PropertyKey, PropertyKey | UISignal<unknown> | (() => u
  * @param {any} value - value to unwrap if it's a function
  * @returns {any} - unwrapped value, but might still be in a maybe or attempt container
  */
-const unwrap = (value: any): any => isFunction(value) ? unwrap(value()) : value
+const unwrap = (value: any): any =>
+  isFunction(value) ? unwrap(value()) : value
+
+/**
+ * Get root for element queries within the custom element
+ * 
+ * @since 0.8.0
+ * @param {UIElement} element
+ * @returns {Element | ShadowRoot}
+ */
+const getRoot = (element: UIElement): Element | ShadowRoot =>
+  element.shadowRoot || element
 
 /* === Default export === */
 
@@ -35,7 +47,7 @@ const unwrap = (value: any): any => isFunction(value) ? unwrap(value()) : value
  */
 class UIElement extends HTMLElement {
   static registry: CustomElementRegistry = customElements
-  static attributeMap: UIAttributeMap = {}
+  static attributeMap: AttributeMap = {}
   static consumedContexts: UnknownContext[]
   static providedContexts: UnknownContext[]
 
@@ -51,7 +63,7 @@ class UIElement extends HTMLElement {
   }
 
   // @private hold states – use `has()`, `get()`, `set()` and `delete()` to access and modify
-  #states = new Map<PropertyKey, UISignal<any>>()
+  #states = new Map<PropertyKey, Signal<any>>()
 
   /**
    * Native callback function when an observed attribute of the custom element changes
@@ -119,10 +131,10 @@ class UIElement extends HTMLElement {
    * 
    * @since 0.2.0
    * @param {PropertyKey} key - state to set value to
-   * @param {T | ((old: T | undefined) => T) | UISignal<T>} value - initial or new value; may be a function (gets old value as parameter) to be evaluated when value is retrieved
+   * @param {T | ((old: T | undefined) => T) | Signal<T>} value - initial or new value; may be a function (gets old value as parameter) to be evaluated when value is retrieved
    * @param {boolean} [update=true] - if `true` (default), the state is updated; if `false`, do nothing if state already exists
    */
-  set<T>(key: PropertyKey, value: T | ((old: T | undefined) => T) | UISignal<T>, update: boolean = true): void {
+  set<T>(key: PropertyKey, value: T | ((old: T | undefined) => T) | Signal<T>, update: boolean = true): void {
     if (!this.#states.has(key)) {
       this.#states.set(key, isSignal(value) ? value : cause(value))
     } else if (update) {
@@ -143,19 +155,41 @@ class UIElement extends HTMLElement {
   }
 
   /**
+   * Get first sub-element matching a given selector within the custom element as a maybe of element
+   * 
+   * @since 0.8.0
+   * @param {string} selector - selector to match sub-element
+   * @returns {Maybe<Element>} - first matching sub-element as a maybe of element
+   */
+  first(selector: string): Maybe<UI<Element>> {
+    return maybe(getRoot(this).querySelector(selector)).map(node => ui(this, node))
+  }
+
+  /**
+   * Get all sub-elements matching a given selector within the custom element as an array
+   * 
+   * @since 0.8.0
+   * @param {string} selector - selector to match sub-elements
+   * @returns {UI<T>[]} - all matching sub-elements as an array
+   */
+  all(selector: string): UI<Element>[] {
+    return Array.from(getRoot(this).querySelectorAll(selector)).map(node => ui(this, node))
+  }
+
+  /**
    * Passes states from the current UIElement to another UIElement
    * 
    * @since 0.5.0
    * @param {UIElement} target - child element to pass the states to
-   * @param {UIStateMap} states - object of states to be passed; target state keys as keys, source state keys or function as values
+   * @param {StateMap} stateMap - object of states to be passed; target state keys as keys, source state keys or function as values
    */
-  async pass(target: UIElement, states: UIStateMap): Promise<void> {
+  async pass(target: UIElement, stateMap: StateMap): Promise<void> {
     await (this.constructor as typeof UIElement).registry.whenDefined(target.localName)
     if (!hasMethod(target, 'set')) {
       log(target, 'Expected UIElement', LOG_ERROR)
       return
     }
-    for (const [key, source] of Object.entries(states))
+    for (const [key, source] of Object.entries(stateMap))
       target.set(key, isSignal(source) ? source
         : isFunction(source) ? cause(source)
         : this.#states.get(source)
@@ -167,15 +201,15 @@ class UIElement extends HTMLElement {
    * 
    * @since 0.8.0
    * @param {PropertyKey} key - state to get signal for
-   * @returns {UISignal<T> | undefined} signal for the given state; undefined if
+   * @returns {Signal<T> | undefined} signal for the given state; undefined if
    */
-  signal<T>(key: PropertyKey): UISignal<T> | undefined {
-    return this.#states.get(key) as UISignal<T> | undefined
+  signal<T>(key: PropertyKey): Signal<T> | undefined {
+    return this.#states.get(key) as Signal<T> | undefined
   }
 
 }
 
 export {
-  type UIStateMap, type UIAttributeMap,
+  type StateMap, type AttributeMap,
   UIElement
 }

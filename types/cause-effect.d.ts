@@ -1,42 +1,43 @@
-interface UIEffect {
+import type { IO } from './core/io';
+interface Effect {
     (): void;
     run(): void;
-    targets?: Map<Element, Set<() => void>>;
+    targets?: Map<Element, Set<IO<void>>>;
 }
-interface UIComputed<T> extends UIEffect {
+interface Computed<T> extends Effect {
     (): T;
-    effects: Set<UIEffect | UIComputed<unknown>>;
+    effects: Set<Effect | Computed<unknown>>;
 }
-interface UIState<T> {
+interface State<T> {
     (): T;
-    effects: Set<UIEffect | UIComputed<unknown>>;
+    effects: Set<Effect | Computed<unknown>>;
     set(value: T): void;
 }
-type UISignal<T> = UIState<T> | UIComputed<T>;
-type UIDOMInstructionQueue = (element: Element, fn: () => void) => void;
+type Signal<T> = State<T> | Computed<T>;
+type DOMInstructionQueue = (element: Element, fn: IO<unknown>) => void;
 type MaybeCleanup = void | (() => void);
-type UIEffectCallback = (enqueue: UIDOMInstructionQueue) => MaybeCleanup;
+type EffectCallback = (enqueue: DOMInstructionQueue) => MaybeCleanup;
 /**
  * Check if a given variable is a reactive state
  *
  * @param {unknown} value - variable to check if it is a reactive state
  * @returns {boolean} true if supplied parameter is a reactive state
  */
-declare const isState: (value: unknown) => value is UIState<unknown>;
+declare const isState: (value: unknown) => value is State<unknown>;
 /**
  * Check if a given variable is a reactive signal (state or computed state)
  *
  * @param {unknown} value - variable to check if it is a reactive signal
  */
-declare const isSignal: (value: unknown) => value is UISignal<unknown>;
+declare const isSignal: (value: unknown) => value is Signal<unknown>;
 /**
  * Define a reactive state
  *
  * @since 0.1.0
  * @param {any} value - initial value of the state; may be a function for derived state
- * @returns {UIState<T>} getter function for the current value with a `set` method to update the value
+ * @returns {State<T>} getter function for the current value with a `set` method to update the value
  */
-declare const cause: <T>(value: any) => UIState<T>;
+declare const cause: <T>(value: any) => State<T>;
 /**
  * Create a derived state from an existing state
  *
@@ -45,12 +46,12 @@ declare const cause: <T>(value: any) => UIState<T>;
  * @param {boolean} [memo=false] - whether to use memoization
  * @returns {UIComputed<T>} derived state
  */
-declare const derive: <T>(fn: () => T, memo?: boolean) => UIComputed<T>;
+declare const derive: <T>(fn: () => T, memo?: boolean) => Computed<T>;
 /**
  * Define what happens when a reactive state changes
  *
  * @since 0.1.0
- * @param {UIEffectCallback} fn - callback function to be executed when a state changes
+ * @param {EffectCallback} fn - callback function to be executed when a state changes
  */
-declare const effect: (fn: UIEffectCallback) => void;
-export { type UIState, type UIComputed, type UISignal, type UIEffect, type UIDOMInstructionQueue, isState, isSignal, cause, derive, effect };
+declare const effect: (fn: EffectCallback) => void;
+export { type State, type Computed, type Signal, type Effect, type DOMInstructionQueue, isState, isSignal, cause, derive, effect };

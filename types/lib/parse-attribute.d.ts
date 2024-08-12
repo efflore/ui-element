@@ -1,4 +1,4 @@
-import { type Maybe } from './maybe';
+import { type Maybe } from '../core/maybe';
 /**
  * Parse a boolean attribute as an actual boolean value
  *
