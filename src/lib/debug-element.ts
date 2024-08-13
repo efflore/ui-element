@@ -1,6 +1,6 @@
 import { isString, isDefined } from '../core/is-type'
 import type { Computed, Effect } from '../cause-effect'
-import { type StateMap, UIElement } from '../ui-element'
+import { UIElement } from '../ui-element'
 import { log, DEV_MODE } from '../core/log'
 
 /* === Constants === */
@@ -134,18 +134,6 @@ class DebugElement extends UIElement {
    */
   delete(key: PropertyKey): boolean {
     return log(super.delete(key), `Delete state ${valueString(key)} from ${elementName(this)}`)
-  }
-
-  /**
-   * Wrap pass() to log passed signals to the console
-   * 
-   * @since 0.7.0
-   * @param {UIElement} element - UIElement to be passed to
-   * @param {StateMap} stateMap - states to be passed to the element
-   */
-  async pass(element: UIElement, stateMap: StateMap) {
-    log(Object.keys(stateMap), `Pass state(s) from ${elementName(this)} to ${elementName(element as HTMLElement)}`)
-    super.pass(element, stateMap)
   }
 
   /**

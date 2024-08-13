@@ -12,7 +12,7 @@ Version 0.8.0
 
 `UIElement` implements a `Map`-like interface on top of `HTMLElement` to access and modify reactive states. The method names `this.has()`, `this.get()`, `this.set()` and `this.delete()` feel familar to JavaScript developers and mirror what you already know.
 
-In the `connectedCallback()` you setup references to inner elements, add event listeners and pass reactive states to subcomponents (`this.pass()`). Additionally, for every independent reactive state you define what happens when it changes in an `effect()` callback. `UIElement` will automatically trigger these effects and bundle the fine-grained DOM updates.
+In the `connectedCallback()` you setup references to inner elements, add event listeners and pass reactive states to subcomponents (`this.first|all(selector).map(pass(states))`). Additionally, for every independent reactive state you define what happens when it changes in an `effect()` callback. `UIElement` will automatically trigger these effects and bundle the fine-grained DOM updates.
 
 `UIElement` is fast. In fact, faster than any JavaScript framework. Only direct fine-grained DOM updates in vanilla JavaScript can beat its performance. But then, you have no loose coupling of components and need to parse attributes and track changes yourself. This tends to get tedious and messy rather quickly. `UIElement` provides a structured way to keep your components simple, consistent and self-contained.
 

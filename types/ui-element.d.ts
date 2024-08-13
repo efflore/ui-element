@@ -85,14 +85,6 @@ declare class UIElement extends HTMLElement {
      */
     all(selector: string): UI<Element>;
     /**
-     * Passes states from the current UIElement to another UIElement
-     *
-     * @since 0.5.0
-     * @param {UIElement} target - child element to pass the states to
-     * @param {StateMap} stateMap - object of states to be passed; target state keys as keys, source state keys or function as values
-     */
-    pass(target: UIElement, stateMap: StateMap): Promise<void>;
-    /**
      * Return the signal for a state
      *
      * @since 0.8.0

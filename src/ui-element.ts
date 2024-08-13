@@ -1,4 +1,4 @@
-import { isFunction, hasMethod } from './core/is-type'
+import { isFunction } from './core/is-type'
 import { maybe } from './core/maybe'
 import { attempt } from './core/attempt'
 import { type Signal, isState, isSignal, cause } from './cause-effect'
@@ -174,26 +174,6 @@ class UIElement extends HTMLElement {
    */
   all(selector: string): UI<Element> {
     return ui(this, Array.from(getRoot(this).querySelectorAll(selector)))
-  }
-
-  /**
-   * Passes states from the current UIElement to another UIElement
-   * 
-   * @since 0.5.0
-   * @param {UIElement} target - child element to pass the states to
-   * @param {StateMap} stateMap - object of states to be passed; target state keys as keys, source state keys or function as values
-   */
-  async pass(target: UIElement, stateMap: StateMap): Promise<void> {
-    await (this.constructor as typeof UIElement).registry.whenDefined(target.localName)
-    if (!hasMethod(target, 'set')) {
-      log(target, 'Expected UIElement', LOG_ERROR)
-      return
-    }
-    for (const [key, source] of Object.entries(stateMap))
-      target.set(key, isSignal(source) ? source
-        : isFunction(source) ? cause(source)
-        : this.#states.get(source)
-      )
   }
 
   /**

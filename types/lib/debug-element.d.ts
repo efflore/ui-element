@@ -1,4 +1,4 @@
-import { type StateMap, UIElement } from '../ui-element';
+import { UIElement } from '../ui-element';
 import { DEV_MODE } from '../core/log';
 /**
  * Add debug capabilities to UIElement classes
@@ -55,14 +55,6 @@ declare class DebugElement extends UIElement {
      * @returns {boolean} - whether the state was deleted
      */
     delete(key: PropertyKey): boolean;
-    /**
-     * Wrap pass() to log passed signals to the console
-     *
-     * @since 0.7.0
-     * @param {UIElement} element - UIElement to be passed to
-     * @param {StateMap} stateMap - states to be passed to the element
-     */
-    pass(element: UIElement, stateMap: StateMap): Promise<void>;
     /**
      * Recursively get all target elements of a given state
      *

@@ -36,7 +36,6 @@ declare const component: (tag: string, props: ComponentProps, connect: (host: UI
         delete(key: PropertyKey): boolean;
         first(selector: string): import("./core/ui").UI<Element>;
         all(selector: string): import("./core/ui").UI<Element>;
-        pass(target: UIElement, stateMap: import("./ui-element").StateMap): Promise<void>;
         signal<T>(key: PropertyKey): import("./cause-effect").Signal<T> | undefined;
         accessKey: string;
         readonly accessKeyLabel: string;

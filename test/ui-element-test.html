@@ -95,7 +95,7 @@
   <script type="module">
     import { runTests } from '@web/test-runner-mocha'
     import { assert } from '@esm-bundle/chai'
-    import { UIElement, effect, maybe, io } from '../index.js'
+    import { UIElement, effect, maybe, io, pass } from '../index.js'
 
     const wait = ms => new Promise(resolve => setTimeout(resolve, ms))
     const paint = () => new Promise(resolve => requestAnimationFrame(resolve))
@@ -169,10 +169,10 @@
       static observedAttributes = ['heading']
 
       connectedCallback() {
-        this.pass(this.querySelector('child-component'), {
+        this.first('child-component').map(pass({
           heading: 'heading',
           text: () => this.get('heading').toUpperCase()
-        });
+        }))
       }
     }
     ParentComponent.define('parent-component');
@@ -225,15 +225,14 @@
 
     class GreetingConfigurator extends UIElement {
       connectedCallback() {
-        const first = this.querySelector('.first');
-        const last = this.querySelector('.last');
-        const useFullname = this.querySelector('input-checkbox');
-        const helloWorld = this.querySelector('hello-world');
-        this.pass(helloWorld, {
+        const first = this.querySelector('.first')
+        const last = this.querySelector('.last')
+        const useFullname = this.querySelector('input-checkbox')
+        this.first('hello-world').map(pass({
           name: () => useFullname.get('checked')
-            ? `${first.get('value')} ${last.get('value')}`
-            : first.get('value')
-        });
+            ? `${first?.get('value')} ${last?.get('value')}`
+            : first?.get('value')
+        }))
       }
     }
     GreetingConfigurator.define('greeting-configurator');
