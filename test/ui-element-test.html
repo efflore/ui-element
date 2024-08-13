@@ -124,7 +124,7 @@
             ? parseInt(v, 10)
             : parseFloat(v)
         ),
-        selected: value => maybe(value.fold(() => false, () => true))
+        selected: value => maybe(value[0] != null)
       };
 
       connectedCallback() {

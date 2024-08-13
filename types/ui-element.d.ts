@@ -1,8 +1,7 @@
-import { type Maybe } from './core/maybe';
 import { type Signal } from './cause-effect';
 import { type UnknownContext } from './core/context-request';
 import { type UI } from './core/ui';
-type AttributeParser = (<T>(value: Maybe<string>, element: UIElement, old: string | undefined) => Maybe<T>);
+type AttributeParser = (<T>(value: string[], element: UIElement, old: string | undefined) => T[]);
 type AttributeMap = Record<string, AttributeParser>;
 type StateMap = Record<PropertyKey, PropertyKey | Signal<unknown> | (() => unknown)>;
 /**
@@ -70,21 +69,21 @@ declare class UIElement extends HTMLElement {
      */
     delete(key: PropertyKey): boolean;
     /**
-     * Get first sub-element matching a given selector within the custom element as a maybe of element
+     * Get UI container of first sub-element matching a given selector within the custom element
      *
      * @since 0.8.0
      * @param {string} selector - selector to match sub-element
-     * @returns {UI<Element> | undefined} - first matching sub-element as a UI of element
+     * @returns {UI<Element>} - UI container of matching sub-element (or empty UI if no match found)
      */
-    first(selector: string): UI<Element> | undefined;
+    first(selector: string): UI<Element>;
     /**
-     * Get all sub-elements matching a given selector within the custom element as an array
+     * Get UI container of all sub-elements matching a given selector within the custom element
      *
      * @since 0.8.0
      * @param {string} selector - selector to match sub-elements
-     * @returns {UI<Element>[]} - all matching sub-elements as an array of UI of element
+     * @returns {UI<Element>} - UI container of matching sub-elements
      */
-    all(selector: string): UI<Element>[];
+    all(selector: string): UI<Element>;
     /**
      * Passes states from the current UIElement to another UIElement
      *

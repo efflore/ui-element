@@ -2,9 +2,10 @@ import type { UIElement } from '../ui-element'
 
 /* === Type Definitions === */
 
-interface UI<T extends Element> {
-  get: () => T,
-  map: (f: (host: UIElement, node: T) => unknown) => UI<T>
+interface UI<A extends Element> {
+  elements: A[],
+  host: UIElement,
+  map: <B extends Element>(f: (host: UIElement, element: A) => B) => UI<B>
 }
 
 /* === Exported Function === */
@@ -14,15 +15,14 @@ interface UI<T extends Element> {
  * 
  * @since 0.8.0
  * @param {UIElement} host - host UIElement for the UIRef instance
- * @param {Element} node - native DOM element to wrap
+ * @param {Element[]} elements - native DOM elements to wrap
  * @returns {UI} - UIRef instance for the given element
  */
-const ui = <T extends Element>(host: UIElement, node: T): UI<T> => ({
-  get: () => node,
-  map: (f: (host: UIElement, node: T) => T): UI<T> => {
-    f(host, node)
-    return ui(host, node)
-  }
+const ui = <A extends Element>(host: UIElement, elements: A[]): UI<A> => ({
+  elements,
+  host,
+  map: <B extends Element>(f: (host: UIElement, elements: A) => B): UI<B> =>
+    ui(host, elements.map(el => f(host, el)))
 })
 
 export { type UI, ui }

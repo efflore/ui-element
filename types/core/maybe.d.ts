@@ -1,15 +1,10 @@
-type Maybe<A> = {
-    map<B>(f: (a: A) => B): Maybe<B>;
-    fold: <B>(onNothing: () => B, onSomething: (value: A) => B) => B;
-};
-declare const nothing: <A>() => Maybe<A>;
-declare const something: <A>(value: A) => Maybe<A>;
+type Maybe<T> = T[];
 /**
- * Create a container for a given value to gracefully handle nullable values
+ * Create an array for a given value to gracefully handle nullable values
  *
  * @since 0.8.0
- * @param {unknown} value - value to wrap in a container
- * @returns {Maybe<T>} - container of either "something" or "nothing" for the given value
+ * @param {unknown} value - value to wrap in an array
+ * @returns {T[]} - array of either zero or one element, depending on whether the input is nullish
  */
-declare const maybe: <T>(value: T | null | undefined) => Maybe<T>;
-export { type Maybe, maybe, nothing, something };
+declare const maybe: <T>(value: T | null | undefined) => T[];
+export { type Maybe, maybe };

@@ -1,9 +1,7 @@
-import { isComment } from '../core/is-type'
-import { maybe } from '../core/maybe'
+import { isComment, isNullish } from '../core/is-type'
 import { effect, type DOMInstructionQueue } from '../cause-effect'
-import { UIElement } from '../ui-element'
 import { io } from '../core/io'
-import { log } from '../core/log'
+import type { UIElement } from '../ui-element'
 
 /* === Internal Functions === */
 
@@ -12,116 +10,114 @@ import { log } from '../core/log'
  * 
  * @param {Element} node - element to check if it is styleable
  * @returns {boolean} true if the node is styleable
- */
+ * /
 const isStylable = (node: Element): node is HTMLElement | SVGElement | MathMLElement => {
   for (const type of [HTMLElement, SVGElement, MathMLElement]) {
     if (node instanceof type) return true
   }
   return false
-}
+} */
 
-const autoEffect = <T>(
+const autoEffect = <E extends Element, T>(
   host: UIElement,
   state: PropertyKey,
-  target: Element,
+  target: E,
   fallback: T,
   onNothing: () => void,
   onSomething: (value: T) => () => void
-): void => {
+): E => {
   const remover = io(onNothing)
   const setter = (value: T) => io(onSomething(value))
   host.set(state, fallback, false)
   effect((enqueue: DOMInstructionQueue) => {
-    if (host.has(state)) maybe(host.get(state)).fold(
-      () => enqueue(target, remover),
-      (value: T) => enqueue(target, setter(value))
-    )
+    if (host.has(state)) {
+      const value = host.get<T>(state)
+      if (isNullish(value)) enqueue(target, remover)
+      else enqueue(target, setter(value))
+    }
   })
+  return target
 }
 
 /* === Exported Functions === */
 
-const syncText = (state: PropertyKey) =>
-  (host: UIElement, target: HTMLElement): void => {
-    const fallback = target.textContent || ''
+const setText = <E extends Element>(state: PropertyKey) =>
+  (host: UIElement, element: E): E => {
+    const fallback = element.textContent || ''
     const setter = (value: string) => () => {
-      Array.from(target.childNodes).filter(isComment).forEach(match => match.remove())
-      target.append(document.createTextNode(value))
+      Array.from(element.childNodes).filter(isComment).forEach(match => match.remove())
+      element.append(document.createTextNode(value))
     }
-    autoEffect<string>(
+    return autoEffect<E, string>(
       host,
       state,
-      target,
+      element,
       fallback,
       setter(fallback),
       setter
     )
   }
 
-const syncProp = (key: PropertyKey, state: PropertyKey = key) =>
-  (host: UIElement, target: HTMLElement): void => {
-    const setter = (value: any) => () => target[key] = value
-    autoEffect<any>(
+const setProperty = <E extends Element>(key: PropertyKey, state: PropertyKey = key) =>
+  (host: UIElement, element: E): E => {
+    const setter = (value: any) => () => element[key] = value
+    return autoEffect<E, any>(
       host,
       state,
-      target,
-      target[key],
+      element,
+      element[key],
       setter(null),
       setter
     )
   }
 
-const syncAttr = (name: string, state: PropertyKey = name) =>
-  (host: UIElement, target: HTMLElement): void => {
-    autoEffect<string | undefined>(
+const setAttribute = <E extends Element>(name: string, state: PropertyKey = name) =>
+  (host: UIElement, element: E): E => {
+    return autoEffect<E, string | undefined>(
       host,
       state,
-      target,
-      target.getAttribute(name),
-      () => target.removeAttribute(name),
-      (value: string) => () => target.setAttribute(name, value)
+      element,
+      element.getAttribute(name),
+      () => element.removeAttribute(name),
+      (value: string) => () => element.setAttribute(name, value)
     )
   }
 
-const syncBool = (name: string, state: PropertyKey = name) =>
-  (host: UIElement, target: HTMLElement): void => {
-    const setter = (value: boolean) => () => target.toggleAttribute(name, value)
-    autoEffect<boolean>(
+const toggleAttribute = <E extends Element>(name: string, state: PropertyKey = name) =>
+  (host: UIElement, element: E): E => {
+    const setter = (value: boolean) => () => element.toggleAttribute(name, value)
+    return autoEffect<E, boolean>(
       host,
       state,
-      target,
-      target.hasAttribute(name),
+      element,
+      element.hasAttribute(name),
       setter(false),
       setter
     )
   }
 
-const syncClass = (token: string, state: PropertyKey = token) =>
-  (host: UIElement, target: HTMLElement): void => {
-    autoEffect<boolean>(
+const toggleClass = <E extends Element>(token: string, state: PropertyKey = token) =>
+  (host: UIElement, element: E): E => {
+    return autoEffect<E, boolean>(
       host,
       state,
-      target,
-      target.classList.contains(token),
-      () => target.classList.remove(token),
-      (value: boolean) => () => target.classList.toggle(token, value)
+      element,
+      element.classList.contains(token),
+      () => element.classList.remove(token),
+      (value: boolean) => () => element.classList.toggle(token, value)
     )
   }
 
-const syncStyle = (prop: string, state: PropertyKey = prop) =>
-  (host: UIElement, target: HTMLElement): void => {
-    if (!isStylable(target)) {
-      log(target, 'The target element is not styleable')
-      return
-    }
-    autoEffect<string | undefined>(
+const setStyle = <E extends (HTMLElement | SVGElement | MathMLElement)>(prop: string, state: PropertyKey = prop) =>
+  (host: UIElement, element: E): E => {
+    return autoEffect<E, string | undefined>(
       host,
       state,
-      target,
-      target.style[prop],
-      () => target.style.removeProperty(prop),
-      (value: string) => () => target.style[prop] = String(value)
+      element,
+      element.style[prop],
+      () => element.style.removeProperty(prop),
+      (value: string) => () => element.style[prop] = String(value)
     )
   }
 
-export { syncText, syncProp, syncAttr, syncBool, syncClass, syncStyle }
+export { setText, setProperty, setAttribute, toggleAttribute, toggleClass, setStyle }

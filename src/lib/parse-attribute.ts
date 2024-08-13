@@ -1,6 +1,6 @@
-import { type Maybe, maybe } from '../core/maybe'
 import { attempt } from '../core/attempt'
 import { log, LOG_ERROR } from '../core/log'
+import { isDefined } from '../core/is-type'
 
 /* === Internal === */
 
@@ -19,49 +19,48 @@ const toFinite = (value: number): number | undefined =>
  * Parse a boolean attribute as an actual boolean value
  * 
  * @since 0.7.0
- * @param {Maybe<string>} value - maybe string value or nothing
- * @returns {Maybe<boolean>}
+ * @param {string[]} value - maybe string value or nothing
+ * @returns {boolean[]}
  */
-const asBoolean = (value: Maybe<string>): Maybe<boolean> =>
-  maybe(value.fold(() => false, () => true))
+const asBoolean = (value: string[]): boolean[] => [isDefined(value[0])]
 
 /**
  * Parse an attribute as a number forced to integer
  * 
  * @since 0.7.0
- * @param {Maybe<string>} value - maybe string value or nothing
- * @returns {Maybe<number>}
+ * @param {string[]} value - maybe string value or nothing
+ * @returns {number[]}
  */
-const asInteger = (value: Maybe<string>): Maybe<number> =>
-  value.map(v => parseInt(v, 10)).map(toFinite);
+const asInteger = (value: string[]): number[] =>
+  value.map(v => parseInt(v, 10)).map(toFinite)
 
 /**
  * Parse an attribute as a number
  * 
  * @since 0.7.0
- * @param {Maybe<string>} value - maybe string value or nothing
- * @returns {Maybe<number>}
+ * @param {string[]} value - maybe string value or nothing
+ * @returns {number[]}
  */
-const asNumber = (value: Maybe<string>): Maybe<number> =>
+const asNumber = (value: string[]): number[] =>
   value.map(parseFloat).map(toFinite);
 
 /**
  * Parse an attribute as a string
  * 
  * @since 0.7.0
- * @param {Maybe<string>} value - maybe string value or nothing
- * @returns {Maybe<string>}
+ * @param {string[]} value - maybe string value or nothing
+ * @returns {string[]}
  */
-const asString = (value: Maybe<string>): Maybe<string> => value
+const asString = (value: string[]): string[] => value
 
 /**
  * Parse an attribute as a JSON serialized object
  * 
  * @since 0.7.2
- * @param {Maybe<string>} value - maybe string value or nothing
- * @returns {Maybe<unknown>}
+ * @param {string[]} value - maybe string value or nothing
+ * @returns {unknown[]}
  */
-const asJSON = (value: Maybe<string>): Maybe<unknown> =>
+const asJSON = (value: string[]): unknown[] =>
   value.map(v => attempt(() => JSON.parse(v)).fold(
     error => log(undefined, `Failed to parse JSON: ${error.message}`, LOG_ERROR),
     v => v

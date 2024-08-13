@@ -1,4 +1,3 @@
-import { maybe } from '../core/maybe'
 import type { UIElement } from '../ui-element'
 
 /* === Exported Function === */
@@ -12,7 +11,7 @@ import type { UIElement } from '../ui-element'
  * @param setter - function to set the state when the event occurs; return a nullish value to cancel the update
  * @returns - returns a function to remove the event listener when no longer needed
  */
-const on = (event: string, key: PropertyKey, setter: <T>(e: Event) => T) =>
+const on = <E extends Element, T>(event: string, key: PropertyKey, setter: (e: Event, v: T) => T) =>
 
   /**
    * Partially applied function to connect to params of UI map function
@@ -21,10 +20,10 @@ const on = (event: string, key: PropertyKey, setter: <T>(e: Event) => T) =>
    * @param target - target element to listen to events
    * @returns - returns a function to remove the event listener when no longer needed
    */
-  (host: UIElement, target: HTMLElement) => {
-    const handler = (e: Event) => maybe(setter(e)).map(v => host.set(key, v))
+  (host: UIElement, target: E): E => {
+    const handler = (e: Event) => host.set(key, (v: T) => setter(e, v))
     target.addEventListener(event, handler)
-    return () => target.removeEventListener(event, handler)
+    return target
   }
 
 export { on }

@@ -1,5 +1,5 @@
 import { isFunction, hasMethod } from './core/is-type'
-import { type Maybe, maybe } from './core/maybe'
+import { maybe } from './core/maybe'
 import { attempt } from './core/attempt'
 import { type Signal, isState, isSignal, cause } from './cause-effect'
 import { type UnknownContext, CONTEXT_REQUEST, ContextRequestEvent } from './core/context-request'
@@ -8,7 +8,7 @@ import { type UI, ui } from './core/ui'
 
 /* === Types === */
 
-type AttributeParser = (<T>(value: Maybe<string>, element: UIElement, old: string | undefined) => Maybe<T>)
+type AttributeParser = (<T>(value: string[], element: UIElement, old: string | undefined) => T[])
 
 type AttributeMap = Record<string, AttributeParser>
 
@@ -76,7 +76,7 @@ class UIElement extends HTMLElement {
   attributeChangedCallback(name: string, old: string | undefined, value: string | undefined): void {
     if (value === old) return
     const parser = (this.constructor as typeof UIElement).attributeMap[name]
-    this.set(name, isFunction(parser) ? parser(maybe(value), this, old).fold(() => {}, v => v) : value)
+    this.set(name, isFunction(parser) ? parser(maybe(value), this, old)[0] : value)
   }
 
   connectedCallback(): void {
@@ -155,25 +155,25 @@ class UIElement extends HTMLElement {
   }
 
   /**
-   * Get first sub-element matching a given selector within the custom element as a maybe of element
+   * Get UI container of first sub-element matching a given selector within the custom element
    * 
    * @since 0.8.0
    * @param {string} selector - selector to match sub-element
-   * @returns {UI<Element> | undefined} - first matching sub-element as a UI of element
+   * @returns {UI<Element>} - UI container of matching sub-element (or empty UI if no match found)
    */
-  first(selector: string): UI<Element> | undefined {
-    return maybe(getRoot(this).querySelector(selector)).fold(() => undefined, node => ui(this, node))
+  first(selector: string): UI<Element> {
+    return ui(this, maybe(getRoot(this).querySelector(selector)))
   }
 
   /**
-   * Get all sub-elements matching a given selector within the custom element as an array
+   * Get UI container of all sub-elements matching a given selector within the custom element
    * 
    * @since 0.8.0
    * @param {string} selector - selector to match sub-elements
-   * @returns {UI<Element>[]} - all matching sub-elements as an array of UI of element
+   * @returns {UI<Element>} - UI container of matching sub-elements
    */
-  all(selector: string): UI<Element>[] {
-    return Array.from(getRoot(this).querySelectorAll(selector)).map(node => ui(this, node))
+  all(selector: string): UI<Element> {
+    return ui(this, Array.from(getRoot(this).querySelectorAll(selector)))
   }
 
   /**

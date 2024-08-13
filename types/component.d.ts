@@ -7,7 +7,7 @@ import { effect } from './cause-effect';
 import { type AttributeMap, UIElement } from './ui-element';
 import { asBoolean, asInteger, asNumber, asString, asJSON } from './lib/parse-attribute';
 import { on } from './lib/event.js';
-import { syncText, syncProp, syncAttr, syncBool, syncClass, syncStyle } from './lib/auto-effects.js';
+import { setText, setProperty, setAttribute, toggleAttribute, toggleClass, setStyle } from './lib/auto-effects.js';
 type ComponentProps = {
     attributeMap?: AttributeMap;
     consumedContexts?: UnknownContext[];
@@ -34,8 +34,8 @@ declare const component: (tag: string, props: ComponentProps, connect: (host: UI
         get<T>(key: PropertyKey): T | undefined;
         set<T>(key: PropertyKey, value: T | ((old: T | undefined) => T) | import("./cause-effect").Signal<T>, update?: boolean): void;
         delete(key: PropertyKey): boolean;
-        first(selector: string): import("./core/ui").UI<Element> | undefined;
-        all(selector: string): import("./core/ui").UI<Element>[];
+        first(selector: string): import("./core/ui").UI<Element>;
+        all(selector: string): import("./core/ui").UI<Element>;
         pass(target: UIElement, stateMap: import("./ui-element").StateMap): Promise<void>;
         signal<T>(key: PropertyKey): import("./cause-effect").Signal<T> | undefined;
         accessKey: string;
@@ -373,4 +373,4 @@ declare const component: (tag: string, props: ComponentProps, connect: (host: UI
     registry: CustomElementRegistry;
     define(tag: string): void;
 };
-export { type ComponentProps, UIElement, effect, component, maybe, ui, io, pass, on, asBoolean, asInteger, asNumber, asString, asJSON, syncText, syncProp, syncAttr, syncBool, syncClass, syncStyle };
+export { type ComponentProps, UIElement, effect, component, maybe, ui, io, pass, on, asBoolean, asInteger, asNumber, asString, asJSON, setText, setProperty, setAttribute, toggleAttribute, toggleClass, setStyle };

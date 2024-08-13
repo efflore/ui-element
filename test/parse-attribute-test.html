@@ -16,17 +16,17 @@
 
         it('should be true for empty string', function () {
           const result = asBoolean(maybe(''));
-          assert.isTrue(result.fold(() => {}, v => v), 'Should return true for boolean attribute');
+          assert.isTrue(result[0], 'Should return true for boolean attribute');
         });
 
         it('should be true for any string', function () {
           const result = asBoolean(maybe('any'));
-          assert.isTrue(result.fold(() => {}, v => v), 'Should return true for any defined attribute');
+          assert.isTrue(result[0], 'Should return true for any defined attribute');
         });
 
         it('should be false for undefined', function () {
           const result = asBoolean(maybe());
-          assert.isFalse(result.fold(() => {}, v => v), 'Should return false for undefined attribute');
+          assert.isFalse(result[0], 'Should return false for undefined attribute');
         });
 
       });
@@ -35,37 +35,37 @@
 
         it('should be undefined for empty string', function () {
           const result = asInteger(maybe(''));
-          assert.isUndefined(result.fold(() => {}, v => v), 'Should return undefined for boolean attribute');
+          assert.isUndefined(result[0], 'Should return undefined for boolean attribute');
         });
 
         it('should be undefined for non-parsable string', function () {
           const result = asInteger(maybe('any'));
-          assert.isUndefined(result.fold(() => {}, v => v), 'Should return undefined for non-parsable attribute');
+          assert.isUndefined(result[0], 'Should return undefined for non-parsable attribute');
         });
 
         it('should be undefined for undefined', function () {
           const result = asInteger(maybe());
-          assert.isUndefined(result.fold(() => {}, v => v), 'Should return undefined for undefined attribute');
+          assert.isUndefined(result[0], 'Should return undefined for undefined attribute');
         });
 
         it('should be 42 for "42"', function () {
           const result = asInteger(maybe('42'));
-          assert.equal(result.fold(() => {}, v => v), 42, 'Should return number for parsable attribute with integer value');
+          assert.equal(result[0], 42, 'Should return number for parsable attribute with integer value');
         });
 
         it('should be 3 for "3.14"', function () {
           const result = asInteger(maybe('3.14'));
-          assert.equal(result.fold(() => {}, v => v), 3, 'Should return number for parsable attribute with floating point value');
+          assert.equal(result[0], 3, 'Should return number for parsable attribute with floating point value');
         });
 
         it('should be 9007199254740992 for String(Number.MAX_SAFE_INTEGER + 1)', function () {
           const result = asInteger(maybe(String(Number.MAX_SAFE_INTEGER + 1)));
-          assert.equal(result.fold(() => {}, v => v), 9007199254740992, 'Should return number for parsable attribute with integer outside safe range');
+          assert.equal(result[0], 9007199254740992, 'Should return number for parsable attribute with integer outside safe range');
         });
 
         it('should be -4 for " -4  "', function () {
           const result = asInteger(maybe(' -4  '));
-          assert.equal(result.fold(() => {}, v => v), -4, 'Should return number for parsable attribute with integer and ignored whitespace');
+          assert.equal(result[0], -4, 'Should return number for parsable attribute with integer and ignored whitespace');
         });
 
       });
@@ -74,37 +74,37 @@
 
         it('should be undefined for empty string', function () {
           const result = asNumber(maybe(''));
-          assert.isUndefined(result.fold(() => {}, v => v), 'Should return undefined for boolean attribute');
+          assert.isUndefined(result[0], 'Should return undefined for boolean attribute');
         });
 
         it('should be undefined for non-parsable string', function () {
           const result = asNumber(maybe('any'));
-          assert.isUndefined(result.fold(() => {}, v => v), 'Should return undefined for non-parsable attribute');
+          assert.isUndefined(result[0], 'Should return undefined for non-parsable attribute');
         });
 
         it('should be undefined for undefined', function () {
           const result = asNumber(maybe());
-          assert.isUndefined(result.fold(() => {}, v => v), 'Should return undefined for undefined attribute');
+          assert.isUndefined(result[0], 'Should return undefined for undefined attribute');
         });
 
         it('should be 42 for "42"', function () {
           const result = asNumber(maybe('42'));
-          assert.equal(result.fold(() => {}, v => v), 42, 'Should return number for parsable attribute with integer value');
+          assert.equal(result[0], 42, 'Should return number for parsable attribute with integer value');
         });
 
         it('should be 3.14 for "3.14"', function () {
           const result = asNumber(maybe('3.14'));
-          assert.equal(result.fold(() => {}, v => v), 3.14, 'Should return number for parsable attribute with floating point value');
+          assert.equal(result[0], 3.14, 'Should return number for parsable attribute with floating point value');
         });
 
         it('should be 9007199254740991.1 for String(Number.MAX_SAFE_INTEGER + 0.1)', function () {
           const result = asNumber(maybe(String(Number.MAX_SAFE_INTEGER + 0.1)));
-          assert.equal(result.fold(() => {}, v => v), 9007199254740991.1, 'Should return number for parsable attribute with floating point value outside safe range');
+          assert.equal(result[0], 9007199254740991.1, 'Should return number for parsable attribute with floating point value outside safe range');
         });
 
         it('should be -4 for " -4  "', function () {
           const result = asInteger(maybe(' -4  '));
-          assert.equal(result.fold(() => {}, v => v), -4, 'Should return number for parsable attribute with integer value and ignored whitespace');
+          assert.equal(result[0], -4, 'Should return number for parsable attribute with integer value and ignored whitespace');
         });
 
       });
@@ -113,37 +113,37 @@
 
         it('should be undefined for undefined', function () {
           const result = asString(maybe());
-          assert.isUndefined(result.fold(() => {}, v => v), 'Should return undefined for undefined attribute');
+          assert.isUndefined(result[0], 'Should return undefined for undefined attribute');
         });
 
         it('should be "" for boolean attribute', function () {
           const result = asString(maybe(''));
-          assert.equal(result.fold(() => {}, v => v), '', 'Should return empty string for boolean attribute');
+          assert.equal(result[0], '', 'Should return empty string for boolean attribute');
         });
 
         it('should be "true" for boolean attribute', function () {
           const result = asString(maybe('true'));
-          assert.equal(result.fold(() => {}, v => v), 'true', 'Should return "true" string for attribute with boolean value');
+          assert.equal(result[0], 'true', 'Should return "true" string for attribute with boolean value');
         });
 
         it('should be "42" for 42', function () {
           const result = asString(maybe('42'));
-          assert.equal(result.fold(() => {}, v => v), '42', 'Should return string for attribute with integer value');
+          assert.equal(result[0], '42', 'Should return string for attribute with integer value');
         });
 
         it('should be "3.14" for 3.14', function () {
           const result = asString(maybe('3.14'));
-          assert.equal(result.fold(() => {}, v => v), '3.14', 'Should return string for attribute with floating point value');
+          assert.equal(result[0], '3.14', 'Should return string for attribute with floating point value');
         });
 
         it('should be "foo" for "foo"', function () {
           const result = asString(maybe('foo'));
-          assert.equal(result.fold(() => {}, v => v), 'foo', 'Should return string for attribute with string value');
+          assert.equal(result[0], 'foo', 'Should return string for attribute with string value');
         });
 
         it('should be "{ "foo": "bar" }" for "{ "foo": "bar" }"', function () {
           const result = asString(maybe('{ "foo": "bar" }'));
-          assert.equal(result.fold(() => {}, v => v), '{ "foo": "bar" }', 'Should return string for attribute with JSON value');
+          assert.equal(result[0], '{ "foo": "bar" }', 'Should return string for attribute with JSON value');
         });
 
       });
@@ -152,37 +152,37 @@
 
         it('should be undefined for undefined', function () {
           const result = asJSON(maybe());
-          assert.isUndefined(result.fold(() => {}, v => v), 'Should return undefined for undefined attribute');
+          assert.isUndefined(result[0], 'Should return undefined for undefined attribute');
         });
 
         it('should be undefined for boolean attribute', function () {
           const result = asJSON(maybe(''));
-          assert.isUndefined(result.fold(() => {}, v => v), 'Should return undefined for boolean attribute');
+          assert.isUndefined(result[0], 'Should return undefined for boolean attribute');
         });
 
         it('should be null for "null"', function () {
           const result = asJSON(maybe('null'));
-          assert.equal(result.fold(() => {}, v => v), null, 'Should return null for attribute with "null" value');
+          assert.equal(result[0], null, 'Should return null for attribute with "null" value');
         });
 
         it('should be {} for "{}"', function () {
           const result = asJSON(maybe('{}'));
-          assert.deepEqual(result.fold(() => {}, v => v), {}, 'Should return empty object for attribute with "{}" value');
+          assert.deepEqual(result[0], {}, 'Should return empty object for attribute with "{}" value');
         });
 
         it('should be [] for "[]"', function () {
           const result = asJSON(maybe('[]'));
-          assert.deepEqual(result.fold(() => {}, v => v), [], 'Should return empty array for attribute with "[]" value');
+          assert.deepEqual(result[0], [], 'Should return empty array for attribute with "[]" value');
         });
 
         it('should be { foo: \'bar\' } for "{ "foo": "bar" }"', function () {
           const result = asJSON(maybe('{ "foo": "bar" }'));
-          assert.deepEqual(result.fold(() => {}, v => v), { foo: 'bar' }, 'Should return JSON for attribute with JSON value with string');
+          assert.deepEqual(result[0], { foo: 'bar' }, 'Should return JSON for attribute with JSON value with string');
         });
 
         it('should be { 42: true } for "{ "42": true }"', function () {
           const result = asJSON(maybe('{ "42": true }'));
-          assert.deepEqual(result.fold(() => {}, v => v), { 42: true }, 'Should return JSON for attribute with JSON value with numeric key');
+          assert.deepEqual(result[0], { 42: true }, 'Should return JSON for attribute with JSON value with numeric key');
         });
 
       });

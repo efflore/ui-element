@@ -8,7 +8,7 @@ import { effect } from './cause-effect'
 import { type AttributeMap, UIElement } from './ui-element'
 import { asBoolean, asInteger, asNumber, asString, asJSON } from './lib/parse-attribute'
 import { on } from './lib/event.js'
-import { syncText, syncProp, syncAttr, syncBool, syncClass, syncStyle } from './lib/auto-effects.js'
+import { setText, setProperty, setAttribute, toggleAttribute, toggleClass, setStyle } from './lib/auto-effects.js'
 
 /* === Types === */
 
@@ -64,5 +64,5 @@ export {
   type ComponentProps,
   UIElement, effect, component, maybe, ui, io, pass, on,
   asBoolean, asInteger, asNumber, asString, asJSON,
-  syncText, syncProp, syncAttr, syncBool, syncClass, syncStyle
+  setText, setProperty, setAttribute, toggleAttribute, toggleClass, setStyle
 }

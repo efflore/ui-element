@@ -101,106 +101,98 @@
     import { runTests } from '@web/test-runner-mocha';
     import { assert } from '@esm-bundle/chai';
     import { component, effect, io, asBoolean, asInteger, asNumber, asString, pass, on,
-      syncText, syncProp, syncAttr, syncBool, syncClass, syncStyle } from '../component.js';
+      setText, setProperty, setAttribute, toggleAttribute, toggleClass, setStyle } from '../component.js';
 
     const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
     const paint = () => new Promise(resolve => requestAnimationFrame(resolve));
     const normalizeText = text => text.replace(/\s+/g, ' ').trim();
 
-    component('void-component');
+    component('void-component')
 
     component('causal-component', {}, el => {
       el.set('heading', 'Hello from Internal State')
-      el.first('h1')?.map(syncText('heading'))
+      el.first('h1').map(setText('heading'))
     })
 
-    component('updating-component', {
-      attributeMap: {
+    component(
+      'updating-component',
+      { attributeMap: {
         heading: asString,
         count: asInteger,
         step: asNumber,
         value: (maybe, el) => maybe.map(v => Number.isInteger(el.get('step')) ? parseInt(v, 10) : parseFloat(v)),
         selected: asBoolean,
+      }},
+      el => {
+        el.first('h1').map(setText('heading')).map(toggleClass('selected'))
+        el.first('p span').map(setText('count'))
+        el.first('input').map(setAttribute('value')).map(setAttribute('step'))
       }
-    },
-    el => {
-      el.first('h1')
-        ?.map(syncText('heading'))
-        ?.map(syncClass('selected'))
-      el.first('p span')
-        ?.map(syncText('count'))
-      el.first('input')
-        ?.map(syncAttr('value'))
-        ?.map(syncAttr('step'))
-    })
+    )
 
-    component('parent-component', {
-      attributeMap: {
+    component(
+      'parent-component',
+      { attributeMap: {
         heading: asString
-      }
-    },
-    el => el.pass(el.first('child-component').get(), {
-      heading: 'heading',
-      text: () => el.get('heading').toUpperCase()
-    }))
+      }},
+      el => el.first('child-component').map(pass({
+        heading: 'heading',
+        text: () => el.get('heading').toUpperCase()
+      }))
+    )
 
     component('child-component', {}, el => {
-      el.first('h1')?.map(syncText('heading'))
-      el.first('p')?.map(syncText('text'))
+      el.first('h1').map(setText('heading'))
+      el.first('p').map(setText('text'))
     })
 
-    component('my-counter', {
-      attributeMap: {
+    component(
+      'my-counter',
+      { attributeMap: {
         value: asInteger
+      }},
+      el => {
+        el.set('parity', () => el.get('value') % 2 ? 'odd' : 'even')
+        el.set('double', () => el.get('value') * 2)
+        el.first('.decrement').map(on('click', 'value', (_, v) => --v))
+        el.first('.increment').map(on('click', 'value', (_, v) => ++v))
+        el.first('.value').map(setText('value'))
+        el.first('.parity').map(setText('parity'))
+        el.first('.double').map(setText('double'))
       }
-    },
-    el => {
-      el.set('parity', () => el.get('value') % 2 ? 'odd' : 'even')
-      el.set('double', () => el.get('value') * 2)
-      el.first('.decrement')
-        ?.map(on('click', null, () => el.set('value', v => --v)))
-      el.first('.increment')
-        ?.map(on('click', null, () => el.set('value', v => ++v)))
-      el.first('.value')
-        ?.map(syncText('value'))
-      el.first('.parity')
-        ?.map(syncText('parity'))
-      el.first('.double')
-        ?.map(syncText('double'))
-    })
+    )
 
     component('greeting-configurator', {}, el => {
-      el.pass(el.first('hello-world').get(), {
-        name: () => el.first('input-checkbox')?.get().get('checked')
-          ? `${el.first('.first')?.get().get('value')} ${el.first('.last')?.get().get('value')}`
-          : el.first('.first')?.get().get('value'),
-      });
-    });
+      el.first('hello-world').map(pass({
+        name: () => el.querySelector('input-checkbox')?.get('checked')
+          ? `${el.querySelector('.first')?.get('value')} ${el.querySelector('.last')?.get('value')}`
+          : el.querySelector('.first')?.get('value'),
+      }))
+    })
 
-    component('hello-world', {
-      attributeMap: {
+    component(
+      'hello-world',
+      { attributeMap: {
         greeting: asString
+      }},
+      el => {
+        el.first('.greeting').map(setText('greeting'))
+        el.first('.name').map(setText('name'))
       }
-    },
-    el => {
-      el.first('.greeting')
-        ?.map(syncText('greeting'))
-      el.first('.name')
-        ?.map(syncText('name'))
-    });
+    )
 
     component('input-field', {}, el => {
       const input = el.first('input')
-      if (!input) return
-      el.set('value', input.get().value)
-      input.map(on('change', null, () => el.set('value', input.get().value)))
+      if (!input.elements.length) return
+      el.set('value', input.elements[0].value)
+      input.map(on('change', 'value', e => e.target.value))
     })
 
     component('input-checkbox', {}, el => {
       const input = el.first('input')
-      if (!input) return
-      el.set('checked', input.get().checked)
-      input.map(on('change', null, () => el.set('checked', input.get().checked)))
+      if (!input.elements.length) return
+      el.set('checked', input.elements[0].checked)
+      input.map(on('change', 'checked', e => e.target.checked))
     })
 
     component('lazy-load', {}, el => {
@@ -216,8 +208,8 @@
           .catch(error => el.set('error', error))
         return // we don't return a fallback value
       })
-      const loadingEl = el.first('.loading').get()
-      const errorEl = el.first('.error').get()
+      const loadingEl = el.querySelector('.loading')
+      const errorEl = el.querySelector('.error')
       const remove = (enqueue, ui) => enqueue(ui, io(() => ui.remove()))
 
       effect(enqueue => {

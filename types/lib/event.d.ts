@@ -8,5 +8,5 @@ import type { UIElement } from '../ui-element';
  * @param setter - function to set the state when the event occurs; return a nullish value to cancel the update
  * @returns - returns a function to remove the event listener when no longer needed
  */
-declare const on: (event: string, key: PropertyKey, setter: <T>(e: Event) => T) => (host: UIElement, target: HTMLElement) => () => void;
+declare const on: <E extends Element, T>(event: string, key: PropertyKey, setter: (e: Event, v: T) => T) => (host: UIElement, target: E) => E;
 export { on };
