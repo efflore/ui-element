@@ -378,6 +378,13 @@ class UIElement extends HTMLElement {
         return this.#states.delete(key);
     }
     /**
+     * UI container of the custom element itself
+     *
+     * @since 0.8.0
+     * @property {UI<UIElement>} self - UI container of the custom element itself
+     */
+    self = ui(this, [this]);
+    /**
      * Get UI container of first sub-element matching a given selector within the custom element
      *
      * @since 0.8.0
@@ -481,21 +488,21 @@ const asJSON = (value) => value.map(v => attempt(() => JSON.parse(v)).fold(error
  * Add event listener to a host element and update a state when the event occurs
  *
  * @since 0.8.0
- * @param event - event name to listen to
- * @param key - state key to update when the event occurs
- * @param setter - function to set the state when the event occurs; return a nullish value to cancel the update
+ * @param {string} event - event name to listen to
+ * @param {PropertyKey} state - state key to update when the event occurs
+ * @param {(e: Event, v: T) => T | undefined} setter - function to set the state when the event occurs; return a nullish value to cancel the update
  * @returns - returns a function to remove the event listener when no longer needed
  */
-const on = (event, key, setter) => 
+const on = (event, state, setter) => 
 /**
  * Partially applied function to connect to params of UI map function
  *
- * @param host - host UIElement instance with state
- * @param target - target element to listen to events
+ * @param {UIElement} host - host UIElement instance with state
+ * @param {E} target - target element to listen to events
  * @returns - returns a function to remove the event listener when no longer needed
  */
 (host, target) => {
-    const handler = (e) => host.set(key, (v) => setter(e, v));
+    const handler = (e) => host.set(state, (v) => setter(e, v) ?? v); // if the setter returns nullish, we return the old value
     target.addEventListener(event, handler);
     return target;
 };

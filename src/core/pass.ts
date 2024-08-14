@@ -34,4 +34,4 @@ const pass = <E extends UIElement>(stateMap: StateMap) =>
     return target
   }
 
-export { pass }
+export { type StateMap, pass }

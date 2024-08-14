@@ -35,6 +35,7 @@ declare const component: (tag: string, props: ComponentProps, connect: (host: UI
         get<T>(key: PropertyKey): T | undefined;
         set<T>(key: PropertyKey, value: T | ((old: T | undefined) => T) | import("./cause-effect").Signal<T>, update?: boolean): void;
         delete(key: PropertyKey): boolean;
+        self: import("./core/ui").UI<any>;
         first(selector: string): import("./core/ui").UI<Element>;
         all(selector: string): import("./core/ui").UI<Element>;
         signal<T>(key: PropertyKey): import("./cause-effect").Signal<T> | undefined;

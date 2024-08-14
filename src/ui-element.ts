@@ -12,8 +12,6 @@ type AttributeParser = (<T>(value: string[], element: UIElement, old: string | u
 
 type AttributeMap = Record<string, AttributeParser>
 
-type StateMap = Record<PropertyKey, PropertyKey | Signal<unknown> | (() => unknown)>
-
 /* === Internal Functions === */
 
 /**
@@ -155,6 +153,14 @@ class UIElement extends HTMLElement {
   }
 
   /**
+   * UI container of the custom element itself
+   * 
+   * @since 0.8.0
+   * @property {UI<UIElement>} self - UI container of the custom element itself
+   */
+  self = ui(this, [this])
+
+  /**
    * Get UI container of first sub-element matching a given selector within the custom element
    * 
    * @since 0.8.0
@@ -190,6 +196,6 @@ class UIElement extends HTMLElement {
 }
 
 export {
-  type StateMap, type AttributeMap,
+  type AttributeMap,
   UIElement
 }

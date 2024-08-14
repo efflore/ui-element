@@ -212,7 +212,9 @@
 
     class MyCounter extends UIElement {
       static observedAttributes = ['value']
-      static attributeMap = { value: maybe => maybe.map(v => parseInt(v, 10)) }
+      static attributeMap = {
+        value: maybe => maybe.map(v => parseInt(v, 10))
+      }
 
       connectedCallback() {
         this.querySelector('.decrement').onclick = () => this.set('value', v => --v)

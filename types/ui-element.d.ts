@@ -3,7 +3,6 @@ import { type UnknownContext } from './core/context-request';
 import { type UI } from './core/ui';
 type AttributeParser = (<T>(value: string[], element: UIElement, old: string | undefined) => T[]);
 type AttributeMap = Record<string, AttributeParser>;
-type StateMap = Record<PropertyKey, PropertyKey | Signal<unknown> | (() => unknown)>;
 /**
  * Base class for reactive custom elements
  *
@@ -69,6 +68,13 @@ declare class UIElement extends HTMLElement {
      */
     delete(key: PropertyKey): boolean;
     /**
+     * UI container of the custom element itself
+     *
+     * @since 0.8.0
+     * @property {UI<UIElement>} self - UI container of the custom element itself
+     */
+    self: UI<this>;
+    /**
      * Get UI container of first sub-element matching a given selector within the custom element
      *
      * @since 0.8.0
@@ -93,4 +99,4 @@ declare class UIElement extends HTMLElement {
      */
     signal<T>(key: PropertyKey): Signal<T> | undefined;
 }
-export { type StateMap, type AttributeMap, UIElement };
+export { type AttributeMap, UIElement };

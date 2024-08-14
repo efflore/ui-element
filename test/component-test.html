@@ -147,15 +147,21 @@
     })
 
     component(
-      'my-counter',
-      { attributeMap: {
-        value: asInteger
+      'my-counter',        // custom element tag name
+      { attributeMap: {    // keys are observed attributes
+        value: asInteger   // state from observed attribute with parser function
       }},
-      el => {
+      el => {              // el === this in web component class
+
+        // derived states (in addition to source state 'value' from observed attribute)
         el.set('parity', () => el.get('value') % 2 ? 'odd' : 'even')
         el.set('double', () => el.get('value') * 2)
+
+        // event listeners map event callback and setter function to a state
         el.first('.decrement').map(on('click', 'value', (_, v) => --v))
         el.first('.increment').map(on('click', 'value', (_, v) => ++v))
+
+        // effects map states to element properties
         el.first('.value').map(setText('value'))
         el.first('.parity').map(setText('parity'))
         el.first('.double').map(setText('double'))
@@ -166,7 +172,7 @@
       el.first('hello-world').map(pass({
         name: () => el.querySelector('input-checkbox')?.get('checked')
           ? `${el.querySelector('.first')?.get('value')} ${el.querySelector('.last')?.get('value')}`
-          : el.querySelector('.first')?.get('value'),
+          : el.querySelector('.first')?.get('value')
       }))
     })
 
