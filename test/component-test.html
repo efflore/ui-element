@@ -100,7 +100,7 @@
   <script type="module">
     import { runTests } from '@web/test-runner-mocha';
     import { assert } from '@esm-bundle/chai';
-    import { component, effect, io, asBoolean, asInteger, asNumber, asString, pass, on,
+    import { component, effect, asBoolean, asInteger, asNumber, asString, pass, on,
       setText, setProperty, setAttribute, toggleAttribute, toggleClass, setStyle } from '../component.js';
 
     const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
@@ -210,22 +210,22 @@
       })
       const loadingEl = el.querySelector('.loading')
       const errorEl = el.querySelector('.error')
-      const remove = (enqueue, ui) => enqueue(ui, io(() => ui.remove()))
+      const remove = (enqueue, ui) => enqueue(ui, 'remove', () => ui.remove())
 
       effect(enqueue => {
         const error = el.get('error')
         if (!error) return
         remove(enqueue, loadingEl) // remove placeholder for pending state
-        enqueue(errorEl, io(() => errorEl.textContent = error))
+        enqueue(errorEl, 'text', () => errorEl.textContent = error)
       })
 
       effect(enqueue => {
         const content = el.get('content')
         if (!content) return
-        enqueue(el, io(() => {
+        enqueue(el, 'insert', () => {
           const shadow = el.shadowRoot || el.attachShadow({ mode: 'open' }) // we use shadow DOM to encapsulate styles
           shadow.innerHTML = content // UNSAFE!, use only trusted sources in 'src' attribute
-        }))
+        })
         remove(enqueue, loadingEl) // remove placeholder for pending state
         remove(enqueue, errorEl) // remove placeholder for error message
       })

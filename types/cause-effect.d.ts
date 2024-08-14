@@ -1,8 +1,7 @@
-import type { IO } from './core/io';
 interface Effect {
     (): void;
     run(): void;
-    targets?: Map<Element, Set<IO<void>>>;
+    targets?: Set<Element>;
 }
 interface Computed<T> extends Effect {
     (): T;
@@ -14,9 +13,9 @@ interface State<T> {
     set(value: T): void;
 }
 type Signal<T> = State<T> | Computed<T>;
-type DOMInstructionQueue = (element: Element, fn: IO<unknown>) => void;
+type DOMInstruction = (element: Element, prop: string, callback: () => void) => void;
 type MaybeCleanup = void | (() => void);
-type EffectCallback = (enqueue: DOMInstructionQueue) => MaybeCleanup;
+type EffectCallback = (enqueue: DOMInstruction) => MaybeCleanup;
 /**
  * Check if a given variable is a reactive state
  *
@@ -54,4 +53,4 @@ declare const derive: <T>(fn: () => T, memo?: boolean) => Computed<T>;
  * @param {EffectCallback} fn - callback function to be executed when a state changes
  */
 declare const effect: (fn: EffectCallback) => void;
-export { type State, type Computed, type Signal, type Effect, type DOMInstructionQueue, isState, isSignal, cause, derive, effect };
+export { type State, type Computed, type Signal, type Effect, type DOMInstruction, isState, isSignal, cause, derive, effect };

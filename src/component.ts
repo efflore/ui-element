@@ -1,7 +1,8 @@
 import { isDefinedObject, isFunction } from './core/is-type'
 import { maybe } from './core/maybe'
+import { attempt } from './core/attempt'
+import { log } from './core/log'
 import { ui } from './core/ui'
-import { io } from './core/io'
 import { pass } from './core/pass.js'
 import type { UnknownContext } from './core/context-request'
 import { effect } from './cause-effect'
@@ -62,7 +63,7 @@ const component = (
 
 export {
   type ComponentProps,
-  UIElement, effect, component, maybe, ui, io, pass, on,
+  UIElement, effect, component, maybe, ui, pass, on, attempt, log,
   asBoolean, asInteger, asNumber, asString, asJSON,
   setText, setProperty, setAttribute, toggleAttribute, toggleClass, setStyle
 }

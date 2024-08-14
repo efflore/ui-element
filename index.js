@@ -9,22 +9,9 @@ const isDefined = (value) => value != null;
 const isDefinedObject = (value) => isDefined(value) && (isObject(value) || isFunction(value));
 // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
 const hasMethod = (obj, name) => isFunction(obj[name]);
+const isComment = (node) => node.nodeType !== Node.COMMENT_NODE;
 
-/* type Maybe<A> = {
-  map<B>(f: (a: A) => B): Maybe<B>
-  fold: <B>(onNothing: () => B, onSomething: (value: A) => B) => B
-} */
-/* === Exported Functions === */
-/* const nothing = <A>(): Maybe<A> => ({
-  map: <B>(): Maybe<B> => nothing(),
-  fold: <B>(onNothing: () => B): B => onNothing()
-})
-
-const something = <A>(value: A): Maybe<A> => ({
-  map: <B>(f: (a: A) => B): Maybe<B> => something(f(value)),
-  fold: <B>(_: () => B, onSomething: (value: A) => B): B => onSomething(value)
-}) */
-/* === Default Export === */
+/* === Exported Function === */
 /**
  * Create an array for a given value to gracefully handle nullable values
  *
@@ -61,9 +48,80 @@ const attempt = (operation) => {
     }
 };
 
+/* === Types === */
+/* type Log<A> = {
+  (): A
+  map: <B>(f: (a: A) => B, mapMsg?: string, mapLevel?: LogLevel) => Log<B>
+  chain: <B>(f: (a: A) => Log<B>) => Log<B>
+} */
+/* === Constants === */
+const LOG_DEBUG = 'debug';
+const LOG_WARN = 'warn';
+const LOG_ERROR = 'error';
+/* === Internal Functions === */
+const shouldLog = (level) => (level === LOG_WARN) || (level === LOG_ERROR);
+/* === Default Export */
+const log = (value, msg, level = LOG_DEBUG) => {
+    if (shouldLog(level))
+        console[level](msg, value);
+    return value;
+};
+
+/* === Exported Function === */
+const scheduler = () => {
+    const effectQueue = new Map();
+    const cleanupQueue = new Map();
+    let requestId;
+    const requestTick = () => {
+        if (requestId)
+            cancelAnimationFrame(requestId);
+        requestId = requestAnimationFrame(flush);
+    };
+    const enqueue = (element, prop, callback) => {
+        if (!effectQueue.has(element))
+            effectQueue.set(element, new Map());
+        const elEffects = effectQueue.get(element);
+        if (!elEffects.has(prop))
+            elEffects.set(prop, callback);
+        requestTick();
+    };
+    const cleanup = (element, callback) => {
+        if (!cleanupQueue.has(element))
+            cleanupQueue.set(element, callback);
+        requestTick();
+    };
+    const run = (callback, msg) => {
+        attempt(callback).catch(reason => log(reason, msg, LOG_ERROR));
+    };
+    const flush = () => {
+        requestId = null;
+        let action = `Couldn't apply effect `;
+        const unknown = `unknown element`;
+        for (const [el, elEffect] of effectQueue) {
+            for (const [prop, effect] of elEffect) {
+                run(effect, action + `${prop} on ${el?.localName || unknown}`);
+            }
+        }
+        effectQueue.clear();
+        action = `Couldn't clean up after effect for `;
+        for (const [el, cleanup] of cleanupQueue) {
+            run(cleanup, action + (el?.localName || unknown));
+        }
+        cleanupQueue.clear();
+    };
+    queueMicrotask(flush); // initial flush when the call stack is empty
+    return {
+        enqueue,
+        cleanup,
+        flush
+    };
+};
+
 /* === Internal === */
 // hold the currently active effect
 let activeEffect;
+// hold schuduler instance
+const queue = scheduler();
 /**
  * Run all effects in the provided set
  *
@@ -122,23 +180,20 @@ const cause = (value) => {
  * @param {EffectCallback} fn - callback function to be executed when a state changes
  */
 const effect = (fn) => {
-    const targets = new Map();
+    const targets = new Set();
     const n = () => {
         const prev = activeEffect;
         activeEffect = n;
-        const cleanup = fn((element, domFn) => {
+        let activeElement;
+        const cleanup = fn((element, prop, callback) => {
+            queue.enqueue(element, prop, callback);
             if (!targets.has(element))
-                targets.set(element, new Set());
-            targets.get(element)?.add(domFn);
+                targets.add(element);
+            activeElement = element;
         });
-        for (const domFns of targets.values()) {
-            for (const domFn of domFns)
-                domFn.run();
-            domFns.clear();
-        }
-        activeEffect = prev;
         if (isFunction(cleanup))
-            queueMicrotask(cleanup);
+            queue.cleanup(activeElement, cleanup);
+        activeEffect = prev;
     };
     n.run = () => n();
     n.targets = targets;
@@ -179,25 +234,6 @@ class ContextRequestEvent extends Event {
         this.subscribe = subscribe;
     }
 }
-
-/* === Types === */
-/* type Log<A> = {
-  (): A
-  map: <B>(f: (a: A) => B, mapMsg?: string, mapLevel?: LogLevel) => Log<B>
-  chain: <B>(f: (a: A) => Log<B>) => Log<B>
-} */
-/* === Constants === */
-const LOG_DEBUG = 'debug';
-const LOG_WARN = 'warn';
-const LOG_ERROR = 'error';
-/* === Internal Functions === */
-const shouldLog = (level) => (level === LOG_WARN) || (level === LOG_ERROR);
-/* === Default Export */
-const log = (value, msg, level = LOG_DEBUG) => {
-    if (shouldLog(level))
-        console[level](msg, value);
-    return value;
-};
 
 /* === Exported Function === */
 /**
@@ -373,14 +409,6 @@ class UIElement extends HTMLElement {
     }
 }
 
-/* === Types === */
-/* === Default export === */
-const io = (effect) => ({
-    run: () => effect(),
-    // map: <B>(f: (a: A) => B): IO<B> => io(() => f(effect())),
-    // chain: <B>(f: (a: A) => IO<B>): IO<B> => io(() => f(effect()).run())
-});
-
 /* === Exported Function === */
 /**
  * Pass states from one UIElement to another
@@ -399,10 +427,6 @@ const pass = (stateMap) =>
  */
 async (host, target) => {
     await host.constructor.registry.whenDefined(target.localName);
-    /* if (!hasMethod(target, 'set')) {
-      log(target, 'Expected UIElement', LOG_ERROR)
-      return
-    } */
     for (const [key, source] of Object.entries(stateMap))
         target.set(key, isSignal(source) ? source
             : isFunction(source) ? cause(source)
@@ -410,4 +434,113 @@ async (host, target) => {
     return target;
 };
 
-export { UIElement, effect, io, maybe, pass, ui };
+/* === Exported Function === */
+/**
+ * Add event listener to a host element and update a state when the event occurs
+ *
+ * @since 0.8.0
+ * @param event - event name to listen to
+ * @param key - state key to update when the event occurs
+ * @param setter - function to set the state when the event occurs; return a nullish value to cancel the update
+ * @returns - returns a function to remove the event listener when no longer needed
+ */
+const on = (event, key, setter) => 
+/**
+ * Partially applied function to connect to params of UI map function
+ *
+ * @param host - host UIElement instance with state
+ * @param target - target element to listen to events
+ * @returns - returns a function to remove the event listener when no longer needed
+ */
+(host, target) => {
+    const handler = (e) => host.set(key, (v) => setter(e, v));
+    target.addEventListener(event, handler);
+    return target;
+};
+
+/* === Exported functions === */
+/**
+ * Parse a boolean attribute as an actual boolean value
+ *
+ * @since 0.7.0
+ * @param {string[]} value - maybe string value or nothing
+ * @returns {boolean[]}
+ */
+const asBoolean = (value) => [isDefined(value[0])];
+/**
+ * Parse an attribute as a number forced to integer
+ *
+ * @since 0.7.0
+ * @param {string[]} value - maybe string value or nothing
+ * @returns {number[]}
+ */
+const asInteger = (value) => value.map(v => parseInt(v, 10)).filter(Number.isFinite);
+/**
+ * Parse an attribute as a number
+ *
+ * @since 0.7.0
+ * @param {string[]} value - maybe string value or nothing
+ * @returns {number[]}
+ */
+const asNumber = (value) => value.map(parseFloat).filter(Number.isFinite);
+/**
+ * Parse an attribute as a string
+ *
+ * @since 0.7.0
+ * @param {string[]} value - maybe string value or nothing
+ * @returns {string[]}
+ */
+const asString = (value) => value;
+/**
+ * Parse an attribute as a JSON serialized object
+ *
+ * @since 0.7.2
+ * @param {string[]} value - maybe string value or nothing
+ * @returns {unknown[]}
+ */
+const asJSON = (value) => value.map(v => attempt(() => JSON.parse(v)).fold(error => log(undefined, `Failed to parse JSON: ${error.message}`, LOG_ERROR), v => v));
+
+/* === Internal Functions === */
+const autoEffect = (host, state, target, prop, fallback, onNothing, onSomething) => {
+    const remover = onNothing;
+    const setter = (value) => onSomething(value);
+    host.set(state, fallback, false);
+    effect((enqueue) => {
+        if (host.has(state)) {
+            const value = host.get(state);
+            if (isNullish(value))
+                enqueue(target, prop, remover);
+            else
+                enqueue(target, prop, setter(value));
+        }
+    });
+    return target;
+};
+/* === Exported Functions === */
+const setText = (state) => (host, element) => {
+    const fallback = element.textContent || '';
+    const setter = (value) => () => {
+        Array.from(element.childNodes).filter(isComment).forEach(match => match.remove());
+        element.append(document.createTextNode(value));
+    };
+    return autoEffect(host, state, element, `text ${String(state)}`, fallback, setter(fallback), setter);
+};
+const setProperty = (key, state = key) => (host, element) => {
+    const setter = (value) => () => element[key] = value;
+    return autoEffect(host, state, element, `property ${String(key)}`, element[key], setter(null), setter);
+};
+const setAttribute = (name, state = name) => (host, element) => {
+    return autoEffect(host, state, element, `attribute ${String(name)}`, element.getAttribute(name), () => element.removeAttribute(name), (value) => () => element.setAttribute(name, value));
+};
+const toggleAttribute = (name, state = name) => (host, element) => {
+    const setter = (value) => () => element.toggleAttribute(name, value);
+    return autoEffect(host, state, element, `attribute ${String(name)}`, element.hasAttribute(name), setter(false), setter);
+};
+const toggleClass = (token, state = token) => (host, element) => {
+    return autoEffect(host, state, element, `class ${String(token)}`, element.classList.contains(token), () => element.classList.remove(token), (value) => () => element.classList.toggle(token, value));
+};
+const setStyle = (prop, state = prop) => (host, element) => {
+    return autoEffect(host, state, element, `style ${String(prop)}`, element.style[prop], () => element.style.removeProperty(prop), (value) => () => element.style[prop] = String(value));
+};
+
+export { UIElement, asBoolean, asInteger, asJSON, asNumber, asString, attempt, effect, log, maybe, on, pass, setAttribute, setProperty, setStyle, setText, toggleAttribute, toggleClass, ui };

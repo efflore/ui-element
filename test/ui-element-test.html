@@ -95,7 +95,7 @@
   <script type="module">
     import { runTests } from '@web/test-runner-mocha'
     import { assert } from '@esm-bundle/chai'
-    import { UIElement, effect, maybe, io, pass } from '../index.js'
+    import { UIElement, effect, maybe, pass } from '../index.js'
 
     const wait = ms => new Promise(resolve => setTimeout(resolve, ms))
     const paint = () => new Promise(resolve => requestAnimationFrame(resolve))
@@ -108,7 +108,8 @@
         this.set('heading', 'Hello from Internal State')
         effect(enqueue => {
           const title = this.querySelector('h1')
-          enqueue(title, io(() => title.textContent = this.get('heading')))
+          const value = this.get('heading')
+          enqueue(title, 'text heading', () => title.textContent = value)
         })
       }
     }
@@ -132,35 +133,42 @@
         const badge = this.querySelector('span')
         const input = this.querySelector('input')
 
-        effect(enqueue => this.has('heading') && enqueue(
-          heading,
-          io(() => heading.textContent = this.get('heading'))
-        ))
+        effect(enqueue => {
+          if (this.has('heading')) {
+            const value = this.get('heading')
+            enqueue(heading, 'text heading', () => heading.textContent = value)
+          }
+        })
 
-        effect(enqueue => this.has('count') && enqueue(
-          badge,
-          io(() => badge.textContent = this.get('count'))
-        ))
+        effect(enqueue => {
+          if (this.has('count')) {
+            const value = this.get('count')
+            enqueue(badge, 'text count', () => badge.textContent = value)
+          }
+        })
 
         effect(enqueue => {
           if (this.has('step')) {
             const step = this.get('step')
-            enqueue(input, io(() => !Number.isNaN(step)
+            enqueue(input, 'attribute step', () => !Number.isNaN(step)
               ? input.setAttribute('step', step)
               : input.removeAttribute('step'))
-            )
           }
         });
 
-        effect(enqueue => this.has('value') && enqueue(
-          input,
-          io(() => input.setAttribute('value', this.get('value')))
-        ))
+        effect(enqueue => {
+          if (this.has('value')) {
+            const value = this.get('value')
+            enqueue(input, 'attribute value', () => input.setAttribute('value', value))
+          }
+        })
 
-        effect(enqueue => this.has('selected') && enqueue(
-          heading,
-          io(() => heading.classList.toggle('selected', this.get('selected')))
-        ))
+        effect(enqueue => {
+          if (this.has('selected')) {
+            const value = this.get('selected')
+            enqueue(heading, 'attribute selected', () => heading.classList.toggle('selected', value))
+          }
+        })
       }
     }
     UpdatingComponent.define('updating-component');
@@ -185,19 +193,19 @@
         this.set('heading', title.textContent)
         this.set('text', paragraph.textContent)
 
-        effect(enqueue =>
-          this.has('heading') && enqueue(
-            title,
-            io(() => title.textContent = this.get('heading'))
-          )
-        )
+        effect(enqueue => {
+          if (this.has('heading')) {
+            const value = this.get('heading')
+            enqueue(title, 'text heading', () => title.textContent = value)
+          }
+        })
 
-        effect(enqueue =>
-          this.has('text') && enqueue(
-            paragraph,
-            io(() => paragraph.textContent = this.get('text'))
-          )
-        )
+        effect(enqueue => {
+          if (this.has('text')) {
+            const value = this.get('text')
+            enqueue(paragraph, 'text text', () => paragraph.textContent = value)
+          }
+        })
       }
     }
     ChildComponent.define('child-component');
@@ -215,9 +223,9 @@
           const parityEl = this.querySelector('.parity')
           const doubleEl = this.querySelector('.double')
           const value = this.get('value')
-          enqueue(valueEl, io(() => valueEl.textContent = value))
-          enqueue(parityEl, io(() => parityEl.textContent = value % 2 ? 'odd' : 'even'))
-          enqueue(doubleEl, io(() => doubleEl.textContent = value * 2))
+          enqueue(valueEl, 'text value', () => valueEl.textContent = value)
+          enqueue(parityEl, 'text parity', () => parityEl.textContent = value % 2 ? 'odd' : 'even')
+          enqueue(doubleEl, 'text double', () => doubleEl.textContent = value * 2)
         })
       }
     }
@@ -247,15 +255,15 @@
         this.set('greeting', greetingEl.textContent, false);
         this.set('name', defaultName);
 
-        effect(enqueue => enqueue(
-          greetingEl,
-          io(() => greetingEl.textContent = this.get('greeting'))
-        ))
+        effect(enqueue => {
+          const value = this.get('greeting') || '';
+          enqueue(greetingEl, 'text greeting', () => greetingEl.textContent = value)
+        })
 
-        effect(enqueue => enqueue(
-          nameEl,
-          io(() => nameEl.textContent = this.get('name') || defaultName)
-        ))
+        effect(enqueue => {
+          const value = this.get('name') || defaultName
+          enqueue(nameEl, 'text name', () => nameEl.textContent = value)
+        })
       }
     }
     HelloWorld.define('hello-world');

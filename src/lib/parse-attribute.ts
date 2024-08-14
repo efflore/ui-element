@@ -2,17 +2,6 @@ import { attempt } from '../core/attempt'
 import { log, LOG_ERROR } from '../core/log'
 import { isDefined } from '../core/is-type'
 
-/* === Internal === */
-
-/**
- * Returns a finite number or undefined
- * 
- * @param {number} value
- * @returns {number | undefined}
- */
-const toFinite = (value: number): number | undefined =>
-  Number.isFinite(value) ? value : undefined
-
 /* === Exported functions === */
 
 /**
@@ -32,7 +21,7 @@ const asBoolean = (value: string[]): boolean[] => [isDefined(value[0])]
  * @returns {number[]}
  */
 const asInteger = (value: string[]): number[] =>
-  value.map(v => parseInt(v, 10)).map(toFinite)
+  value.map(v => parseInt(v, 10)).filter(Number.isFinite)
 
 /**
  * Parse an attribute as a number
@@ -42,7 +31,7 @@ const asInteger = (value: string[]): number[] =>
  * @returns {number[]}
  */
 const asNumber = (value: string[]): number[] =>
-  value.map(parseFloat).map(toFinite);
+  value.map(parseFloat).filter(Number.isFinite)
 
 /**
  * Parse an attribute as a string

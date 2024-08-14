@@ -1,12 +1,12 @@
 import { isFunction, hasMethod, isDefinedObject } from './core/is-type'
-import type { IO } from './core/io'
+import scheduler from './core/scheduler'
 
 /* === Types === */
 
 interface Effect {
   (): void
   run(): void
-  targets?: Map<Element, Set<IO<void>>>
+  targets?: Set<Element>
 }
 
 interface Computed<T> extends Effect {
@@ -22,19 +22,23 @@ interface State<T> {
 
 type Signal<T> = State<T> | Computed<T>
 
-type DOMInstructionQueue = (
+type DOMInstruction = (
   element: Element,
-  fn: IO<unknown>
+  prop: string,
+  callback: () => void
 ) => void
 
 type MaybeCleanup = void | (() => void)
 
-type EffectCallback = (enqueue: DOMInstructionQueue) => MaybeCleanup
+type EffectCallback = (enqueue: DOMInstruction) => MaybeCleanup
 
 /* === Internal === */
 
 // hold the currently active effect
 let activeEffect: Effect | undefined
+
+// hold schuduler instance
+const queue = scheduler()
 
 /**
  * Run all effects in the provided set
@@ -129,20 +133,18 @@ const derive = <T>(fn: () => T, memo: boolean = false): Computed<T> => {
  * @param {EffectCallback} fn - callback function to be executed when a state changes
  */
 const effect = (fn: EffectCallback) => {
-  const targets = new Map<Element, Set<IO<void>>>()
+  const targets = new Set<Element>()
   const n = () => {
     const prev = activeEffect
     activeEffect = n
-    const cleanup = fn((element: Element, domFn: IO<void>): void => {
-      if (!targets.has(element)) targets.set(element, new Set<IO<void>>())
-      targets.get(element)?.add(domFn)
+    let activeElement: Element
+    const cleanup = fn((element: Element, prop: string, callback: () => void): void => {
+      queue.enqueue(element, prop, callback)
+      if (!targets.has(element)) targets.add(element)
+      activeElement = element
     })
-    for (const domFns of targets.values()) {
-      for (const domFn of domFns) domFn.run()
-      domFns.clear()
-    }   
+    if (isFunction(cleanup)) queue.cleanup(activeElement, cleanup)
     activeEffect = prev
-    if (isFunction(cleanup)) queueMicrotask(cleanup)
   }
   n.run = () => n()
   n.targets = targets
@@ -150,6 +152,6 @@ const effect = (fn: EffectCallback) => {
 }
 
 export {
-  type State, type Computed, type Signal, type Effect, type DOMInstructionQueue,
+  type State, type Computed, type Signal, type Effect, type DOMInstruction,
   isState, isSignal, cause, derive, effect
 }

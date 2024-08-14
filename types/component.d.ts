@@ -1,6 +1,7 @@
 import { maybe } from './core/maybe';
+import { attempt } from './core/attempt';
+import { log } from './core/log';
 import { ui } from './core/ui';
-import { io } from './core/io';
 import { pass } from './core/pass.js';
 import type { UnknownContext } from './core/context-request';
 import { effect } from './cause-effect';
@@ -372,4 +373,4 @@ declare const component: (tag: string, props: ComponentProps, connect: (host: UI
     registry: CustomElementRegistry;
     define(tag: string): void;
 };
-export { type ComponentProps, UIElement, effect, component, maybe, ui, io, pass, on, asBoolean, asInteger, asNumber, asString, asJSON, setText, setProperty, setAttribute, toggleAttribute, toggleClass, setStyle };
+export { type ComponentProps, UIElement, effect, component, maybe, ui, pass, on, attempt, log, asBoolean, asInteger, asNumber, asString, asJSON, setText, setProperty, setAttribute, toggleAttribute, toggleClass, setStyle };

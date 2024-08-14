@@ -1,8 +1,6 @@
 import { isFunction } from './is-type'
 import { type Signal, cause, isSignal } from '../cause-effect'
 import { UIElement } from '../ui-element'
-// import { hasMethod } from './is-type'
-// import { log, LOG_ERROR } from './log'
 
 /* === Types === */
 
@@ -28,10 +26,6 @@ const pass = <E extends UIElement>(stateMap: StateMap) =>
    */
   async (host: UIElement, target: E): Promise<E> => {
     await (host.constructor as typeof UIElement).registry.whenDefined(target.localName)
-    /* if (!hasMethod(target, 'set')) {
-      log(target, 'Expected UIElement', LOG_ERROR)
-      return
-    } */
     for (const [key, source] of Object.entries(stateMap))
       target.set(key, isSignal(source) ? source
         : isFunction(source) ? cause(source)

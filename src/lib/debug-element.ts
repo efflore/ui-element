@@ -149,7 +149,7 @@ class DebugElement extends UIElement {
     const recurse = (effects: Set<Effect | Computed<unknown>>) => {
       for (const effect of effects) {
         if ('effects' in effect) recurse(effect.effects)
-        else targets = [...targets, ...Array.from(effect.targets?.keys())]
+        else targets = [...targets, ...Array.from(effect.targets)]
       }
     }
     recurse(state.effects)
