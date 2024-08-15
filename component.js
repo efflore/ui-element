@@ -92,51 +92,42 @@ const scheduler = () => {
             cancelAnimationFrame(requestId);
         requestId = requestAnimationFrame(flush);
     };
-    const enqueue = (element, prop, callback) => {
+    const enqueue = (element, prop, fn) => {
         if (!effectQueue.has(element))
             effectQueue.set(element, new Map());
         const elEffects = effectQueue.get(element);
         if (!elEffects.has(prop))
-            elEffects.set(prop, callback);
+            elEffects.set(prop, fn);
         requestTick();
     };
-    const cleanup = (element, callback) => {
-        if (!cleanupQueue.has(element))
-            cleanupQueue.set(element, callback);
+    const cleanup = (effect, fn) => {
+        if (!cleanupQueue.has(effect))
+            cleanupQueue.set(effect, fn);
         requestTick();
     };
-    const run = (callback, msg) => {
-        attempt(callback).catch(reason => log(reason, msg, LOG_ERROR));
+    const run = (fn, msg) => {
+        attempt(fn).catch(reason => log(reason, msg, LOG_ERROR));
     };
     const flush = () => {
         requestId = null;
-        let action = `Couldn't apply effect `;
-        const unknown = `unknown element`;
         for (const [el, elEffect] of effectQueue) {
-            for (const [prop, effect] of elEffect) {
-                run(effect, action + `${prop} on ${el?.localName || unknown}`);
-            }
+            for (const [prop, fn] of elEffect)
+                run(fn, ` Effect ${prop} on ${el?.localName || 'unknown'} failed`);
         }
         effectQueue.clear();
-        action = `Couldn't clean up after effect for `;
-        for (const [el, cleanup] of cleanupQueue) {
-            run(cleanup, action + (el?.localName || unknown));
-        }
+        for (const fn of cleanupQueue.values())
+            run(fn, 'Cleanup failed');
         cleanupQueue.clear();
     };
     queueMicrotask(flush); // initial flush when the call stack is empty
-    return {
-        enqueue,
-        cleanup,
-        flush
-    };
+    return { enqueue, cleanup };
 };
 
 /* === Internal === */
 // hold the currently active effect
 let activeEffect;
 // hold schuduler instance
-const queue = scheduler();
+const { enqueue, cleanup } = scheduler();
 /**
  * Run all effects in the provided set
  *
@@ -199,15 +190,13 @@ const effect = (fn) => {
     const n = () => {
         const prev = activeEffect;
         activeEffect = n;
-        let activeElement;
-        const cleanup = fn((element, prop, callback) => {
-            queue.enqueue(element, prop, callback);
+        const cleanupFn = fn((element, prop, callback) => {
+            enqueue(element, prop, callback);
             if (!targets.has(element))
                 targets.add(element);
-            activeElement = element;
         });
-        if (isFunction(cleanup))
-            queue.cleanup(activeElement, cleanup);
+        if (isFunction(cleanupFn))
+            cleanup(n, cleanupFn);
         activeEffect = prev;
     };
     n.run = () => n();

@@ -310,20 +310,20 @@
             assert.isTrue(effectDidRun);
           });
 
-          /* it('repeated set() should trigger dependent effect only once', async function () {
+          it('repeated set() should trigger dependent effect only once', async function () {
             const voidComponent = document.getElementById('void2');
             voidComponent.set('bar', 0);
             let result = 0;
-            effect(() => {
-              result++;
+            effect(enqueue => {
               voidComponent.get('bar');
+              enqueue(voidComponent, null, () => result++);
             });
             for (let i = 1; i <= 10; i++) {
               voidComponent.set('bar', i);
             }
             await paint();
             assert.equal(result, 1);
-          }); */
+          });
 
           it('should return false with has() for deleted state', async function () {
             const voidComponent = document.getElementById('void');

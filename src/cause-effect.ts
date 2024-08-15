@@ -38,7 +38,7 @@ type EffectCallback = (enqueue: DOMInstruction) => MaybeCleanup
 let activeEffect: Effect | undefined
 
 // hold schuduler instance
-const queue = scheduler()
+const { enqueue, cleanup } = scheduler()
 
 /**
  * Run all effects in the provided set
@@ -137,13 +137,11 @@ const effect = (fn: EffectCallback) => {
   const n = () => {
     const prev = activeEffect
     activeEffect = n
-    let activeElement: Element
-    const cleanup = fn((element: Element, prop: string, callback: () => void): void => {
-      queue.enqueue(element, prop, callback)
+    const cleanupFn = fn((element: Element, prop: string, callback: () => void): void => {
+      enqueue(element, prop, callback)
       if (!targets.has(element)) targets.add(element)
-      activeElement = element
     })
-    if (isFunction(cleanup)) queue.cleanup(activeElement, cleanup)
+    if (isFunction(cleanupFn)) cleanup(n, cleanupFn)
     activeEffect = prev
   }
   n.run = () => n()

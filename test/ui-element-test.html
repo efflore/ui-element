@@ -211,27 +211,32 @@
     ChildComponent.define('child-component');
 
     class MyCounter extends UIElement {
-      static observedAttributes = ['value']
+      static observedAttributes = ['value']              // observed attributes
       static attributeMap = {
-        value: maybe => maybe.map(v => parseInt(v, 10))
+        value: maybe => maybe.map(v => parseInt(v, 10))  // state from observed attribute with parser function
       }
 
       connectedCallback() {
+
+        // event listeners map event callback and setter function to a state
         this.querySelector('.decrement').onclick = () => this.set('value', v => --v)
         this.querySelector('.increment').onclick = () => this.set('value', v => ++v)
 
+        // effect maps state to multiple element properties
         effect(enqueue => {
           const valueEl = this.querySelector('.value')
           const parityEl = this.querySelector('.parity')
           const doubleEl = this.querySelector('.double')
           const value = this.get('value')
+
+          // no derived states, we derive directly in the effect
           enqueue(valueEl, 'text value', () => valueEl.textContent = value)
           enqueue(parityEl, 'text parity', () => parityEl.textContent = value % 2 ? 'odd' : 'even')
           enqueue(doubleEl, 'text double', () => doubleEl.textContent = value * 2)
         })
       }
     }
-    MyCounter.define('my-counter')
+    MyCounter.define('my-counter')  // custom element tag name
 
     class GreetingConfigurator extends UIElement {
       connectedCallback() {
@@ -397,20 +402,20 @@
             assert.isTrue(effectDidRun)
           });
 
-          /* it('repeated set() should trigger dependent effect only once', async function () {
+          it('repeated set() should trigger dependent effect only once', async function () {
             const voidComponent = document.getElementById('void2');
             voidComponent.set('bar', 0);
             let result = 0;
-            effect(() => {
-              result++;
+            effect(enqueue => {
               voidComponent.get('bar')
+              enqueue(voidComponent, null, () => result++);
             });
             for (let i = 1; i <= 10; i++) {
               voidComponent.set('bar', i);
             }
             await paint();
             assert.equal(result, 1);
-          }); */
+          });
 
           it('should return false with has() for deleted state', async function () {
             const voidComponent = document.getElementById('void');
