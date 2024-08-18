@@ -22,33 +22,6 @@ const isComment = (node) => node.nodeType !== Node.COMMENT_NODE;
 const maybe = (value) => isNullish(value) ? [] : [value];
 
 /* === Types === */
-/* === Internal Functions === */
-const success = (value) => ({
-    map: (f) => attempt(() => f(value)),
-    /* chain: <B>(f: (a: A) => Attempt<B, E>): Attempt<B, E> => f(value),
-    ap: <B>(fab: Attempt<(a: A) => B, E>): Attempt<B, E> =>
-      fab.fold(reason => failure(reason), f => success(f(value))), */
-    fold: (_, onSuccess) => onSuccess(value),
-    catch: () => { }
-});
-const failure = (reason) => ({
-    map: () => failure(reason),
-    /* chain: () => failure(reason),
-    ap: () => failure(reason), */
-    fold: (onFailure) => onFailure(reason),
-    catch: (f) => f(reason)
-});
-/* === Default Export === */
-const attempt = (operation) => {
-    try {
-        return success(operation());
-    }
-    catch (reason) {
-        return failure(reason);
-    }
-};
-
-/* === Types === */
 /* type Log<A> = {
   (): A
   map: <B>(f: (a: A) => B, mapMsg?: string, mapLevel?: LogLevel) => Log<B>
@@ -91,7 +64,12 @@ const scheduler = () => {
         requestTick();
     };
     const run = (fn, msg) => {
-        attempt(fn).catch(reason => log(reason, msg, LOG_ERROR));
+        try {
+            fn();
+        }
+        catch (reason) {
+            log(reason, msg, LOG_ERROR);
+        }
     };
     const flush = () => {
         requestId = null;
@@ -230,7 +208,7 @@ class ContextRequestEvent extends Event {
  *
  * @since 0.8.0
  * @param {any} value - value to unwrap if it's a function
- * @returns {any} - unwrapped value, but might still be in a maybe or attempt container
+ * @returns {any} - unwrapped value, but might still be in a maybe container
  */
 const unwrap = (value) => isFunction(value) ? unwrap(value()) : value;
 /**
@@ -261,8 +239,13 @@ class UIElement extends HTMLElement {
      * @param {string} tag - name of the custom element
      */
     static define(tag) {
-        attempt(() => !this.registry.get(tag) && this.registry.define(tag, this))
-            .catch(error => log(tag, error.message, LOG_ERROR));
+        try {
+            if (!this.registry.get(tag))
+                this.registry.define(tag, this);
+        }
+        catch (error) {
+            log(tag, error.message, LOG_ERROR);
+        }
     }
     // @private hold states – use `has()`, `get()`, `set()` and `delete()` to access and modify
     #states = new Map();
@@ -475,7 +458,16 @@ const asString = (value) => value;
  * @param {string[]} value - maybe string value or nothing
  * @returns {unknown[]}
  */
-const asJSON = (value) => value.map(v => attempt(() => JSON.parse(v)).fold(error => log(undefined, `Failed to parse JSON: ${error.message}`, LOG_ERROR), v => v));
+const asJSON = (value) => {
+    let result = [];
+    try {
+        result = value.map(v => JSON.parse(v));
+    }
+    catch (error) {
+        log(error, 'Failed to parse JSON', LOG_ERROR);
+    }
+    return result;
+};
 
 /* === Internal Functions === */
 const autoEffect = (host, state, target, prop, fallback, onNothing, onSomething) => {
@@ -520,4 +512,4 @@ const setStyle = (prop, state = prop) => function (target) {
     return autoEffect(this, state, target, `style ${String(prop)}`, target.style[prop], () => target.style.removeProperty(prop), (value) => () => target.style[prop] = String(value));
 };
 
-export { UIElement, asBoolean, asInteger, asJSON, asNumber, asString, attempt, effect, log, maybe, on, pass, setAttribute, setProperty, setStyle, setText, toggleAttribute, toggleClass };
+export { UIElement, asBoolean, asInteger, asJSON, asNumber, asString, effect, log, maybe, on, pass, setAttribute, setProperty, setStyle, setText, toggleAttribute, toggleClass };

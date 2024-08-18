@@ -1,5 +1,4 @@
 import type { Effect } from '../cause-effect';
-import { attempt } from './attempt';
 import { log, LOG_ERROR } from './log';
 
 /* === Exported Function === */
@@ -27,7 +26,11 @@ const scheduler = () => {
   }
 
   const run = (fn: () => void, msg: string) => {
-    attempt(fn).catch(reason => log(reason, msg, LOG_ERROR))
+    try {
+      fn()
+    } catch (reason) {
+      log(reason, msg, LOG_ERROR)
+    }
   }
 
   const flush = () => {

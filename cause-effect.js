@@ -10,33 +10,6 @@ const isDefinedObject = (value) => isDefined(value) && (isObject(value) || isFun
 const hasMethod = (obj, name) => isFunction(obj[name]);
 
 /* === Types === */
-/* === Internal Functions === */
-const success = (value) => ({
-    map: (f) => attempt(() => f(value)),
-    /* chain: <B>(f: (a: A) => Attempt<B, E>): Attempt<B, E> => f(value),
-    ap: <B>(fab: Attempt<(a: A) => B, E>): Attempt<B, E> =>
-      fab.fold(reason => failure(reason), f => success(f(value))), */
-    fold: (_, onSuccess) => onSuccess(value),
-    catch: () => { }
-});
-const failure = (reason) => ({
-    map: () => failure(reason),
-    /* chain: () => failure(reason),
-    ap: () => failure(reason), */
-    fold: (onFailure) => onFailure(reason),
-    catch: (f) => f(reason)
-});
-/* === Default Export === */
-const attempt = (operation) => {
-    try {
-        return success(operation());
-    }
-    catch (reason) {
-        return failure(reason);
-    }
-};
-
-/* === Types === */
 /* type Log<A> = {
   (): A
   map: <B>(f: (a: A) => B, mapMsg?: string, mapLevel?: LogLevel) => Log<B>
@@ -79,7 +52,12 @@ const scheduler = () => {
         requestTick();
     };
     const run = (fn, msg) => {
-        attempt(fn).catch(reason => log(reason, msg, LOG_ERROR));
+        try {
+            fn();
+        }
+        catch (reason) {
+            log(reason, msg, LOG_ERROR);
+        }
     };
     const flush = () => {
         requestId = null;

@@ -1,4 +1,3 @@
-import { attempt } from '../core/attempt'
 import { log, LOG_ERROR } from '../core/log'
 import { isDefined } from '../core/is-type'
 
@@ -49,10 +48,14 @@ const asString = (value: string[]): string[] => value
  * @param {string[]} value - maybe string value or nothing
  * @returns {unknown[]}
  */
-const asJSON = (value: string[]): unknown[] =>
-  value.map(v => attempt(() => JSON.parse(v)).fold(
-    error => log(undefined, `Failed to parse JSON: ${error.message}`, LOG_ERROR),
-    v => v
-  ))
+const asJSON = (value: string[]): unknown[] => {
+  let result = []
+  try {
+    result = value.map(v => JSON.parse(v))
+  } catch (error) {
+    log(error, 'Failed to parse JSON', LOG_ERROR)
+  }
+  return result
+}
 
 export { asBoolean, asInteger, asNumber, asString, asJSON }

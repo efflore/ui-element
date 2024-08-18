@@ -1,6 +1,5 @@
 import { isFunction } from './core/is-type'
 import { maybe } from './core/maybe'
-import { attempt } from './core/attempt'
 import { type Signal, isState, isSignal, cause } from './cause-effect'
 import { type UnknownContext, CONTEXT_REQUEST, ContextRequestEvent } from './core/context-request'
 import { log, LOG_ERROR } from './core/log'
@@ -18,7 +17,7 @@ type AttributeMap = Record<string, AttributeParser>
  * 
  * @since 0.8.0
  * @param {any} value - value to unwrap if it's a function
- * @returns {any} - unwrapped value, but might still be in a maybe or attempt container
+ * @returns {any} - unwrapped value, but might still be in a maybe container
  */
 const unwrap = (value: any): any =>
   isFunction(value) ? unwrap(value()) : value
@@ -55,8 +54,11 @@ class UIElement extends HTMLElement {
    * @param {string} tag - name of the custom element
    */
   static define(tag: string): void {
-    attempt(() => !this.registry.get(tag) && this.registry.define(tag, this))
-      .catch(error => log(tag, error.message, LOG_ERROR))
+    try {
+      if (!this.registry.get(tag)) this.registry.define(tag, this)
+    } catch (error) {
+      log(tag, error.message, LOG_ERROR)
+    }
   }
 
   // @private hold states – use `has()`, `get()`, `set()` and `delete()` to access and modify
