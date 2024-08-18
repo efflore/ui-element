@@ -1,6 +1,5 @@
 import { type Signal } from './cause-effect';
 import { type UnknownContext } from './core/context-request';
-import { type UI } from './core/ui';
 type AttributeParser = (<T>(value: string[], element: UIElement, old: string | undefined) => T[]);
 type AttributeMap = Record<string, AttributeParser>;
 /**
@@ -23,6 +22,11 @@ declare class UIElement extends HTMLElement {
      * @param {string} tag - name of the custom element
      */
     static define(tag: string): void;
+    /**
+     * @since 0.8.0
+     * @property {HTMLElement[]} self - UI object for this element
+     */
+    self: this[];
     /**
      * Native callback function when an observed attribute of the custom element changes
      *
@@ -68,29 +72,6 @@ declare class UIElement extends HTMLElement {
      */
     delete(key: PropertyKey): boolean;
     /**
-     * UI container of the custom element itself
-     *
-     * @since 0.8.0
-     * @property {UI<UIElement>} self - UI container of the custom element itself
-     */
-    self: UI<this>;
-    /**
-     * Get UI container of first sub-element matching a given selector within the custom element
-     *
-     * @since 0.8.0
-     * @param {string} selector - selector to match sub-element
-     * @returns {UI<Element>} - UI container of matching sub-element (or empty UI if no match found)
-     */
-    first(selector: string): UI<Element>;
-    /**
-     * Get UI container of all sub-elements matching a given selector within the custom element
-     *
-     * @since 0.8.0
-     * @param {string} selector - selector to match sub-elements
-     * @returns {UI<Element>} - UI container of matching sub-elements
-     */
-    all(selector: string): UI<Element>;
-    /**
      * Return the signal for a state
      *
      * @since 0.8.0
@@ -98,5 +79,21 @@ declare class UIElement extends HTMLElement {
      * @returns {Signal<T> | undefined} signal for the given state; undefined if
      */
     signal<T>(key: PropertyKey): Signal<T> | undefined;
+    /**
+     * Get array of first sub-element matching a given selector within the custom element
+     *
+     * @since 0.8.0
+     * @param {string} selector - selector to match sub-element
+     * @returns {Element[]} - array of zero or one matching sub-element
+     */
+    first(selector: string): Element[];
+    /**
+     * Get array of all sub-elements matching a given selector within the custom element
+     *
+     * @since 0.8.0
+     * @param {string} selector - selector to match sub-elements
+     * @returns {Element[]} - array of matching sub-elements
+     */
+    all(selector: string): Element[];
 }
 export { type AttributeMap, UIElement };

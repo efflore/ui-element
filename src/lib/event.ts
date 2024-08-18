@@ -1,5 +1,3 @@
-import type { UIElement } from '../ui-element'
-
 /* === Exported Function === */
 
 /**
@@ -16,12 +14,11 @@ const on = <E extends Element, T>(event: string, state: PropertyKey, setter: (e:
   /**
    * Partially applied function to connect to params of UI map function
    * 
-   * @param {UIElement} host - host UIElement instance with state
    * @param {E} target - target element to listen to events
-   * @returns - returns a function to remove the event listener when no longer needed
+   * @returns - returns ui object of the target
    */
-  (host: UIElement, target: E): E => {
-    const handler = (e: Event) => host.set(state, (v: T) => setter(e, v) ?? v) // if the setter returns nullish, we return the old value
+  function (target: E): E {
+    const handler = (e: Event) => this.set(state, (v: T) => setter(e, v) ?? v) // if the setter returns nullish, we return the old value
     target.addEventListener(event, handler)
     return target
   }

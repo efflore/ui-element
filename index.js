@@ -224,21 +224,6 @@ class ContextRequestEvent extends Event {
     }
 }
 
-/* === Exported Function === */
-/**
- * Wrapper around a native DOM element for DOM manipulation
- *
- * @since 0.8.0
- * @param {UIElement} host - host UIElement for the UIRef instance
- * @param {Element[]} elements - native DOM elements to wrap
- * @returns {UI} - UIRef instance for the given element
- */
-const ui = (host, elements) => ({
-    elements,
-    host,
-    map: (f) => ui(host, elements.map(el => f(host, el)))
-});
-
 /* === Internal Functions === */
 /**
  * Unwrap any value wrapped in a function
@@ -281,6 +266,11 @@ class UIElement extends HTMLElement {
     }
     // @private hold states – use `has()`, `get()`, `set()` and `delete()` to access and modify
     #states = new Map();
+    /**
+     * @since 0.8.0
+     * @property {HTMLElement[]} self - UI object for this element
+     */
+    self = [this];
     /**
      * Native callback function when an observed attribute of the custom element changes
      *
@@ -367,33 +357,6 @@ class UIElement extends HTMLElement {
         return this.#states.delete(key);
     }
     /**
-     * UI container of the custom element itself
-     *
-     * @since 0.8.0
-     * @property {UI<UIElement>} self - UI container of the custom element itself
-     */
-    self = ui(this, [this]);
-    /**
-     * Get UI container of first sub-element matching a given selector within the custom element
-     *
-     * @since 0.8.0
-     * @param {string} selector - selector to match sub-element
-     * @returns {UI<Element>} - UI container of matching sub-element (or empty UI if no match found)
-     */
-    first(selector) {
-        return ui(this, maybe(getRoot(this).querySelector(selector)));
-    }
-    /**
-     * Get UI container of all sub-elements matching a given selector within the custom element
-     *
-     * @since 0.8.0
-     * @param {string} selector - selector to match sub-elements
-     * @returns {UI<Element>} - UI container of matching sub-elements
-     */
-    all(selector) {
-        return ui(this, Array.from(getRoot(this).querySelectorAll(selector)));
-    }
-    /**
      * Return the signal for a state
      *
      * @since 0.8.0
@@ -402,6 +365,26 @@ class UIElement extends HTMLElement {
      */
     signal(key) {
         return this.#states.get(key);
+    }
+    /**
+     * Get array of first sub-element matching a given selector within the custom element
+     *
+     * @since 0.8.0
+     * @param {string} selector - selector to match sub-element
+     * @returns {Element[]} - array of zero or one matching sub-element
+     */
+    first(selector) {
+        return maybe(getRoot(this).querySelector(selector));
+    }
+    /**
+     * Get array of all sub-elements matching a given selector within the custom element
+     *
+     * @since 0.8.0
+     * @param {string} selector - selector to match sub-elements
+     * @returns {Element[]} - array of matching sub-elements
+     */
+    all(selector) {
+        return Array.from(getRoot(this).querySelectorAll(selector));
     }
 }
 
@@ -413,15 +396,14 @@ class UIElement extends HTMLElement {
  * @param stateMap - map of states to be passed from `host` to `target`
  * @returns - partially applied function that can be used to pass states from `host` to `target`
  */
-const pass = (stateMap) => 
+const pass = (host, stateMap) => 
 /**
  * Partially applied function that connects to params of UI map function
  *
- * @param host - source UIElement to pass states from
- * @param target - destination UIElement to pass states to
- * @returns - Promise that resolves when target UIElement is defined and got passed states
+ * @param ui - source UIElement to pass states from
+ * @returns - Promise that resolves to UI object of the target UIElement, when it is defined and got passed states
  */
-async (host, target) => {
+async function (target) {
     await host.constructor.registry.whenDefined(target.localName);
     for (const [key, source] of Object.entries(stateMap))
         target.set(key, isSignal(source) ? source
@@ -444,12 +426,11 @@ const on = (event, state, setter) =>
 /**
  * Partially applied function to connect to params of UI map function
  *
- * @param {UIElement} host - host UIElement instance with state
  * @param {E} target - target element to listen to events
- * @returns - returns a function to remove the event listener when no longer needed
+ * @returns - returns ui object of the target
  */
-(host, target) => {
-    const handler = (e) => host.set(state, (v) => setter(e, v) ?? v); // if the setter returns nullish, we return the old value
+function (target) {
+    const handler = (e) => this.set(state, (v) => setter(e, v) ?? v); // if the setter returns nullish, we return the old value
     target.addEventListener(event, handler);
     return target;
 };
@@ -513,30 +494,30 @@ const autoEffect = (host, state, target, prop, fallback, onNothing, onSomething)
     return target;
 };
 /* === Exported Functions === */
-const setText = (state) => (host, element) => {
-    const fallback = element.textContent || '';
+const setText = (state) => function (target) {
+    const fallback = target.textContent || '';
     const setter = (value) => () => {
-        Array.from(element.childNodes).filter(isComment).forEach(match => match.remove());
-        element.append(document.createTextNode(value));
+        Array.from(target.childNodes).filter(isComment).forEach(match => match.remove());
+        target.append(document.createTextNode(value));
     };
-    return autoEffect(host, state, element, `text ${String(state)}`, fallback, setter(fallback), setter);
+    return autoEffect(this, state, target, `text ${String(state)}`, fallback, setter(fallback), setter);
 };
-const setProperty = (key, state = key) => (host, element) => {
-    const setter = (value) => () => element[key] = value;
-    return autoEffect(host, state, element, `property ${String(key)}`, element[key], setter(null), setter);
+const setProperty = (key, state = key) => function (target) {
+    const setter = (value) => () => target[key] = value;
+    return autoEffect(this, state, target, `property ${String(key)}`, target[key], setter(null), setter);
 };
-const setAttribute = (name, state = name) => (host, element) => {
-    return autoEffect(host, state, element, `attribute ${String(name)}`, element.getAttribute(name), () => element.removeAttribute(name), (value) => () => element.setAttribute(name, value));
+const setAttribute = (name, state = name) => function (target) {
+    return autoEffect(this, state, target, `attribute ${String(name)}`, target.getAttribute(name), () => target.removeAttribute(name), (value) => () => target.setAttribute(name, value));
 };
-const toggleAttribute = (name, state = name) => (host, element) => {
-    const setter = (value) => () => element.toggleAttribute(name, value);
-    return autoEffect(host, state, element, `attribute ${String(name)}`, element.hasAttribute(name), setter(false), setter);
+const toggleAttribute = (name, state = name) => function (target) {
+    const setter = (value) => () => target.toggleAttribute(name, value);
+    return autoEffect(this, state, target, `attribute ${String(name)}`, target.hasAttribute(name), setter(false), setter);
 };
-const toggleClass = (token, state = token) => (host, element) => {
-    return autoEffect(host, state, element, `class ${String(token)}`, element.classList.contains(token), () => element.classList.remove(token), (value) => () => element.classList.toggle(token, value));
+const toggleClass = (token, state = token) => function (target) {
+    return autoEffect(this, state, target, `class ${String(token)}`, target.classList.contains(token), () => target.classList.remove(token), (value) => () => target.classList.toggle(token, value));
 };
-const setStyle = (prop, state = prop) => (host, element) => {
-    return autoEffect(host, state, element, `style ${String(prop)}`, element.style[prop], () => element.style.removeProperty(prop), (value) => () => element.style[prop] = String(value));
+const setStyle = (prop, state = prop) => function (target) {
+    return autoEffect(this, state, target, `style ${String(prop)}`, target.style[prop], () => target.style.removeProperty(prop), (value) => () => target.style[prop] = String(value));
 };
 
-export { UIElement, asBoolean, asInteger, asJSON, asNumber, asString, attempt, effect, log, maybe, on, pass, setAttribute, setProperty, setStyle, setText, toggleAttribute, toggleClass, ui };
+export { UIElement, asBoolean, asInteger, asJSON, asNumber, asString, attempt, effect, log, maybe, on, pass, setAttribute, setProperty, setStyle, setText, toggleAttribute, toggleClass };

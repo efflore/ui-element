@@ -3,7 +3,6 @@ import { effect } from './src/cause-effect'
 import { maybe } from './src/core/maybe'
 import { attempt } from './src/core/attempt'
 import { log } from './src/core/log'
-import { ui } from './src/core/ui'
 import { pass } from './src/core/pass'
 import { on } from './src/lib/event'
 import { asBoolean, asInteger, asJSON, asNumber, asString } from './src/lib/parse-attribute'
@@ -15,7 +14,7 @@ import { setAttribute, setProperty, setStyle, setText, toggleAttribute, toggleCl
  */
 
 export {
-  UIElement, effect, maybe, ui, pass, on, attempt, log,
+  UIElement, effect, maybe, pass, on, attempt, log,
   asBoolean, asInteger, asNumber, asString, asJSON,
   setText, setProperty, setAttribute, toggleAttribute, toggleClass, setStyle
 }

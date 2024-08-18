@@ -15,16 +15,15 @@ type StateMap = Record<PropertyKey, PropertyKey | Signal<unknown> | (() => unkno
  * @param stateMap - map of states to be passed from `host` to `target`
  * @returns - partially applied function that can be used to pass states from `host` to `target`
  */
-const pass = <E extends UIElement>(stateMap: StateMap) =>
+const pass = <E extends UIElement>(host: UIElement, stateMap: StateMap) =>
 
   /**
    * Partially applied function that connects to params of UI map function
    * 
-   * @param host - source UIElement to pass states from
-   * @param target - destination UIElement to pass states to
-   * @returns - Promise that resolves when target UIElement is defined and got passed states
+   * @param ui - source UIElement to pass states from
+   * @returns - Promise that resolves to UI object of the target UIElement, when it is defined and got passed states
    */
-  async (host: UIElement, target: E): Promise<E> => {
+  async function (target: E): Promise<E> {
     await (host.constructor as typeof UIElement).registry.whenDefined(target.localName)
     for (const [key, source] of Object.entries(stateMap))
       target.set(key, isSignal(source) ? source

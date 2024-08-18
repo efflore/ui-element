@@ -8,5 +8,5 @@ type StateMap = Record<PropertyKey, PropertyKey | Signal<unknown> | (() => unkno
  * @param stateMap - map of states to be passed from `host` to `target`
  * @returns - partially applied function that can be used to pass states from `host` to `target`
  */
-declare const pass: <E extends UIElement>(stateMap: StateMap) => (host: UIElement, target: E) => Promise<E>;
+declare const pass: <E extends UIElement>(host: UIElement, stateMap: StateMap) => (target: E) => Promise<E>;
 export { type StateMap, pass };

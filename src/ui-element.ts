@@ -4,7 +4,6 @@ import { attempt } from './core/attempt'
 import { type Signal, isState, isSignal, cause } from './cause-effect'
 import { type UnknownContext, CONTEXT_REQUEST, ContextRequestEvent } from './core/context-request'
 import { log, LOG_ERROR } from './core/log'
-import { type UI, ui } from './core/ui'
 
 /* === Types === */
 
@@ -62,6 +61,12 @@ class UIElement extends HTMLElement {
 
   // @private hold states – use `has()`, `get()`, `set()` and `delete()` to access and modify
   #states = new Map<PropertyKey, Signal<any>>()
+
+  /**
+   * @since 0.8.0
+   * @property {HTMLElement[]} self - UI object for this element
+   */
+  self = [this]
 
   /**
    * Native callback function when an observed attribute of the custom element changes
@@ -153,36 +158,6 @@ class UIElement extends HTMLElement {
   }
 
   /**
-   * UI container of the custom element itself
-   * 
-   * @since 0.8.0
-   * @property {UI<UIElement>} self - UI container of the custom element itself
-   */
-  self = ui(this, [this])
-
-  /**
-   * Get UI container of first sub-element matching a given selector within the custom element
-   * 
-   * @since 0.8.0
-   * @param {string} selector - selector to match sub-element
-   * @returns {UI<Element>} - UI container of matching sub-element (or empty UI if no match found)
-   */
-  first(selector: string): UI<Element> {
-    return ui(this, maybe(getRoot(this).querySelector(selector)))
-  }
-
-  /**
-   * Get UI container of all sub-elements matching a given selector within the custom element
-   * 
-   * @since 0.8.0
-   * @param {string} selector - selector to match sub-elements
-   * @returns {UI<Element>} - UI container of matching sub-elements
-   */
-  all(selector: string): UI<Element> {
-    return ui(this, Array.from(getRoot(this).querySelectorAll(selector)))
-  }
-
-  /**
    * Return the signal for a state
    * 
    * @since 0.8.0
@@ -191,6 +166,28 @@ class UIElement extends HTMLElement {
    */
   signal<T>(key: PropertyKey): Signal<T> | undefined {
     return this.#states.get(key) as Signal<T> | undefined
+  }
+
+  /**
+   * Get array of first sub-element matching a given selector within the custom element
+   * 
+   * @since 0.8.0
+   * @param {string} selector - selector to match sub-element
+   * @returns {Element[]} - array of zero or one matching sub-element
+   */
+  first(selector: string): Element[] {
+    return maybe(getRoot(this).querySelector(selector))
+  }
+
+  /**
+   * Get array of all sub-elements matching a given selector within the custom element
+   * 
+   * @since 0.8.0
+   * @param {string} selector - selector to match sub-elements
+   * @returns {Element[]} - array of matching sub-elements
+   */
+  all(selector: string): Element[] {
+    return Array.from(getRoot(this).querySelectorAll(selector))
   }
 
 }
