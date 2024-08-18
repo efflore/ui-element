@@ -10,8 +10,8 @@ const autoEffect = <E extends Element, T>(
   target: E,
   prop: string,
   fallback: T,
-  onNothing: () => void,
-  onSomething: (value: T) => () => void
+  onNothing: (element: E) => () => void,
+  onSomething: (value: T) => (element: E) => () => void
 ): E => {
   const remover = onNothing
   const setter = (value: T) => onSomething(value)
@@ -31,15 +31,15 @@ const autoEffect = <E extends Element, T>(
 const setText = <E extends Element>(state: PropertyKey) =>
   function (target: E): E {
     const fallback = target.textContent || ''
-    const setter = (value: string) => () => {
-      Array.from(target.childNodes).filter(isComment).forEach(match => match.remove())
-      target.append(document.createTextNode(value))
+    const setter = (value: string) => (element: E) => () => {
+      Array.from(element.childNodes).filter(isComment).forEach(match => match.remove())
+      element.append(document.createTextNode(value))
     }
     return autoEffect<E, string>(
       this,
       state,
       target,
-      `text ${String(state)}`,
+      `t-${String(state)}`,
       fallback,
       setter(fallback),
       setter
@@ -48,12 +48,12 @@ const setText = <E extends Element>(state: PropertyKey) =>
 
 const setProperty = <E extends Element>(key: PropertyKey, state: PropertyKey = key) =>
   function (target: E): E {
-    const setter = (value: any) => () => target[key] = value
+    const setter = (value: any) => (element: E) => () => element[key] = value
     return autoEffect<E, any>(
       this,
       state,
       target,
-      `property ${String(key)}`,
+      `p-${String(key)}`,
       target[key],
       setter(null),
       setter
@@ -66,21 +66,21 @@ const setAttribute = <E extends Element>(name: string, state: PropertyKey = name
       this,
       state,
       target,
-      `attribute ${String(name)}`,
+      `a-${name}`,
       target.getAttribute(name),
-      () => target.removeAttribute(name),
-      (value: string) => () => target.setAttribute(name, value)
+      (element: E) => () => element.removeAttribute(name),
+      (value: string) => (element: E) => () => element.setAttribute(name, value)
     )
   }
 
 const toggleAttribute = <E extends Element>(name: string, state: PropertyKey = name) =>
   function (target: E): E {
-    const setter = (value: boolean) => () => target.toggleAttribute(name, value)
+    const setter = (value: boolean) => (element: E) => () => element.toggleAttribute(name, value)
     return autoEffect<E, boolean>(
       this,
       state,
       target,
-      `attribute ${String(name)}`,
+      `a-${name}`,
       target.hasAttribute(name),
       setter(false),
       setter
@@ -93,10 +93,10 @@ const toggleClass = <E extends Element>(token: string, state: PropertyKey = toke
       this,
       state,
       target,
-      `class ${String(token)}`,
+      `c-${token}`,
       target.classList.contains(token),
-      () => target.classList.remove(token),
-      (value: boolean) => () => target.classList.toggle(token, value)
+      (element: E) => () => element.classList.remove(token),
+      (value: boolean) => (element: E)  => () => element.classList.toggle(token, value)
     )
   }
 
@@ -106,10 +106,10 @@ const setStyle = <E extends (HTMLElement | SVGElement | MathMLElement)>(prop: st
       this,
       state,
       target,
-      `style ${String(prop)}`,
+      `s-${prop}`,
       target.style[prop],
-      () => target.style.removeProperty(prop),
-      (value: string) => () => target.style[prop] = String(value)
+      (element: E) => () => element.style.removeProperty(prop),
+      (value: string) => (element: E) => () => element.style[prop] = value
     )
   }
 

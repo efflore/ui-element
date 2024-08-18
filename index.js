@@ -75,7 +75,7 @@ const scheduler = () => {
         requestId = null;
         for (const [el, elEffect] of effectQueue) {
             for (const [prop, fn] of elEffect)
-                run(fn, ` Effect ${prop} on ${el?.localName || 'unknown'} failed`);
+                run(fn(el), ` Effect ${prop} on ${el?.localName || 'unknown'} failed`);
         }
         effectQueue.clear();
         for (const fn of cleanupQueue.values())
@@ -488,28 +488,28 @@ const autoEffect = (host, state, target, prop, fallback, onNothing, onSomething)
 /* === Exported Functions === */
 const setText = (state) => function (target) {
     const fallback = target.textContent || '';
-    const setter = (value) => () => {
-        Array.from(target.childNodes).filter(isComment).forEach(match => match.remove());
-        target.append(document.createTextNode(value));
+    const setter = (value) => (element) => () => {
+        Array.from(element.childNodes).filter(isComment).forEach(match => match.remove());
+        element.append(document.createTextNode(value));
     };
-    return autoEffect(this, state, target, `text ${String(state)}`, fallback, setter(fallback), setter);
+    return autoEffect(this, state, target, `t-${String(state)}`, fallback, setter(fallback), setter);
 };
 const setProperty = (key, state = key) => function (target) {
-    const setter = (value) => () => target[key] = value;
-    return autoEffect(this, state, target, `property ${String(key)}`, target[key], setter(null), setter);
+    const setter = (value) => (element) => () => element[key] = value;
+    return autoEffect(this, state, target, `p-${String(key)}`, target[key], setter(null), setter);
 };
 const setAttribute = (name, state = name) => function (target) {
-    return autoEffect(this, state, target, `attribute ${String(name)}`, target.getAttribute(name), () => target.removeAttribute(name), (value) => () => target.setAttribute(name, value));
+    return autoEffect(this, state, target, `a-${name}`, target.getAttribute(name), (element) => () => element.removeAttribute(name), (value) => (element) => () => element.setAttribute(name, value));
 };
 const toggleAttribute = (name, state = name) => function (target) {
-    const setter = (value) => () => target.toggleAttribute(name, value);
-    return autoEffect(this, state, target, `attribute ${String(name)}`, target.hasAttribute(name), setter(false), setter);
+    const setter = (value) => (element) => () => element.toggleAttribute(name, value);
+    return autoEffect(this, state, target, `a-${name}`, target.hasAttribute(name), setter(false), setter);
 };
 const toggleClass = (token, state = token) => function (target) {
-    return autoEffect(this, state, target, `class ${String(token)}`, target.classList.contains(token), () => target.classList.remove(token), (value) => () => target.classList.toggle(token, value));
+    return autoEffect(this, state, target, `c-${token}`, target.classList.contains(token), (element) => () => element.classList.remove(token), (value) => (element) => () => element.classList.toggle(token, value));
 };
 const setStyle = (prop, state = prop) => function (target) {
-    return autoEffect(this, state, target, `style ${String(prop)}`, target.style[prop], () => target.style.removeProperty(prop), (value) => () => target.style[prop] = String(value));
+    return autoEffect(this, state, target, `s-${prop}`, target.style[prop], (element) => () => element.style.removeProperty(prop), (value) => (element) => () => element.style[prop] = value);
 };
 
 export { UIElement, asBoolean, asInteger, asJSON, asNumber, asString, effect, log, maybe, on, pass, setAttribute, setProperty, setStyle, setText, toggleAttribute, toggleClass };

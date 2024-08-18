@@ -13,7 +13,7 @@ interface State<T> {
     set(value: T): void;
 }
 type Signal<T> = State<T> | Computed<T>;
-type DOMInstruction = (element: Element, prop: string, callback: () => void) => void;
+type DOMInstruction = (element: Element, prop: string, callback: (element: Element) => () => void) => void;
 type MaybeCleanup = void | (() => void);
 type EffectCallback = (enqueue: DOMInstruction) => MaybeCleanup;
 /**

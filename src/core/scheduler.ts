@@ -13,7 +13,7 @@ const scheduler = () => {
     requestId = requestAnimationFrame(flush)
   }
 
-  const enqueue = (element: Element, prop: string, fn: () => void) => {
+  const enqueue = (element: Element, prop: string, fn: (element: Element) => () => void) => {
     if (!effectQueue.has(element)) effectQueue.set(element, new Map())
     const elEffects = effectQueue.get(element)
     if (!elEffects.has(prop)) elEffects.set(prop, fn)
@@ -37,7 +37,7 @@ const scheduler = () => {
     requestId = null
     for (const [el, elEffect] of effectQueue) {
       for (const [prop, fn] of elEffect)
-        run(fn, ` Effect ${prop} on ${el?.localName || 'unknown'} failed`)
+        run(fn(el), ` Effect ${prop} on ${el?.localName || 'unknown'} failed`)
     }
     effectQueue.clear();
     for (const fn of cleanupQueue.values())

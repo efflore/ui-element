@@ -107,9 +107,8 @@
       connectedCallback() {
         this.set('heading', 'Hello from Internal State')
         effect(enqueue => {
-          const title = this.querySelector('h1')
           const value = this.get('heading')
-          enqueue(title, 'text heading', () => title.textContent = value)
+          enqueue(this.querySelector('h1'), 't heading', el => () => el.textContent = value)
         })
       }
     }
@@ -136,37 +135,38 @@
         effect(enqueue => {
           if (this.has('heading')) {
             const value = this.get('heading')
-            enqueue(heading, 'text heading', () => heading.textContent = value)
+            enqueue(heading, 't heading', el => () => el.textContent = value)
           }
         })
 
         effect(enqueue => {
           if (this.has('count')) {
             const value = this.get('count')
-            enqueue(badge, 'text count', () => badge.textContent = value)
+            enqueue(badge, 't count', el => () => el.textContent = value)
           }
         })
 
         effect(enqueue => {
           if (this.has('step')) {
             const step = this.get('step')
-            enqueue(input, 'attribute step', () => !Number.isNaN(step)
-              ? input.setAttribute('step', step)
-              : input.removeAttribute('step'))
+            const fn = Number.isFinite(step)
+              ? el => () => el.setAttribute('step', step)
+              : el => () => el.removeAttribute('step')
+            enqueue(input, 'a step', fn)
           }
         });
 
         effect(enqueue => {
           if (this.has('value')) {
             const value = this.get('value')
-            enqueue(input, 'attribute value', () => input.setAttribute('value', value))
+            enqueue(input, 'a value', el => () => el.setAttribute('value', value))
           }
         })
 
         effect(enqueue => {
           if (this.has('selected')) {
             const value = this.get('selected')
-            enqueue(heading, 'attribute selected', () => heading.classList.toggle('selected', value))
+            enqueue(heading, 'c selected', el => () => el.classList.toggle('selected', value))
           }
         })
       }
@@ -196,14 +196,14 @@
         effect(enqueue => {
           if (this.has('heading')) {
             const value = this.get('heading')
-            enqueue(title, 'text heading', () => title.textContent = value)
+            enqueue(title, 't heading', el => () => el.textContent = value)
           }
         })
 
         effect(enqueue => {
           if (this.has('text')) {
             const value = this.get('text')
-            enqueue(paragraph, 'text text', () => paragraph.textContent = value)
+            enqueue(paragraph, 't text', el => () => el.textContent = value)
           }
         })
       }
@@ -230,9 +230,9 @@
           const value = this.get('value')
 
           // no derived states, we derive directly in the effect
-          enqueue(valueEl, 'text value', () => valueEl.textContent = value)
-          enqueue(parityEl, 'text parity', () => parityEl.textContent = value % 2 ? 'odd' : 'even')
-          enqueue(doubleEl, 'text double', () => doubleEl.textContent = value * 2)
+          enqueue(valueEl, 't value', el => () => el.textContent = value)
+          enqueue(parityEl, 't parity', el => () => el.textContent = value % 2 ? 'odd' : 'even')
+          enqueue(doubleEl, 't double', el => () => el.textContent = value * 2)
         })
       }
     }
@@ -264,12 +264,12 @@
 
         effect(enqueue => {
           const value = this.get('greeting') || '';
-          enqueue(greetingEl, 'text greeting', () => greetingEl.textContent = value)
+          enqueue(greetingEl, 't greeting', el => () => el.textContent = value)
         })
 
         effect(enqueue => {
           const value = this.get('name') || defaultName
-          enqueue(nameEl, 'text name', () => nameEl.textContent = value)
+          enqueue(nameEl, 't name', el => () => el.textContent = value)
         })
       }
     }
@@ -408,7 +408,7 @@
             let result = 0;
             effect(enqueue => {
               voidComponent.get('bar')
-              enqueue(voidComponent, null, () => result++);
+              enqueue(voidComponent, null, () => () => result++);
             });
             for (let i = 1; i <= 10; i++) {
               voidComponent.set('bar', i);

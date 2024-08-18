@@ -63,7 +63,7 @@ const scheduler = () => {
         requestId = null;
         for (const [el, elEffect] of effectQueue) {
             for (const [prop, fn] of elEffect)
-                run(fn, ` Effect ${prop} on ${el?.localName || 'unknown'} failed`);
+                run(fn(el), ` Effect ${prop} on ${el?.localName || 'unknown'} failed`);
         }
         effectQueue.clear();
         for (const fn of cleanupQueue.values())

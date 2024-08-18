@@ -25,7 +25,7 @@ type Signal<T> = State<T> | Computed<T>
 type DOMInstruction = (
   element: Element,
   prop: string,
-  callback: () => void
+  callback: (element: Element) => () => void
 ) => void
 
 type MaybeCleanup = void | (() => void)
@@ -137,7 +137,7 @@ const effect = (fn: EffectCallback) => {
   const n = () => {
     const prev = activeEffect
     activeEffect = n
-    const cleanupFn = fn((element: Element, prop: string, callback: () => void): void => {
+    const cleanupFn = fn((element: Element, prop: string, callback: (element: Element) => () => void): void => {
       enqueue(element, prop, callback)
       if (!targets.has(element)) targets.add(element)
     })
