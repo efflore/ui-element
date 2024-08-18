@@ -1,5 +1,5 @@
-import UIElement, { type UIStateMap } from '../ui-element';
-declare const DEV_MODE = true;
+import { UIElement } from '../ui-element';
+import { DEV_MODE } from '../core/log';
 /**
  * Add debug capabilities to UIElement classes
  *
@@ -26,8 +26,8 @@ declare class DebugElement extends UIElement {
      *
      * @since 0.5.0
      * @param {string} name
-     * @param {string|undefined} old
-     * @param {string|undefined} value
+     * @param {string | undefined} old
+     * @param {string | undefined} value
      */
     attributeChangedCallback(name: string, old: string | undefined, value: string | undefined): void;
     /**
@@ -37,7 +37,7 @@ declare class DebugElement extends UIElement {
      * @param {PropertyKey} key - state to get
      * @returns {unknown} - current value of the state
      */
-    get(key: PropertyKey): unknown;
+    get<T>(key: PropertyKey): T;
     /**
      * Wrap set() to log signal writes to the console
      *
@@ -56,14 +56,12 @@ declare class DebugElement extends UIElement {
      */
     delete(key: PropertyKey): boolean;
     /**
-     * Wrap pass() to log passed signals to the console
+     * Recursively get all target elements of a given state
      *
      * @since 0.7.0
-     * @param {UIElement} element - UIElement to be passed to
-     * @param {UIStateMap} states - states to be passed to the element
-     * @param {CustomElementRegistry} [registry=customElements] - custom element registry
+     * @param {PropertyKey} key - state to be observed
      */
-    pass(element: UIElement, states: UIStateMap, registry?: CustomElementRegistry): Promise<void>;
+    targets(key: PropertyKey): Element[];
     /**
      * Add event listeners to UIElement and sub-elements to auto-highlight targets when hovering or focusing on elements with given attribute
      *
@@ -71,12 +69,5 @@ declare class DebugElement extends UIElement {
      * @param {string} [className=EFFECT_CLASS] - CSS class to be added to highlighted targets
      */
     highlight(className?: string): void;
-    /**
-     * Log messages in debug mode
-     *
-     * @since 0.5.0
-     * @param {string} msg - debug message to be logged
-     */
-    log(msg: string): void;
 }
-export { DEV_MODE, DebugElement as default };
+export { DEV_MODE, DebugElement };
