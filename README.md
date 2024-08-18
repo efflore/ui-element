@@ -217,7 +217,7 @@ MyAnimation.define('my-animation');
 If you use `effect()` with a callback function like `() => doMyEffectWork()`, it will do all the work synchronously. That might not be ideal for several reasons:
 
 - If effect work is expensive and takes more time than a single tick, not all DOM updates of the effect might happen concurrently.
-- If you `set()` a signal which is used in the effect, you risk producing an infite loop.
+- If you `set()` a signal that is used in the effect, you risk producing an infite loop.
 - `UIElement` doesn't know which DOM elements are targeted in the effect.
 
 That's why the effect can be broken up into three phases to have more control:
@@ -238,13 +238,15 @@ effect(enqueue => {
   const value = this.get('value')
 
   // schedule for DOM update phase
-  enqueue(description, () => (description.textContent = value))
-  enqueue(card, () => card.classList.add('highlight'))
+  enqueue(description, 'text description', el => () => (el.textContent = value))
+  enqueue(card, 'class highlight', el => () => el.classList.add('highlight'))
 
   // cleanup
   return () => setTimeout(() => card.classList.remove('highlight'), 200)
 })
 ```
+
+The second argument for `enqueue()` is an identifier for the DOM instruction. It serves as a key for deduplication within the same tick and as part of the error message if it fails. 
 
 ## Complementary Utilities
 
@@ -279,62 +281,6 @@ count.set(42) // sets value of count signal and calls effect
 ```
 
 [Source](./cause-effect.js)
-
-### Component and UI
-
-We embrace progressive enhancement with `UIElement`. You can choose the right abstraction level of the library for your project:
-
-1. **Minimal**: Cause & Effect – just the reactivity engine
-2. **Default**: UIElement & Effect – base class for custom elements with a map of reactive states, observed attribute parsing and context controller
-3. **Comfort**: Component & UI - boilerplate-reducing function components to create `UIElement` classes with UI wrapper for DOM elements and convenience methods for DOM updates
-
-The last option comes with a bit more library code (around 1.6 kB gzipped), but allows you to write significantly less JavaScript. It's still very small compared to other libraries or full-fledged frameworks.
-
-#### Component Usage
-
-```html
-<style>
-  my-counter {
-    /* ... */
-  }
-</style>
-<my-counter value="42">
-  <p>Count: <span>42</span></p>
-  <div>
-    <button class="decrement">–</button>
-    <button class="increment">+</button>
-  </div>
-</my-counter>
-<script type="module">
-  import { component, asInteger, on, setText } from './component';
-
-  component(
-    'my-counter',
-    {
-      attributeMap: { // static observedAttributes is derived from the keys of optional `attributeMap` object
-        value: v => asInteger
-      },
-      consumedContexts: [], // for static consumedContexts an array of keys can be provided optionally
-      providedContexts: [], // for static providedContexts an array of keys can be provided optionally
-    },
-    el => { // `el` is `this` of your custom element
-      el.first('.decrement').map(on('click', 'value', (_, v) => --v))
-      el.first('.increment').map(on('click', 'value', (_, v) => ++v))
-      el.first('span').map(setText('value'))
-    }
-  )
-</script>
-```
-
-Where has the JavaScript gone? – It almost disappeared. To explain the magic:
-
-1. Web Components observe `observedAttributes` and call the `attributeChangedCallback()` (keys of attribute map passed as second parameter)
-2. `UIElement` **auto-parses** the `'value'` attribute as an integer and creates a state signal with the same key
-3. `ui.first('span').text('value');` looks for the first `span` in the DOM sub-tree and **auto-creates** an effect for it
-4. `UIElement` **auto-tracks** the use of the `'value'` signal in the effect you did not even write
-5. The `on('click')` handlers will increment or decrement the `'value'` signal value on button clicks
-6. `UIElement` **auto-runs** the effect you did not even write again with a new `'value'` value
-7. The effect knows which element's `textContent` to **auto-update**
 
 ### Debug Element
 
