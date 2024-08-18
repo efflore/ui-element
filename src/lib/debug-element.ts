@@ -1,23 +1,34 @@
-import UIElement, { type UIStateMap, isString } from '../ui-element'
-import { isDefined } from './ui'
-
-/* === Types === */
-
-/* interface DebugElement extends UIElement {
-  highlight: (className?: string) => void
-  log(msg: string): void
-}; */
+import { isString, isDefined } from '../core/is-type'
+import type { Computed, Effect } from '../cause-effect'
+import { UIElement } from '../ui-element'
+import { log, DEV_MODE } from '../core/log'
 
 /* === Constants === */
 
-const DEV_MODE = true
 const DEBUG_STATE = 'debug'
 const SELECTOR_PREFIX = 'data-'
 const HOVER_SUFFIX = 'hover'
 const FOCUS_SUFFIX = 'focus'
 const EFFECT_CLASS = 'ui-effect'
 
-/* === Internal variables and functions to the module === */
+/* === Internal Functions === */
+
+/**
+ * Return selector string for the id of the element
+ * 
+ * @param {string} id 
+ * @returns {string} - id string for the element with '#' prefix
+ */
+const idString = (id: string): string => id ? `#${id}` : '';
+
+/**
+ * Return a selector string for classes of the element
+ * 
+ * @param {DOMTokenList} classList - DOMTokenList to convert to a string
+ * @returns {string} - class string for the DOMTokenList with '.' prefix if any
+ */
+const classString = (classList: DOMTokenList): string =>
+  classList.length ? `.${Array.from(classList).join('.')}` : ''
 
 /**
  * Return a HyperScript string representation of the Element instance
@@ -27,7 +38,7 @@ const EFFECT_CLASS = 'ui-effect'
  * @returns {string}
  */
 const elementName = (el: Element): string =>
-  `<${el.localName}${el.id && `#${el.id}`}${el.className && `.${el.className.replace(' ', '.')}`}>`
+  `<${el.localName}${idString(el.id)}${classString(el.classList)}>`
 
 /**
  * Return a string representation of a JavaScript variable
@@ -36,15 +47,13 @@ const elementName = (el: Element): string =>
  * @param {unknown} value 
  * @returns {string}
  */
-const valueString = (value: unknown): string => isString(value)
-  ? `"${value}"`
-  : typeof value === 'object'
-    ? JSON.stringify(value)
-    : isDefined(value)
-      ? value.toString()
-      : 'undefined'
+const valueString = (value: unknown): string =>
+  isString(value) ? `"${value}"`
+    : typeof value === 'object' ? JSON.stringify(value)
+      : isDefined(value) ? value.toString()
+        : 'undefined'
 
-/* === Exported class === */
+/* === Exported Class === */
 
 /**
  * Add debug capabilities to UIElement classes
@@ -60,23 +69,23 @@ class DebugElement extends UIElement {
    * Wrap connectedCallback to log to the console
    */
   connectedCallback() {
-    isString(this.getAttribute(DEBUG_STATE)) && this.set(DEBUG_STATE, true)
+    if (isString(this.getAttribute(DEBUG_STATE))) this.set(DEBUG_STATE, true)
     super.connectedCallback()
-    this.log(`Connected ${elementName(this)}`)
+    log(elementName(this), 'Connected')
   }
 
   /**
    * Wrap disconnectedCallback to log to the console
    */
   disconnectedCallback() {
-    this.log(`Disconnected ${elementName(this)}`)
+    log(elementName(this), 'Disconnected')
   }
 
   /**
    * Wrap adoptedCallback to log to the console
    */
   adoptedCallback() {
-    this.log(`Adopted ${elementName(this)}`)
+    log(elementName(this), 'Adopted')
   }
 
   /**
@@ -84,11 +93,11 @@ class DebugElement extends UIElement {
    * 
    * @since 0.5.0
    * @param {string} name
-   * @param {string|undefined} old
-   * @param {string|undefined} value
+   * @param {string | undefined} old
+   * @param {string | undefined} value
    */
   attributeChangedCallback(name: string, old: string | undefined, value: string | undefined) {
-    this.log(`Attribute "${name}" of ${elementName(this)} changed from ${valueString(old)} to ${valueString(value)}`)
+    log(`${valueString(old)} => ${valueString(value)}`, `Attribute "${name}" of ${elementName(this)} changed`)
     super.attributeChangedCallback(name, old, value)
   }
 
@@ -99,10 +108,8 @@ class DebugElement extends UIElement {
    * @param {PropertyKey} key - state to get
    * @returns {unknown} - current value of the state
    */
-  get(key: PropertyKey): unknown {
-    const value = super.get(key)
-    this.log(`Get current value of state ${valueString(key)} in ${elementName(this)} (value: ${valueString(value)}) and track its use in effect`)
-    return value
+  get<T>(key: PropertyKey): T {
+    return log(super.get(key), `Get current value of state ${valueString(key)} in ${elementName(this)}`)
   }
 
   /**
@@ -113,12 +120,8 @@ class DebugElement extends UIElement {
    * @param {unknown} value - value to be set
    * @param {boolean} [update=true] - whether to update the state
    */
-  set(
-    key: PropertyKey,
-    value: unknown,
-    update: boolean = true
-  ): void {
-    this.log(`Set ${update ? '' : 'default '}value of state ${valueString(key)} in ${elementName(this)} to ${valueString(value)} and trigger dependent effects`)
+  set(key: PropertyKey, value: unknown, update: boolean = true): void {
+    log(value, `Set ${update ? '' : 'default '}value of state ${valueString(key)} in ${elementName(this)} to`)
     super.set(key, value, update)
   }
 
@@ -130,21 +133,27 @@ class DebugElement extends UIElement {
    * @returns {boolean} - whether the state was deleted
    */
   delete(key: PropertyKey): boolean {
-    this.log(`Delete state ${valueString(key)} from ${elementName(this)}`)
-    return super.delete(key)
+    return log(super.delete(key), `Delete state ${valueString(key)} from ${elementName(this)}`)
   }
 
   /**
-   * Wrap pass() to log passed signals to the console
+   * Recursively get all target elements of a given state
    * 
    * @since 0.7.0
-   * @param {UIElement} element - UIElement to be passed to
-   * @param {UIStateMap} states - states to be passed to the element
-   * @param {CustomElementRegistry} [registry=customElements] - custom element registry
+   * @param {PropertyKey} key - state to be observed
    */
-  async pass(element: UIElement, states: UIStateMap, registry: CustomElementRegistry = customElements) {
-    this.log(`Pass state(s) ${valueString(Object.keys(states))} to ${elementName(element as HTMLElement)} from ${elementName(this)}`)
-    super.pass(element, states, registry)
+  targets(key: PropertyKey): Element[] {
+    let targets = []
+    const state = this.signal(key)
+    if (!state || !state.effects) return targets
+    const recurse = (effects: Set<Effect | Computed<unknown>>) => {
+      for (const effect of effects) {
+        if ('effects' in effect) recurse(effect.effects)
+        else targets = [...targets, ...Array.from(effect.targets)]
+      }
+    }
+    recurse(state.effects)
+    return targets
   }
 
   /**
@@ -153,39 +162,26 @@ class DebugElement extends UIElement {
    * @since 0.7.0
    * @param {string} [className=EFFECT_CLASS] - CSS class to be added to highlighted targets
    */
-  highlight(className: string = EFFECT_CLASS) {
+  highlight(className: string = EFFECT_CLASS): void {
     [HOVER_SUFFIX, FOCUS_SUFFIX].forEach(suffix => {
-      const [onOn, onOff] = suffix === HOVER_SUFFIX
-        ? ['mouseenter','mouseleave']
-        : ['focus', 'blur']
+      const [onOn, onOff] = suffix === HOVER_SUFFIX ? ['mouseenter','mouseleave'] : ['focus', 'blur']
       const attr = `${SELECTOR_PREFIX}-${this.localName}-${suffix}`
       const apply = (node: Element) => {
         const key = this.getAttribute(attr).trim()
         const on = (type: string, force: boolean) =>
           node.addEventListener(type, () => {
-            for (const target of this.targets(key))
-              target.classList.toggle(className, force)
+            for (const target of this.targets(key)) target.classList.toggle(className, force)
           })
         on(onOn, true)
         on(onOff, false)
         node.removeAttribute(attr)
       }
 
-      this.hasAttribute(attr) && apply(this)
-      for (const node of (this.shadowRoot || this).querySelectorAll(`[${attr}]`))
-        apply(node)
+      if (this.hasAttribute(attr)) apply(this)
+      for (const node of (this.shadowRoot || this).querySelectorAll(`[${attr}]`)) apply(node)
     })
   }
 
-  /**
-   * Log messages in debug mode
-   * 
-   * @since 0.5.0
-   * @param {string} msg - debug message to be logged
-   */
-  log(msg: string): void {
-    this.has(DEBUG_STATE) && console.debug(msg)
-  }
 }
 
-export { DEV_MODE, DebugElement as default }
+export { DEV_MODE, DebugElement }

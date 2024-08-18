@@ -1,11 +1,100 @@
 /* === Types === */
+/* === Exported Functions === */
+const isOfType = (type) => (value) => typeof value === type;
+const isObject = isOfType('object');
+// eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
+const isFunction = isOfType('function');
+const isNullish = (value) => value == null;
+const isDefined = (value) => value != null;
+const isDefinedObject = (value) => isDefined(value) && (isObject(value) || isFunction(value));
+// eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
+const hasMethod = (obj, name) => isFunction(obj[name]);
+const isComment = (node) => node.nodeType !== Node.COMMENT_NODE;
+
+/* === Exported Function === */
+/**
+ * Create an array for a given value to gracefully handle nullable values
+ *
+ * @since 0.8.0
+ * @param {unknown} value - value to wrap in an array
+ * @returns {T[]} - array of either zero or one element, depending on whether the input is nullish
+ */
+const maybe = (value) => isNullish(value) ? [] : [value];
+
+/* === Types === */
+/* type Log<A> = {
+  (): A
+  map: <B>(f: (a: A) => B, mapMsg?: string, mapLevel?: LogLevel) => Log<B>
+  chain: <B>(f: (a: A) => Log<B>) => Log<B>
+} */
+/* === Constants === */
+const LOG_DEBUG = 'debug';
+const LOG_WARN = 'warn';
+const LOG_ERROR = 'error';
+/* === Internal Functions === */
+const shouldLog = (level) => (level === LOG_WARN) || (level === LOG_ERROR);
+/* === Default Export */
+const log = (value, msg, level = LOG_DEBUG) => {
+    if (shouldLog(level))
+        console[level](msg, value);
+    return value;
+};
+
+/* === Exported Function === */
+const scheduler = () => {
+    const effectQueue = new Map();
+    const cleanupQueue = new Map();
+    let requestId;
+    const requestTick = () => {
+        if (requestId)
+            cancelAnimationFrame(requestId);
+        requestId = requestAnimationFrame(flush);
+    };
+    const enqueue = (element, prop, fn) => {
+        if (!effectQueue.has(element))
+            effectQueue.set(element, new Map());
+        const elEffects = effectQueue.get(element);
+        if (!elEffects.has(prop))
+            elEffects.set(prop, fn);
+        requestTick();
+    };
+    const cleanup = (effect, fn) => {
+        if (!cleanupQueue.has(effect))
+            cleanupQueue.set(effect, fn);
+        requestTick();
+    };
+    const run = (fn, msg) => {
+        try {
+            fn();
+        }
+        catch (reason) {
+            log(reason, msg, LOG_ERROR);
+        }
+    };
+    const flush = () => {
+        requestId = null;
+        for (const [el, elEffect] of effectQueue) {
+            for (const [prop, fn] of elEffect)
+                run(fn(el), ` Effect ${prop} on ${el?.localName || 'unknown'} failed`);
+        }
+        effectQueue.clear();
+        for (const fn of cleanupQueue.values())
+            run(fn, 'Cleanup failed');
+        cleanupQueue.clear();
+    };
+    queueMicrotask(flush); // initial flush when the call stack is empty
+    return { enqueue, cleanup };
+};
+
 /* === Internal === */
 // hold the currently active effect
-let active;
+let activeEffect;
+// hold schuduler instance
+const { enqueue, cleanup } = scheduler();
 /**
  * Run all effects in the provided set
  *
- * @param {Set<UIEffects>} effects
+ * @param {Set<Effect | Computed<unknown>>} effects
  */
 const autorun = (effects) => {
     for (const effect of effects)
@@ -13,66 +102,69 @@ const autorun = (effects) => {
 };
 /* === Exported functions === */
 /**
- * Check if a given variable is a function
- *
- * @param {unknown} fn - variable to check if it is a function
- * @returns {boolean} true if supplied parameter is a function
- */
-const isFunction = (fn) => typeof fn === 'function';
-/**
  * Check if a given variable is a reactive state
  *
  * @param {unknown} value - variable to check if it is a reactive state
  * @returns {boolean} true if supplied parameter is a reactive state
  */
-const isState = (value) => isFunction(value) && isFunction(value.set);
+const isState = (value) => isDefinedObject(value) && hasMethod(value, 'set');
+/**
+ * Check if a given variable is a reactive computed state
+ *
+ * @param {unknown} value - variable to check if it is a reactive computed state
+ */
+const isComputed = (value) => isDefinedObject(value) && hasMethod(value, 'run') && 'effects' in value;
+/**
+ * Check if a given variable is a reactive signal (state or computed state)
+ *
+ * @param {unknown} value - variable to check if it is a reactive signal
+ */
+const isSignal = (value) => isState(value) || isComputed(value);
 /**
  * Define a reactive state
  *
  * @since 0.1.0
  * @param {any} value - initial value of the state; may be a function for derived state
- * @returns {UIState<T>} getter function for the current value with a `set` method to update the value
+ * @returns {State<T>} getter function for the current value with a `set` method to update the value
  */
 const cause = (value) => {
-    const state = () => {
-        active && state.effects.add(active);
+    const s = () => {
+        if (activeEffect)
+            s.effects.add(activeEffect);
         return value;
     };
-    state.effects = new Set(); // set of listeners
-    state.set = (updater) => {
+    s.effects = new Set(); // set of listeners
+    s.set = (updater) => {
         const old = value;
-        value = isFunction(updater) && !isState(updater)
-            ? updater(old)
-            : updater;
-        !Object.is(value, old) && autorun(state.effects);
+        value = isFunction(updater) && !isSignal(updater) ? updater(value) : updater;
+        if (!Object.is(value, old))
+            autorun(s.effects);
     };
-    return state;
+    return s;
 };
 /**
  * Define what happens when a reactive state changes
  *
  * @since 0.1.0
- * @param {UIEffectCallback} fn - callback function to be executed when a state changes
+ * @param {EffectCallback} fn - callback function to be executed when a state changes
  */
 const effect = (fn) => {
-    const targets = new Map();
-    const next = () => {
-        const prev = active;
-        active = next;
-        const cleanup = fn((element, domFn) => {
-            !targets.has(element) && targets.set(element, new Set());
-            targets.get(element)?.add(domFn);
+    const targets = new Set();
+    const n = () => {
+        const prev = activeEffect;
+        activeEffect = n;
+        const cleanupFn = fn((element, prop, callback) => {
+            enqueue(element, prop, callback);
+            if (!targets.has(element))
+                targets.add(element);
         });
-        for (const domFns of targets.values()) {
-            for (const domFn of domFns)
-                domFn();
-        }
-        active = prev;
-        isFunction(cleanup) && queueMicrotask(cleanup);
+        if (isFunction(cleanupFn))
+            cleanup(n, cleanupFn);
+        activeEffect = prev;
     };
-    next.run = () => next();
-    next.targets = targets;
-    next();
+    n.run = () => n();
+    n.targets = targets;
+    n();
 };
 
 /** @see https://github.com/webcomponents-cg/community-protocols/blob/main/proposals/context.md */
@@ -110,6 +202,23 @@ class ContextRequestEvent extends Event {
     }
 }
 
+/* === Internal Functions === */
+/**
+ * Unwrap any value wrapped in a function
+ *
+ * @since 0.8.0
+ * @param {any} value - value to unwrap if it's a function
+ * @returns {any} - unwrapped value, but might still be in a maybe container
+ */
+const unwrap = (value) => isFunction(value) ? unwrap(value()) : value;
+/**
+ * Get root for element queries within the custom element
+ *
+ * @since 0.8.0
+ * @param {UIElement} element
+ * @returns {Element | ShadowRoot}
+ */
+const getRoot = (element) => element.shadowRoot || element;
 /* === Default export === */
 /**
  * Base class for reactive custom elements
@@ -119,6 +228,8 @@ class ContextRequestEvent extends Event {
  * @type {UIElement}
  */
 class UIElement extends HTMLElement {
+    static registry = customElements;
+    static attributeMap = {};
     static consumedContexts;
     static providedContexts;
     /**
@@ -126,37 +237,36 @@ class UIElement extends HTMLElement {
      *
      * @since 0.5.0
      * @param {string} tag - name of the custom element
-     * @param {CustomElementRegistry} [registry=customElements] - custom element registry to be used; defaults to `customElements`
      */
-    static define(tag, registry = customElements) {
+    static define(tag) {
         try {
-            registry.get(tag) || registry.define(tag, this);
+            if (!this.registry.get(tag))
+                this.registry.define(tag, this);
         }
-        catch (err) {
-            console.error(err);
+        catch (error) {
+            log(tag, error.message, LOG_ERROR);
         }
     }
-    /**
-     * @since 0.5.0
-     * @property
-     * @type {UIAttributeMap}
-     */
-    attributeMap = {};
     // @private hold states – use `has()`, `get()`, `set()` and `delete()` to access and modify
     #states = new Map();
+    /**
+     * @since 0.8.0
+     * @property {HTMLElement[]} self - UI object for this element
+     */
+    self = [this];
     /**
      * Native callback function when an observed attribute of the custom element changes
      *
      * @since 0.1.0
      * @param {string} name - name of the modified attribute
-     * @param {string|undefined} old - old value of the modified attribute
-     * @param {string|undefined} value - new value of the modified attribute
+     * @param {string | undefined} old - old value of the modified attribute
+     * @param {string | undefined} value - new value of the modified attribute
      */
     attributeChangedCallback(name, old, value) {
         if (value === old)
             return;
-        const parser = this.attributeMap[name];
-        this.set(name, isFunction(parser) ? parser(value, this, old) : value);
+        const parser = this.constructor.attributeMap[name];
+        this.set(name, isFunction(parser) ? parser(maybe(value), this, old)[0] : value);
     }
     connectedCallback() {
         const proto = this.constructor;
@@ -180,6 +290,7 @@ class UIElement extends HTMLElement {
             callback(this.#states.get(String(context)));
         });
     }
+    disconnectedCallback() { }
     /**
      * Check whether a state is set
      *
@@ -198,7 +309,6 @@ class UIElement extends HTMLElement {
      * @returns {T | undefined} current value of state; undefined if state does not exist
      */
     get(key) {
-        const unwrap = (value) => isFunction(value) ? unwrap(value()) : value;
         return unwrap(this.#states.get(key));
     }
     /**
@@ -206,16 +316,17 @@ class UIElement extends HTMLElement {
      *
      * @since 0.2.0
      * @param {PropertyKey} key - state to set value to
-     * @param {T | ((old: T | undefined) => T) | UIState<T>} value - initial or new value; may be a function (gets old value as parameter) to be evaluated when value is retrieved
-     * @param {boolean} [update=true] - if `true` (default), the state is updated; if `false`, just return existing value
+     * @param {T | ((old: T | undefined) => T) | Signal<T>} value - initial or new value; may be a function (gets old value as parameter) to be evaluated when value is retrieved
+     * @param {boolean} [update=true] - if `true` (default), the state is updated; if `false`, do nothing if state already exists
      */
     set(key, value, update = true) {
-        if (this.#states.has(key)) {
-            const state = this.#states.get(key);
-            update && isState(state) && state.set(value);
+        if (!this.#states.has(key)) {
+            this.#states.set(key, isSignal(value) ? value : cause(value));
         }
-        else {
-            this.#states.set(key, isState(value) ? value : cause(value));
+        else if (update) {
+            const state = this.#states.get(key);
+            if (isState(state))
+                state.set(value);
         }
     }
     /**
@@ -229,38 +340,176 @@ class UIElement extends HTMLElement {
         return this.#states.delete(key);
     }
     /**
-     * Passes states from the current UIElement to another UIElement
+     * Return the signal for a state
      *
-     * @since 0.5.0
-     * @param {UIElement} element - child element to pass the states to
-     * @param {UIStateMap} states - object of states to be passed; target state keys as keys, source state keys or function as values
-     * @param {CustomElementRegistry} [registry=customElements] - custom element registry to be used; defaults to `customElements`
+     * @since 0.8.0
+     * @param {PropertyKey} key - state to get signal for
+     * @returns {Signal<T> | undefined} signal for the given state; undefined if
      */
-    async pass(element, states, registry = customElements) {
-        await registry.whenDefined(element.localName);
-        for (const [key, source] of Object.entries(states))
-            element.set(key, cause(isFunction(source) ? source : this.#states.get(source)));
+    signal(key) {
+        return this.#states.get(key);
     }
     /**
-     * Return a Set of elements that have effects dependent on the given state
+     * Get array of first sub-element matching a given selector within the custom element
      *
-     * @since 0.7.0
-     * @param {PropertyKey} key - state to get targets for
-     * @returns {Set<Element>} set of elements that have effects dependent on the given state
+     * @since 0.8.0
+     * @param {string} selector - selector to match sub-element
+     * @returns {Element[]} - array of zero or one matching sub-element
      */
-    targets(key) {
-        const targets = new Set();
-        const state = this.#states.get(key);
-        if (!state || !state.effects)
-            return targets;
-        for (const effect of state.effects) {
-            const t = effect.targets?.keys();
-            if (t)
-                for (const target of t)
-                    targets.add(target);
-        }
-        return targets;
+    first(selector) {
+        return maybe(getRoot(this).querySelector(selector));
+    }
+    /**
+     * Get array of all sub-elements matching a given selector within the custom element
+     *
+     * @since 0.8.0
+     * @param {string} selector - selector to match sub-elements
+     * @returns {Element[]} - array of matching sub-elements
+     */
+    all(selector) {
+        return Array.from(getRoot(this).querySelectorAll(selector));
     }
 }
 
-export { UIElement as default, effect };
+/* === Exported Function === */
+/**
+ * Pass states from one UIElement to another
+ *
+ * @since 0.8.0
+ * @param stateMap - map of states to be passed from `host` to `target`
+ * @returns - partially applied function that can be used to pass states from `host` to `target`
+ */
+const pass = (host, stateMap) => 
+/**
+ * Partially applied function that connects to params of UI map function
+ *
+ * @param ui - source UIElement to pass states from
+ * @returns - Promise that resolves to UI object of the target UIElement, when it is defined and got passed states
+ */
+async function (target) {
+    await host.constructor.registry.whenDefined(target.localName);
+    for (const [key, source] of Object.entries(stateMap))
+        target.set(key, isSignal(source) ? source
+            : isFunction(source) ? cause(source)
+                : host.signal(source));
+    return target;
+};
+
+/* === Exported Function === */
+/**
+ * Add event listener to a host element and update a state when the event occurs
+ *
+ * @since 0.8.0
+ * @param {string} event - event name to listen to
+ * @param {PropertyKey} state - state key to update when the event occurs
+ * @param {(e: Event, v: T) => T | undefined} setter - function to set the state when the event occurs; return a nullish value to cancel the update
+ * @returns - returns a function to remove the event listener when no longer needed
+ */
+const on = (event, state, setter) => 
+/**
+ * Partially applied function to connect to params of UI map function
+ *
+ * @param {E} target - target element to listen to events
+ * @returns - returns ui object of the target
+ */
+function (target) {
+    const handler = (e) => this.set(state, (v) => setter(e, v) ?? v); // if the setter returns nullish, we return the old value
+    target.addEventListener(event, handler);
+    return target;
+};
+
+/* === Exported functions === */
+/**
+ * Parse a boolean attribute as an actual boolean value
+ *
+ * @since 0.7.0
+ * @param {string[]} value - maybe string value or nothing
+ * @returns {boolean[]}
+ */
+const asBoolean = (value) => [isDefined(value[0])];
+/**
+ * Parse an attribute as a number forced to integer
+ *
+ * @since 0.7.0
+ * @param {string[]} value - maybe string value or nothing
+ * @returns {number[]}
+ */
+const asInteger = (value) => value.map(v => parseInt(v, 10)).filter(Number.isFinite);
+/**
+ * Parse an attribute as a number
+ *
+ * @since 0.7.0
+ * @param {string[]} value - maybe string value or nothing
+ * @returns {number[]}
+ */
+const asNumber = (value) => value.map(parseFloat).filter(Number.isFinite);
+/**
+ * Parse an attribute as a string
+ *
+ * @since 0.7.0
+ * @param {string[]} value - maybe string value or nothing
+ * @returns {string[]}
+ */
+const asString = (value) => value;
+/**
+ * Parse an attribute as a JSON serialized object
+ *
+ * @since 0.7.2
+ * @param {string[]} value - maybe string value or nothing
+ * @returns {unknown[]}
+ */
+const asJSON = (value) => {
+    let result = [];
+    try {
+        result = value.map(v => JSON.parse(v));
+    }
+    catch (error) {
+        log(error, 'Failed to parse JSON', LOG_ERROR);
+    }
+    return result;
+};
+
+/* === Internal Functions === */
+const autoEffect = (host, state, target, prop, fallback, onNothing, onSomething) => {
+    const remover = onNothing;
+    const setter = (value) => onSomething(value);
+    host.set(state, fallback, false);
+    effect((enqueue) => {
+        if (host.has(state)) {
+            const value = host.get(state);
+            if (isNullish(value))
+                enqueue(target, prop, remover);
+            else
+                enqueue(target, prop, setter(value));
+        }
+    });
+    return target;
+};
+/* === Exported Functions === */
+const setText = (state) => function (target) {
+    const fallback = target.textContent || '';
+    const setter = (value) => (element) => () => {
+        Array.from(element.childNodes).filter(isComment).forEach(match => match.remove());
+        element.append(document.createTextNode(value));
+    };
+    return autoEffect(this, state, target, `t-${String(state)}`, fallback, setter(fallback), setter);
+};
+const setProperty = (key, state = key) => function (target) {
+    const setter = (value) => (element) => () => element[key] = value;
+    return autoEffect(this, state, target, `p-${String(key)}`, target[key], setter(null), setter);
+};
+const setAttribute = (name, state = name) => function (target) {
+    return autoEffect(this, state, target, `a-${name}`, target.getAttribute(name), (element) => () => element.removeAttribute(name), (value) => (element) => () => element.setAttribute(name, value));
+};
+const toggleAttribute = (name, state = name) => function (target) {
+    const setter = (value) => (element) => () => element.toggleAttribute(name, value);
+    return autoEffect(this, state, target, `a-${name}`, target.hasAttribute(name), setter(false), setter);
+};
+const toggleClass = (token, state = token) => function (target) {
+    return autoEffect(this, state, target, `c-${token}`, target.classList.contains(token), (element) => () => element.classList.remove(token), (value) => (element) => () => element.classList.toggle(token, value));
+};
+const setStyle = (prop, state = prop) => function (target) {
+    return autoEffect(this, state, target, `s-${prop}`, target.style[prop], (element) => () => element.style.removeProperty(prop), (value) => (element) => () => element.style[prop] = value);
+};
+
+export { UIElement, asBoolean, asInteger, asJSON, asNumber, asString, effect, log, maybe, on, pass, setAttribute, setProperty, setStyle, setText, toggleAttribute, toggleClass };

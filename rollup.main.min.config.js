@@ -1,4 +1,5 @@
 import typescript from '@rollup/plugin-typescript';
+import terser from '@rollup/plugin-terser';
 import replace from '@rollup/plugin-replace';
 import dotenv from 'dotenv';
 
@@ -9,11 +10,13 @@ export default {
   output: {
     dir: './',
     format: 'esm',
-    entryFileNames: '[name].js',
+    entryFileNames: '[name].min.js',
     chunkFileNames: 'dist/chunks/[name]-[hash].js',
+    inlineDynamicImports: true
   },
   plugins: [
     typescript(),
+    terser(),
     replace({
       preventAssignment: true,
       'process.env.DEV_MODE': JSON.stringify(env.DEV_MODE),

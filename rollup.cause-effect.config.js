@@ -5,12 +5,13 @@ import dotenv from 'dotenv';
 const env = dotenv.config({ path: `.env.${process.env.NODE_ENV}` }).parsed;
 
 export default {
-  input: 'index.ts',
+  input: 'src/cause-effect.ts',
   output: {
     dir: './',
     format: 'esm',
     entryFileNames: '[name].js',
     chunkFileNames: 'dist/chunks/[name]-[hash].js',
+    inlineDynamicImports: true
   },
   plugins: [
     typescript(),
