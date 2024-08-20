@@ -1,8 +1,13 @@
 import { isFunction } from './core/is-type'
 import { maybe } from './core/maybe'
-import { type Signal, isState, isSignal, cause } from './cause-effect'
+import { type UI, ui, first, all } from './core/ui'
+import { type Signal, isState, isSignal, cause, effect } from './cause-effect'
 import { type UnknownContext, CONTEXT_REQUEST, ContextRequestEvent } from './core/context-request'
 import { log, LOG_ERROR } from './core/log'
+import { type StateMap, pass } from './lib/pass'
+import { on } from './lib/event'
+import { asBoolean, asInteger, asJSON, asNumber, asString } from './lib/parse-attribute'
+import { setText, setProperty, setAttribute, toggleAttribute, toggleClass, setStyle } from './lib/auto-effects'
 
 /* === Types === */
 
@@ -21,16 +26,6 @@ type AttributeMap = Record<string, AttributeParser>
  */
 const unwrap = (value: any): any =>
   isFunction(value) ? unwrap(value()) : value
-
-/**
- * Get root for element queries within the custom element
- * 
- * @since 0.8.0
- * @param {UIElement} element
- * @returns {Element | ShadowRoot}
- */
-const getRoot = (element: UIElement): Element | ShadowRoot =>
-  element.shadowRoot || element
 
 /* === Default export === */
 
@@ -65,10 +60,10 @@ class UIElement extends HTMLElement {
   #states = new Map<PropertyKey, Signal<any>>()
 
   /**
-   * @since 0.8.0
-   * @property {HTMLElement[]} self - UI object for this element
+   * @since 0.8.1
+   * @property {UI<UIElement>} self - UI object for this element
    */
-  self = [this]
+  self: UI<UIElement> = ui(this, this)
 
   /**
    * Native callback function when an observed attribute of the custom element changes
@@ -167,34 +162,32 @@ class UIElement extends HTMLElement {
    * @returns {Signal<T> | undefined} signal for the given state; undefined if
    */
   signal<T>(key: PropertyKey): Signal<T> | undefined {
-    return this.#states.get(key) as Signal<T> | undefined
+    return this.#states.get(key)
   }
 
   /**
    * Get array of first sub-element matching a given selector within the custom element
    * 
-   * @since 0.8.0
+   * @since 0.8.1
    * @param {string} selector - selector to match sub-element
-   * @returns {Element[]} - array of zero or one matching sub-element
+   * @returns {UI<Element>[]} - array of zero or one matching sub-element
    */
-  first(selector: string): Element[] {
-    return maybe(getRoot(this).querySelector(selector))
-  }
+  first: (selector: string) => UI<Element>[] = first(this)
 
   /**
    * Get array of all sub-elements matching a given selector within the custom element
    * 
-   * @since 0.8.0
+   * @since 0.8.1
    * @param {string} selector - selector to match sub-elements
-   * @returns {Element[]} - array of matching sub-elements
+   * @returns {UI<Element>[]} - array of matching sub-elements
    */
-  all(selector: string): Element[] {
-    return Array.from(getRoot(this).querySelectorAll(selector))
-  }
+  all: (selector: string) => UI<Element>[] = all(this)
 
 }
 
 export {
-  type AttributeMap,
-  UIElement
+  type AttributeMap, type StateMap,
+  UIElement, effect, maybe, pass, on, log,
+  asBoolean, asInteger, asNumber, asString, asJSON,
+  setText, setProperty, setAttribute, toggleAttribute, toggleClass, setStyle
 }

@@ -1,3 +1,5 @@
+import type { UI } from '../core/ui'
+
 /* === Exported Function === */
 
 /**
@@ -14,13 +16,13 @@ const on = <E extends Element, T>(event: string, state: PropertyKey, setter: (e:
   /**
    * Partially applied function to connect to params of UI map function
    * 
-   * @param {E} target - target element to listen to events
+   * @param {UI<E>} target - target element to listen to events
    * @returns - returns ui object of the target
    */
-  function (target: E): E {
-    const handler = (e: Event) => this.set(state, (v: T) => setter(e, v) ?? v) // if the setter returns nullish, we return the old value
+  ({ host, target }: UI<E>): UI<E> => {
+    const handler = (e: Event) => host.set(state, (v: T) => setter(e, v) ?? v) // if the setter returns nullish, we return the old value
     target.addEventListener(event, handler)
-    return target
+    return { host, target }
   }
 
 export { on }

@@ -14,7 +14,7 @@ Version 0.8.0
 
 To bind events on, pass states to, and execute effects on elements, UIElement offers a chainable API on `this.self`, `this.first(selector)` or `this.all(selector)` with a `map()` method - just like arrays.
 
-For example, `this.self.map(on('click', 'clicked', () => true))` binds an event handler for `'click'` on the custom element itself, setting its `'clicked'` state to `true`. With `this.all('sub-component').map(pass(this, { color: 'color' }))` you pass the `'color'` state on `this` to every instance of `<sub-component>` in the DOM subtree.
+For example, `this.self.map(on('click', 'clicked', () => true))` binds an event handler for `'click'` on the custom element itself, setting its `'clicked'` state to `true`. With `this.all('sub-component').map(pass({ color: 'color' }))` you pass the `'color'` state on `this` to every instance of `<sub-component>` in the DOM subtree.
 
 There are 6 pre-defined auto-effects that can be applied on elements with `this.[self|first(selector)|all(selector)].map()`:
 
