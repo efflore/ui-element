@@ -3,17 +3,17 @@ import { effect } from './src/cause-effect'
 import { maybe } from './src/core/maybe'
 import { log } from './src/core/log'
 import { pass } from './src/lib/pass'
-import { on } from './src/lib/event'
+import { on, off, dispatch } from './src/lib/event'
 import { asBoolean, asInteger, asJSON, asNumber, asString } from './src/lib/parse-attribute'
 import { setAttribute, setProperty, setStyle, setText, toggleAttribute, toggleClass } from './src/lib/auto-effects'
 
 /**
  * @name UIElement
- * @version 0.8.0
+ * @version 0.8.1
  */
 
 export {
-  UIElement, effect, maybe, pass, on, log,
+  UIElement, effect, maybe, log, pass, on, off, dispatch,
   asBoolean, asInteger, asNumber, asString, asJSON,
   setText, setProperty, setAttribute, toggleAttribute, toggleClass, setStyle
 }

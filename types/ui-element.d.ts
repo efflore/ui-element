@@ -4,7 +4,7 @@ import { type Signal, effect } from './cause-effect';
 import { type UnknownContext } from './core/context-request';
 import { log } from './core/log';
 import { type StateMap, pass } from './lib/pass';
-import { on } from './lib/event';
+import { on, off, dispatch } from './lib/event';
 import { asBoolean, asInteger, asJSON, asNumber, asString } from './lib/parse-attribute';
 import { setText, setProperty, setAttribute, toggleAttribute, toggleClass, setStyle } from './lib/auto-effects';
 type AttributeParser = (<T>(value: string[], element: UIElement, old: string | undefined) => T[]);
@@ -103,4 +103,4 @@ declare class UIElement extends HTMLElement {
      */
     all: (selector: string) => UI<Element>[];
 }
-export { type AttributeMap, type StateMap, UIElement, effect, maybe, pass, on, log, asBoolean, asInteger, asNumber, asString, asJSON, setText, setProperty, setAttribute, toggleAttribute, toggleClass, setStyle };
+export { type AttributeMap, type StateMap, UIElement, effect, maybe, log, pass, on, off, dispatch, asBoolean, asInteger, asNumber, asString, asJSON, setText, setProperty, setAttribute, toggleAttribute, toggleClass, setStyle };

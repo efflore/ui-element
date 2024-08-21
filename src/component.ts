@@ -6,7 +6,7 @@ import { effect } from './cause-effect'
 import { type AttributeMap, UIElement } from './ui-element'
 import { asBoolean, asInteger, asNumber, asString, asJSON } from './lib/parse-attribute'
 import { pass } from './lib/pass.js'
-import { on } from './lib/event.js'
+import { on, off, dispatch } from './lib/event.js'
 import { setText, setProperty, setAttribute, toggleAttribute, toggleClass, setStyle } from './lib/auto-effects.js'
 
 /* === Types === */
@@ -61,7 +61,7 @@ const component = (
 
 export {
   type ComponentProps,
-  UIElement, effect, component, maybe, pass, on, log,
+  UIElement, effect, component, maybe, log, pass, on, off, dispatch,
   asBoolean, asInteger, asNumber, asString, asJSON,
   setText, setProperty, setAttribute, toggleAttribute, toggleClass, setStyle
 }

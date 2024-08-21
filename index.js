@@ -275,26 +275,63 @@ async ({ host, target }) => {
     return { host, target };
 };
 
-/* === Exported Function === */
 /**
- * Add event listener to a host element and update a state when the event occurs
+ * Add event listener to a target element
  *
- * @since 0.8.0
+ * @since 0.8.1
  * @param {string} event - event name to listen to
- * @param {PropertyKey} state - state key to update when the event occurs
- * @param {(e: Event, v: T) => T | undefined} setter - function to set the state when the event occurs; return a nullish value to cancel the update
- * @returns - returns a function to remove the event listener when no longer needed
+ * @param {EventListener} handler - event handler to add
  */
-const on = (event, state, setter) => 
+const on = (event, handler) => 
 /**
  * Partially applied function to connect to params of UI map function
  *
- * @param {UI<E>} target - target element to listen to events
+ * @param {UI<E>} ui - UI object of target element to listen to events
  * @returns - returns ui object of the target
  */
 ({ host, target }) => {
-    const handler = (e) => host.set(state, (v) => setter(e, v) ?? v); // if the setter returns nullish, we return the old value
     target.addEventListener(event, handler);
+    return { host, target };
+};
+/**
+ * Remove event listener from target element
+ *
+ * @since 0.8.1
+ * @param {string} event - event name to listen to
+ * @param {EventListener} handler - event handler to remove
+ */
+const off = (event, handler) => 
+/**
+ * Partially applied function to connect to params of UI map function
+ *
+ * @param {UI<E>} ui - UI object of target element to listen to events
+ * @returns - returns ui object of the target
+ */
+({ host, target }) => {
+    target.removeEventListener(event, handler);
+    return { host, target };
+};
+/**
+ * Auto-Effect to dispatch a custom event when a state changes
+ *
+ * @since 0.8.1
+ * @param {string} event - event name to dispatch
+ * @param {PropertyKey} state - state key
+ */
+const dispatch = (event, state = event) => 
+/**
+ * Partially applied function to connect to params of UI map function
+ *
+ * @param {UI<E>} ui - UI object of target element to listen to events
+ * @returns - returns ui object of the target
+ */
+({ host, target }) => {
+    effect(() => {
+        target.dispatchEvent(new CustomEvent(event, {
+            detail: host.get(state),
+            bubbles: true
+        }));
+    });
     return { host, target };
 };
 
@@ -549,4 +586,4 @@ class UIElement extends HTMLElement {
     all = all(this);
 }
 
-export { UIElement, asBoolean, asInteger, asJSON, asNumber, asString, effect, log, maybe, on, pass, setAttribute, setProperty, setStyle, setText, toggleAttribute, toggleClass };
+export { UIElement, asBoolean, asInteger, asJSON, asNumber, asString, dispatch, effect, log, maybe, off, on, pass, setAttribute, setProperty, setStyle, setText, toggleAttribute, toggleClass };

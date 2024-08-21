@@ -5,7 +5,7 @@ import { type Signal, isState, isSignal, cause, effect } from './cause-effect'
 import { type UnknownContext, CONTEXT_REQUEST, ContextRequestEvent } from './core/context-request'
 import { log, LOG_ERROR } from './core/log'
 import { type StateMap, pass } from './lib/pass'
-import { on } from './lib/event'
+import { on, off, dispatch } from './lib/event'
 import { asBoolean, asInteger, asJSON, asNumber, asString } from './lib/parse-attribute'
 import { setText, setProperty, setAttribute, toggleAttribute, toggleClass, setStyle } from './lib/auto-effects'
 
@@ -187,7 +187,7 @@ class UIElement extends HTMLElement {
 
 export {
   type AttributeMap, type StateMap,
-  UIElement, effect, maybe, pass, on, log,
+  UIElement, effect, maybe, log, pass, on, off, dispatch,
   asBoolean, asInteger, asNumber, asString, asJSON,
   setText, setProperty, setAttribute, toggleAttribute, toggleClass, setStyle
 }
