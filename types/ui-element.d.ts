@@ -1,5 +1,12 @@
-import { type Signal } from './cause-effect';
+import { maybe } from './core/maybe';
+import { type UI } from './core/ui';
+import { type Signal, effect } from './cause-effect';
 import { type UnknownContext } from './core/context-request';
+import { log } from './core/log';
+import { type StateMap, pass } from './lib/pass';
+import { on, off, dispatch } from './lib/event';
+import { asBoolean, asInteger, asJSON, asNumber, asString } from './lib/parse-attribute';
+import { setText, setProperty, setAttribute, toggleAttribute, toggleClass, setStyle } from './lib/auto-effects';
 type AttributeParser = (<T>(value: string[], element: UIElement, old: string | undefined) => T[]);
 type AttributeMap = Record<string, AttributeParser>;
 /**
@@ -23,10 +30,10 @@ declare class UIElement extends HTMLElement {
      */
     static define(tag: string): void;
     /**
-     * @since 0.8.0
-     * @property {HTMLElement[]} self - UI object for this element
+     * @since 0.8.1
+     * @property {UI<UIElement>[]} self - single item array of UI object for this element
      */
-    self: this[];
+    self: UI<UIElement>[];
     /**
      * Native callback function when an observed attribute of the custom element changes
      *
@@ -82,18 +89,18 @@ declare class UIElement extends HTMLElement {
     /**
      * Get array of first sub-element matching a given selector within the custom element
      *
-     * @since 0.8.0
+     * @since 0.8.1
      * @param {string} selector - selector to match sub-element
-     * @returns {Element[]} - array of zero or one matching sub-element
+     * @returns {UI<Element>[]} - array of zero or one UI objects of matching sub-element
      */
-    first(selector: string): Element[];
+    first: (selector: string) => UI<Element>[];
     /**
      * Get array of all sub-elements matching a given selector within the custom element
      *
-     * @since 0.8.0
+     * @since 0.8.1
      * @param {string} selector - selector to match sub-elements
-     * @returns {Element[]} - array of matching sub-elements
+     * @returns {UI<Element>[]} - array of UI object of matching sub-elements
      */
-    all(selector: string): Element[];
+    all: (selector: string) => UI<Element>[];
 }
-export { type AttributeMap, UIElement };
+export { type AttributeMap, type StateMap, UIElement, effect, maybe, log, pass, on, off, dispatch, asBoolean, asInteger, asNumber, asString, asJSON, setText, setProperty, setAttribute, toggleAttribute, toggleClass, setStyle };
