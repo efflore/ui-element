@@ -14,9 +14,9 @@ Version 0.8.0
 
 To bind events on, pass states to, and execute effects on elements, UIElement offers a chainable API on `this.self`, `this.first(selector)` or `this.all(selector)` with a `map()` method - just like arrays.
 
-For example, `this.self.map(on('click', 'clicked', () => true))` binds an event handler for `'click'` on the custom element itself, setting its `'clicked'` state to `true`. With `this.all('sub-component').map(pass(this, { color: 'color' }))` you pass the `'color'` state on `this` to every instance of `<sub-component>` in the DOM subtree.
+For example, `this.self.map(on('click', () => this.set('clicked', true))` binds an event handler for `'click'` on the custom element itself, setting its `'clicked'` state to `true`. With `this.all('sub-component').map(pass({ color: 'color' }))` you pass the `'color'` state on `this` to every instance of `<sub-component>` in the DOM subtree.
 
-There are 6 pre-defined auto-effects that can be applied on elements with `this.[self|first(selector)|all(selector)].map()`:
+There are 7 pre-defined auto-effects that can be applied on elements with `this.[self|first(selector)|all(selector)].map()`:
 
 - `setText(state)`: set text content of the target element to the value of state; expects a state of type string; will preserve comment nodes inside the element
 - `setProperty(key, state=key)`: set a property of the target element to the value of state; accepts a state of any type
@@ -24,6 +24,7 @@ There are 6 pre-defined auto-effects that can be applied on elements with `this.
 - `toggleAttribute(name, state=name)`: toggles a boolean attribute on the element according to the value of state; expects a state of type boolean
 - `toggleClass(token, state=token)`: toggles a class on the element according to the value of state; expects a state of type boolean
 - `setStyle(prop, state=prop)`: set an inline style on the element to the value of state; expects a state of type string for the CSS property value
+- `dispatch(event, state=event)`: dispatch a custom event with the value of state as detail; accepts a state of any type
 
 You can define custom effects with `effect()`, either in the `connectedCallback()` or in a mapped function on `this.[self|first(selector)|all(selector)]`. `UIElement` will automatically trigger these effects and bundle the fine-grained DOM updates.
 
@@ -65,8 +66,8 @@ class MyCounter extends UIElement {
   }
 
   connectedCallback() {
-    this.first('.decrement').map(on('click', 'value', (_, v) => --v))
-    this.first('.increment').map(on('click', 'value', (_, v) => ++v))
+    this.first('.decrement').map(on('click', () => this.set('value', v => --v)))
+    this.first('.increment').map(on('click', () => this.set('value', v => ++v)))
     this.first('span').map(setText('value'))
   }
 }

@@ -177,7 +177,7 @@
       static observedAttributes = ['heading']
 
       connectedCallback() {
-        this.first('child-component').map(pass(this, {
+        this.first('child-component').map(pass({
           heading: 'heading',
           text: () => this.get('heading').toUpperCase()
         }))
@@ -243,7 +243,7 @@
         const first = this.querySelector('.first')
         const last = this.querySelector('.last')
         const useFullname = this.querySelector('input-checkbox')
-        this.first('hello-world').map(pass(this, {
+        this.first('hello-world').map(pass({
           name: () => useFullname.get('checked')
             ? `${first?.get('value')} ${last?.get('value')}`
             : first?.get('value')
