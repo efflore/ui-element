@@ -32,11 +32,12 @@ const maybe = (value) => isNullish(value) ? [] : [value];
 const getRoot = (element) => element.shadowRoot || element;
 /* === Exported Functions === */
 /**
- * Create a new UI instance with the provided host UIElement
+ * Create a new UI object with the provided host UIElement
  *
  * @since 0.8.1
- * @param {UIElement} host - host UIElement for the new UI instance
- * @param {Element} target - target element to use for the new UI instance
+ * @param {UIElement} host - host UIElement for the new UI object
+ * @param {Element} target - target element to use for the new UI object
+ * @returns {UI<T>} - UI object with the provided host UIElement and target element
  */
 const ui = (host, target) => {
     return { host, target };
@@ -49,6 +50,7 @@ const first = (host) =>
 /**
  * @since 0.8.1
  * @param {string} selector - CSS selector to match against the host UIElement
+ * @returns {UI<Element>[]} - array of zero or one UI objects with the matching element in the host UIElement
  */
 (selector) => {
     return maybe(getRoot(host).querySelector(selector)).map(target => ui(host, target));
@@ -62,6 +64,7 @@ const all = (host) =>
 /**
  * @since 0.8.1
  * @param {string} selector - CSS selector to match against elements in the host UIElement
+ * @returns {UI<Element>[]} - array UI objects with the matching elements in the host UIElement
  */
 (selector) => {
     return Array.from(getRoot(host).querySelectorAll(selector)).map(target => ui(host, target));
@@ -430,9 +433,9 @@ class UIElement extends HTMLElement {
     #states = new Map();
     /**
      * @since 0.8.1
-     * @property {UI<UIElement>} self - UI object for this element
+     * @property {UI<UIElement>[]} self - single item array of UI object for this element
      */
-    self = ui(this, this);
+    self = [ui(this, this)];
     /**
      * Native callback function when an observed attribute of the custom element changes
      *
@@ -533,7 +536,7 @@ class UIElement extends HTMLElement {
      *
      * @since 0.8.1
      * @param {string} selector - selector to match sub-element
-     * @returns {UI<Element>[]} - array of zero or one matching sub-element
+     * @returns {UI<Element>[]} - array of zero or one UI objects of matching sub-element
      */
     first = first(this);
     /**
@@ -541,7 +544,7 @@ class UIElement extends HTMLElement {
      *
      * @since 0.8.1
      * @param {string} selector - selector to match sub-elements
-     * @returns {UI<Element>[]} - array of matching sub-elements
+     * @returns {UI<Element>[]} - array of UI object of matching sub-elements
      */
     all = all(this);
 }

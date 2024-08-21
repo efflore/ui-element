@@ -23,11 +23,12 @@ const getRoot = (element: UIElement): Element | ShadowRoot =>
 /* === Exported Functions === */
 
 /**
- * Create a new UI instance with the provided host UIElement
+ * Create a new UI object with the provided host UIElement
  *
  * @since 0.8.1
- * @param {UIElement} host - host UIElement for the new UI instance
- * @param {Element} target - target element to use for the new UI instance
+ * @param {UIElement} host - host UIElement for the new UI object
+ * @param {Element} target - target element to use for the new UI object
+ * @returns {UI<T>} - UI object with the provided host UIElement and target element
  */
 const ui = <T extends Element>(host: UIElement, target: T): UI<T> => {
   return { host, target }
@@ -42,6 +43,7 @@ const first = (host: UIElement) =>
   /**
    * @since 0.8.1
    * @param {string} selector - CSS selector to match against the host UIElement
+   * @returns {UI<Element>[]} - array of zero or one UI objects with the matching element in the host UIElement
    */
   (selector: string): UI<Element>[] => {
     return maybe(getRoot(host).querySelector(selector)).map(target => ui(host, target))
@@ -57,6 +59,7 @@ const all = (host: UIElement) =>
   /**
    * @since 0.8.1
    * @param {string} selector - CSS selector to match against elements in the host UIElement
+   * @returns {UI<Element>[]} - array UI objects with the matching elements in the host UIElement
    */
   (selector: string): UI<Element>[] => {
     return Array.from(getRoot(host).querySelectorAll(selector)).map(target => ui(host, target))

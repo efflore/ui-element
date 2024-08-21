@@ -61,9 +61,9 @@ class UIElement extends HTMLElement {
 
   /**
    * @since 0.8.1
-   * @property {UI<UIElement>} self - UI object for this element
+   * @property {UI<UIElement>[]} self - single item array of UI object for this element
    */
-  self: UI<UIElement> = ui(this, this)
+  self: UI<UIElement>[] = [ui(this, this)]
 
   /**
    * Native callback function when an observed attribute of the custom element changes
@@ -170,7 +170,7 @@ class UIElement extends HTMLElement {
    * 
    * @since 0.8.1
    * @param {string} selector - selector to match sub-element
-   * @returns {UI<Element>[]} - array of zero or one matching sub-element
+   * @returns {UI<Element>[]} - array of zero or one UI objects of matching sub-element
    */
   first: (selector: string) => UI<Element>[] = first(this)
 
@@ -179,7 +179,7 @@ class UIElement extends HTMLElement {
    * 
    * @since 0.8.1
    * @param {string} selector - selector to match sub-elements
-   * @returns {UI<Element>[]} - array of matching sub-elements
+   * @returns {UI<Element>[]} - array of UI object of matching sub-elements
    */
   all: (selector: string) => UI<Element>[] = all(this)
 

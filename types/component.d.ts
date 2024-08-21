@@ -28,7 +28,7 @@ declare const component: (tag: string, props: ComponentProps, connect: (host: UI
         connectedCallback(): void;
         disconnectedCallback(): void;
         "__#1@#states": Map<PropertyKey, import("./cause-effect").Signal<any>>;
-        self: import("./core/ui").UI<UIElement>;
+        self: import("./core/ui").UI<UIElement>[];
         attributeChangedCallback(name: string, old: string | undefined, value: string | undefined): void;
         has(key: PropertyKey): boolean;
         get<T>(key: PropertyKey): T | undefined;
