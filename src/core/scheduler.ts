@@ -1,5 +1,9 @@
-import type { Effect } from '../cause-effect';
 import { log, LOG_ERROR } from './log';
+
+/* === Types === */
+
+type UnknownFunction = (...args: unknown[]) => unknown
+type ElementFunction = (element: Element) => () => void
 
 /* === Exported Function === */
 
@@ -7,23 +11,6 @@ const scheduler = () => {
   const effectQueue = new Map()
   const cleanupQueue = new Map()
   let requestId: number
-
-  const requestTick = () => {
-    if (requestId) cancelAnimationFrame(requestId)
-    requestId = requestAnimationFrame(flush)
-  }
-
-  const enqueue = (element: Element, prop: string, fn: (element: Element) => () => void) => {
-    if (!effectQueue.has(element)) effectQueue.set(element, new Map())
-    const elEffects = effectQueue.get(element)
-    if (!elEffects.has(prop)) elEffects.set(prop, fn)
-    requestTick()
-  }
-
-  const cleanup = (effect: Effect, fn: () => void) => {
-    if (!cleanupQueue.has(effect)) cleanupQueue.set(effect, fn)
-    requestTick()
-  }
 
   const run = (fn: () => void, msg: string) => {
     try {
@@ -44,9 +31,30 @@ const scheduler = () => {
       run(fn, 'Cleanup failed')
     cleanupQueue.clear()
   }
-  queueMicrotask(flush) // initial flush when the call stack is empty
 
-  return { enqueue, cleanup }
+  const requestTick = () => {
+    if (requestId) cancelAnimationFrame(requestId)
+    requestId = requestAnimationFrame(flush)
+  }
+
+  const getEffectMap = (key: Element) => {
+    if (!effectQueue.has(key)) effectQueue.set(key, new Map())
+    return effectQueue.get(key)
+  }
+
+  const addToQueue = (map: Map<unknown, UnknownFunction>) =>
+    (key: unknown, fn: UnknownFunction) => {
+      const more = !map.has(key)
+      map.set(key, fn)
+      if (more) requestTick()
+    }
+
+  queueMicrotask(flush) // initial flush when the call stack is empty
+  return {
+    enqueue: (element: Element, prop: string, fn: ElementFunction) => addToQueue(getEffectMap(element))(prop, fn),
+    cleanup: addToQueue(cleanupQueue)
+  }
+
 }
 
 export default scheduler

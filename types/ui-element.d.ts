@@ -7,7 +7,7 @@ import { type StateMap, pass } from './lib/pass';
 import { on, off, dispatch } from './lib/event';
 import { asBoolean, asInteger, asJSON, asNumber, asString } from './lib/parse-attribute';
 import { setText, setProperty, setAttribute, toggleAttribute, toggleClass, setStyle } from './lib/auto-effects';
-type AttributeParser = (<T>(value: string[], element: UIElement, old: string | undefined) => T[]);
+type AttributeParser = (value: string[], element: UIElement, old: string | undefined) => unknown[];
 type AttributeMap = Record<string, AttributeParser>;
 /**
  * Base class for reactive custom elements

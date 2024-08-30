@@ -11,7 +11,7 @@ import { setText, setProperty, setAttribute, toggleAttribute, toggleClass, setSt
 
 /* === Types === */
 
-type AttributeParser = (<T>(value: string[], element: UIElement, old: string | undefined) => T[])
+type AttributeParser = (value: string[], element: UIElement, old: string | undefined) => unknown[]
 
 type AttributeMap = Record<string, AttributeParser>
 
