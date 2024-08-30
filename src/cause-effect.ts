@@ -139,7 +139,7 @@ const effect = (fn: EffectCallback) => {
     activeEffect = n
     const cleanupFn = fn((element: Element, prop: string, callback: (element: Element) => () => void): void => {
       enqueue(element, prop, callback)
-      if (!targets.has(element)) targets.add(element)
+      targets.add(element)
     })
     if (isFunction(cleanupFn)) cleanup(n, cleanupFn)
     activeEffect = prev

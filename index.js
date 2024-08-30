@@ -94,24 +94,6 @@ const scheduler = () => {
     const effectQueue = new Map();
     const cleanupQueue = new Map();
     let requestId;
-    const requestTick = () => {
-        if (requestId)
-            cancelAnimationFrame(requestId);
-        requestId = requestAnimationFrame(flush);
-    };
-    const enqueue = (element, prop, fn) => {
-        if (!effectQueue.has(element))
-            effectQueue.set(element, new Map());
-        const elEffects = effectQueue.get(element);
-        if (!elEffects.has(prop))
-            elEffects.set(prop, fn);
-        requestTick();
-    };
-    const cleanup = (effect, fn) => {
-        if (!cleanupQueue.has(effect))
-            cleanupQueue.set(effect, fn);
-        requestTick();
-    };
     const run = (fn, msg) => {
         try {
             fn();
@@ -131,8 +113,27 @@ const scheduler = () => {
             run(fn, 'Cleanup failed');
         cleanupQueue.clear();
     };
+    const requestTick = () => {
+        if (requestId)
+            cancelAnimationFrame(requestId);
+        requestId = requestAnimationFrame(flush);
+    };
+    const getEffectMap = (key) => {
+        if (!effectQueue.has(key))
+            effectQueue.set(key, new Map());
+        return effectQueue.get(key);
+    };
+    const addToQueue = (map) => (key, fn) => {
+        const more = !map.has(key);
+        map.set(key, fn);
+        if (more)
+            requestTick();
+    };
     queueMicrotask(flush); // initial flush when the call stack is empty
-    return { enqueue, cleanup };
+    return {
+        enqueue: (element, prop, fn) => addToQueue(getEffectMap(element))(prop, fn),
+        cleanup: addToQueue(cleanupQueue)
+    };
 };
 
 /* === Internal === */
@@ -204,8 +205,7 @@ const effect = (fn) => {
         activeEffect = n;
         const cleanupFn = fn((element, prop, callback) => {
             enqueue(element, prop, callback);
-            if (!targets.has(element))
-                targets.add(element);
+            targets.add(element);
         });
         if (isFunction(cleanupFn))
             cleanup(n, cleanupFn);

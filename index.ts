@@ -9,7 +9,7 @@ import { setAttribute, setProperty, setStyle, setText, toggleAttribute, toggleCl
 
 /**
  * @name UIElement
- * @version 0.8.1
+ * @version 0.8.2
  */
 
 export {
