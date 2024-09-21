@@ -9,6 +9,7 @@ import { asBoolean, asInteger, asJSON, asNumber, asString } from './lib/parse-at
 import { setText, setProperty, setAttribute, toggleAttribute, toggleClass, setStyle } from './lib/auto-effects';
 type AttributeParser = (value: string[], element: UIElement, old: string | undefined) => unknown[];
 type AttributeMap = Record<string, AttributeParser>;
+type StateLike = PropertyKey | Signal<unknown> | (() => unknown);
 /**
  * Base class for reactive custom elements
  *
@@ -43,49 +44,57 @@ declare class UIElement extends HTMLElement {
      * @param {string | undefined} value - new value of the modified attribute
      */
     attributeChangedCallback(name: string, old: string | undefined, value: string | undefined): void;
+    /**
+     * Native callback function when the custom element is first connected to the document
+     *
+     * Used for context providers and consumers
+     * If your component uses context, you must call `super.connectedCallback()`
+     *
+     * @since 0.7.0
+     */
     connectedCallback(): void;
     disconnectedCallback(): void;
     /**
      * Check whether a state is set
      *
      * @since 0.2.0
-     * @param {PropertyKey} key - state to be checked
+     * @param {any} key - state to be checked
      * @returns {boolean} `true` if this element has state with the given key; `false` otherwise
      */
-    has(key: PropertyKey): boolean;
+    has(key: any): boolean;
     /**
      * Get the current value of a state
      *
      * @since 0.2.0
-     * @param {PropertyKey} key - state to get value from
+     * @param {any} key - state to get value from
      * @returns {T | undefined} current value of state; undefined if state does not exist
      */
-    get<T>(key: PropertyKey): T | undefined;
+    get<T>(key: any): T | undefined;
     /**
      * Create a state or update its value and return its current value
      *
      * @since 0.2.0
-     * @param {PropertyKey} key - state to set value to
+     * @param {any} key - state to set value to
      * @param {T | ((old: T | undefined) => T) | Signal<T>} value - initial or new value; may be a function (gets old value as parameter) to be evaluated when value is retrieved
      * @param {boolean} [update=true] - if `true` (default), the state is updated; if `false`, do nothing if state already exists
      */
-    set<T>(key: PropertyKey, value: T | ((old: T | undefined) => T) | Signal<T>, update?: boolean): void;
+    set<T>(key: any, value: T | ((old: T | undefined) => T) | Signal<T>, update?: boolean): void;
     /**
      * Delete a state, also removing all effects dependent on the state
      *
      * @since 0.4.0
-     * @param {PropertyKey} key - state to be deleted
+     * @param {any} key - state to be deleted
      * @returns {boolean} `true` if the state existed and was deleted; `false` if ignored
      */
-    delete(key: PropertyKey): boolean;
+    delete(key: any): boolean;
     /**
      * Return the signal for a state
      *
      * @since 0.8.0
-     * @param {PropertyKey} key - state to get signal for
+     * @param {any} key - state to get signal for
      * @returns {Signal<T> | undefined} signal for the given state; undefined if
      */
-    signal<T>(key: PropertyKey): Signal<T> | undefined;
+    signal<T>(key: any): Signal<T> | undefined;
     /**
      * Get array of first sub-element matching a given selector within the custom element
      *
@@ -103,4 +112,4 @@ declare class UIElement extends HTMLElement {
      */
     all: (selector: string) => UI<Element>[];
 }
-export { type AttributeMap, type StateMap, UIElement, effect, maybe, log, pass, on, off, dispatch, asBoolean, asInteger, asNumber, asString, asJSON, setText, setProperty, setAttribute, toggleAttribute, toggleClass, setStyle };
+export { type AttributeMap, type StateMap, type StateLike, UIElement, effect, maybe, log, pass, on, off, dispatch, asBoolean, asInteger, asNumber, asString, asJSON, setText, setProperty, setAttribute, toggleAttribute, toggleClass, setStyle };

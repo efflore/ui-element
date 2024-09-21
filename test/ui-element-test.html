@@ -6,96 +6,96 @@
 </head>
 <body>
 
-  <style>
-    my-counter {
-      display: flex;
-      flex-direction: row;
-      gap: 1rem;
+	<style>
+		my-counter {
+			display: flex;
+			flex-direction: row;
+			gap: 1rem;
 
-      p {
-        margin-block: 0.2rem;
-      }
-    }
-  </style>
+			p {
+				margin-block: 0.2rem;
+			}
+		}
+	</style>
 
-  <void-component id="void">
-    <h1>Hello from Server</h1>
-  </void-component>
-  <void-component id="void2">
-    <h1>Hello from Server</h1>
-  </void-component>
-  <causal-component id="causal">
-    <h1>Hello from Server</h1>
-  </causal-component>
-  <causal-component id="causal-with-ignored-attribute" heading="Hello from Attribute">
-    <h1>Hello from Server</h1>
-  </causal-component>
-  <updating-component id="updating">
-    <h1>Hello from Server</h1>
-    <p>Number of unread messages: <span></span></p>
-  </updating-component>
-  <updating-component id="updating-with-string-attribute" heading="Hello from Attribute">
-    <h1>Hello from Server</h1>
-    <p>Number of unread messages: <span></span></p>
-  </updating-component>
-  <updating-component id="updating-with-number-attribute" count="42" step="0.1" value="3.14">
-    <h1>Hello from Server</h1>
-    <p>Number of unread messages: <span></span></p>
-    <input type="number" />
-  </updating-component>
-  <updating-component id="updating-with-boolean-attribute" selected>
-    <h1>Hello from Server</h1>
-    <p>Number of unread messages: <span></span></p>
-  </updating-component>
-  <child-component id="orphan">
-    <h1>Hello from Server</h1>
-    <p>Text from Server</p>
-  </child-component>
-  <parent-component id="parent" heading="Hello from Attribute">
-    <child-component id="child">
-      <h1>Hello from Server</h1>
-      <p>Text from Server</p>
-    </child-component>
-  </parent-component>
-  <my-counter value="42">
-    <p>Count: <span class="value">42</span></p>
-    <p>Parity: <span class="parity">even</span></p>
-    <p>Double: <span class="double">84</span></p>
-    <div>
-      <button class="decrement">–</button>
-      <button class="increment">+</button>
-    </div>
-  </my-counter>
-  <greeting-configurator>
-    <input-field class="first">
-      <input type="text" name="first" value="Jane" />
-    </input-field>
-    <input-field class="last">
-      <input type="text" name="last" value="Doe" />
-    </input-field>
-    <input-checkbox>
-      <input type="checkbox" name="fullname" />
-    </input-checkbox>
-    <hello-world>
-      <p>
-        <span class="greeting">Hello</span>
-        <span class="name">World</span>
-      </p>
-    </hello-world>
-  </greeting-configurator>
-  <lazy-load src="/test/mock/lazy-load.html" id="lazy-success">
-    <p class="loading" role="status">Loading...</p>
-    <p class="error" role="alert" aria-live="polite"></p>
-  </lazy-load>
-  <lazy-load src="/test/mock/404.html" id="lazy-error">
-    <p class="loading" role="status">Loading...</p>
-    <p class="error" role="alert" aria-live="polite"></p>
-  </lazy-load>
+	<void-component id="void">
+		<h1>Hello from Server</h1>
+	</void-component>
+	<void-component id="void2">
+		<h1>Hello from Server</h1>
+	</void-component>
+	<causal-component id="causal">
+		<h1>Hello from Server</h1>
+	</causal-component>
+	<causal-component id="causal-with-ignored-attribute" heading="Hello from Attribute">
+		<h1>Hello from Server</h1>
+	</causal-component>
+	<updating-component id="updating">
+		<h1>Hello from Server</h1>
+		<p>Number of unread messages: <span></span></p>
+	</updating-component>
+	<updating-component id="updating-with-string-attribute" heading="Hello from Attribute">
+		<h1>Hello from Server</h1>
+		<p>Number of unread messages: <span></span></p>
+	</updating-component>
+	<updating-component id="updating-with-number-attribute" count="42" step="0.1" value="3.14">
+		<h1>Hello from Server</h1>
+		<p>Number of unread messages: <span></span></p>
+		<input type="number" />
+	</updating-component>
+	<updating-component id="updating-with-boolean-attribute" selected>
+		<h1>Hello from Server</h1>
+		<p>Number of unread messages: <span></span></p>
+	</updating-component>
+	<child-component id="orphan">
+		<h1>Hello from Server</h1>
+		<p>Text from Server</p>
+	</child-component>
+	<parent-component id="parent" heading="Hello from Attribute">
+		<child-component id="child">
+			<h1>Hello from Server</h1>
+			<p>Text from Server</p>
+		</child-component>
+	</parent-component>
+	<my-counter value="42">
+		<p>Count: <span class="value">42</span></p>
+		<p>Parity: <span class="parity">even</span></p>
+		<p>Double: <span class="double">84</span></p>
+		<div>
+			<button class="decrement">–</button>
+			<button class="increment">+</button>
+		</div>
+	</my-counter>
+	<greeting-configurator>
+		<input-field class="first">
+			<input type="text" name="first" value="Jane" />
+		</input-field>
+		<input-field class="last">
+			<input type="text" name="last" value="Doe" />
+		</input-field>
+		<input-checkbox>
+			<input type="checkbox" name="fullname" />
+		</input-checkbox>
+		<hello-world>
+			<p>
+				<span class="greeting">Hello</span>
+				<span class="name">World</span>
+			</p>
+		</hello-world>
+	</greeting-configurator>
+	<lazy-load src="/test/mock/lazy-load.html" id="lazy-success">
+		<p class="loading" role="status">Loading...</p>
+		<p class="error" role="alert" aria-live="polite"></p>
+	</lazy-load>
+	<lazy-load src="/test/mock/404.html" id="lazy-error">
+		<p class="loading" role="status">Loading...</p>
+		<p class="error" role="alert" aria-live="polite"></p>
+	</lazy-load>
 
   <script type="module">
     import { runTests } from '@web/test-runner-mocha'
     import { assert } from '@esm-bundle/chai'
-    import { UIElement, effect, maybe, pass } from '../index.js'
+    import { UIElement, effect, maybe, pass, on, setText, setProperty, setAttribute, toggleAttribute, toggleClass, setStyle, asBoolean, asInteger, asNumber } from '../index.js'
 
     const wait = ms => new Promise(resolve => setTimeout(resolve, ms))
     const paint = () => new Promise(resolve => requestAnimationFrame(resolve))
@@ -104,228 +104,140 @@
     (class extends UIElement {}).define('void-component')
 
     class CausalComponent extends UIElement {
-      connectedCallback() {
-        this.set('heading', 'Hello from Internal State')
-        effect(enqueue => {
-          const value = this.get('heading')
-          enqueue(this.querySelector('h1'), 't heading', el => () => el.textContent = value)
-        })
-      }
+		connectedCallback() {
+			this.set('heading', 'Hello from Internal State')
+			this.first('h1').map(setText('heading'))
+		}
     }
     CausalComponent.define('causal-component')
 
     class UpdatingComponent extends UIElement {
-      static observedAttributes = ['heading', 'count', 'step', 'value', 'selected'];
-      static attributeMap = {
-        count: value => value.map(v => parseInt(v, 10)),
-        step: value => value.map(v => parseFloat(v)),
-        value: (value, el) => value.map(
-          v => Number.isInteger(el.get('step'))
-            ? parseInt(v, 10)
-            : parseFloat(v)
-        ),
-        selected: value => maybe(value[0] != null)
-      };
+		static observedAttributes = ['heading', 'count', 'step', 'value', 'selected']
+		static attributeMap = {
+			count: asInteger,
+			step: asNumber,
+			value: (value, el) => value.map(v => Number.isInteger(el.get('step')) ? parseInt(v, 10) : parseFloat(v)),
+			selected: asBoolean
+		}
 
-      connectedCallback() {
-        const heading = this.querySelector('h1')
-        const badge = this.querySelector('span')
-        const input = this.querySelector('input')
-
-        effect(enqueue => {
-          if (this.has('heading')) {
-            const value = this.get('heading')
-            enqueue(heading, 't heading', el => () => el.textContent = value)
-          }
-        })
-
-        effect(enqueue => {
-          if (this.has('count')) {
-            const value = this.get('count')
-            enqueue(badge, 't count', el => () => el.textContent = value)
-          }
-        })
-
-        effect(enqueue => {
-          if (this.has('step')) {
-            const step = this.get('step')
-            const fn = Number.isFinite(step)
-              ? el => () => el.setAttribute('step', step)
-              : el => () => el.removeAttribute('step')
-            enqueue(input, 'a step', fn)
-          }
-        });
-
-        effect(enqueue => {
-          if (this.has('value')) {
-            const value = this.get('value')
-            enqueue(input, 'a value', el => () => el.setAttribute('value', value))
-          }
-        })
-
-        effect(enqueue => {
-          if (this.has('selected')) {
-            const value = this.get('selected')
-            enqueue(heading, 'c selected', el => () => el.classList.toggle('selected', value))
-          }
-        })
-      }
+		connectedCallback() {
+			this.first('h1').map(setText('heading')).map(toggleClass('selected'))
+			this.first('span').map(setText('count'))
+			this.first('input').map(setAttribute('step')).map(setProperty('value'))
+		}
     }
-    UpdatingComponent.define('updating-component');
+    UpdatingComponent.define('updating-component')
 
     class ParentComponent extends UIElement {
-      static observedAttributes = ['heading']
+		static observedAttributes = ['heading']
 
-      connectedCallback() {
-        this.first('child-component').map(pass({
-          heading: 'heading',
-          text: () => this.get('heading').toUpperCase()
-        }))
-      }
+		connectedCallback() {
+			this.first('child-component').map(pass({
+				heading: 'heading',
+				text: () => this.get('heading').toUpperCase()
+			}))
+		}
     }
-    ParentComponent.define('parent-component');
+    ParentComponent.define('parent-component')
 
     class ChildComponent extends UIElement {
-
-      connectedCallback() {
-        const title = this.querySelector('h1')
-        const paragraph = this.querySelector('p')
-        this.set('heading', title.textContent)
-        this.set('text', paragraph.textContent)
-
-        effect(enqueue => {
-          if (this.has('heading')) {
-            const value = this.get('heading')
-            enqueue(title, 't heading', el => () => el.textContent = value)
-          }
-        })
-
-        effect(enqueue => {
-          if (this.has('text')) {
-            const value = this.get('text')
-            enqueue(paragraph, 't text', el => () => el.textContent = value)
-          }
-        })
-      }
+		connectedCallback() {
+			this.first('h1').map(setText('heading'))
+			this.first('p').map(setText('text'))
+		}
     }
-    ChildComponent.define('child-component');
+    ChildComponent.define('child-component')
 
     class MyCounter extends UIElement {
-      static observedAttributes = ['value']              // observed attributes
-      static attributeMap = {
-        value: maybe => maybe.map(v => parseInt(v, 10))  // state from observed attribute with parser function
-      }
+		static observedAttributes = ['value']
+		static attributeMap = {
+			value: asInteger
+		}
 
-      connectedCallback() {
-
-        // event listeners map event callback and setter function to a state
-        this.querySelector('.decrement').onclick = () => this.set('value', v => --v)
-        this.querySelector('.increment').onclick = () => this.set('value', v => ++v)
-
-        // effect maps state to multiple element properties
-        effect(enqueue => {
-          const valueEl = this.querySelector('.value')
-          const parityEl = this.querySelector('.parity')
-          const doubleEl = this.querySelector('.double')
-          const value = this.get('value')
-
-          // no derived states, we derive directly in the effect
-          enqueue(valueEl, 't value', el => () => el.textContent = value)
-          enqueue(parityEl, 't parity', el => () => el.textContent = value % 2 ? 'odd' : 'even')
-          enqueue(doubleEl, 't double', el => () => el.textContent = value * 2)
-        })
-      }
+		connectedCallback() {
+			this.first('.decrement').map(on('click', () => this.set('value', v => --v)))
+			this.first('.increment').map(on('click', () => this.set('value', v => ++v)))
+			this.first('.value').map(setText('value'))
+			this.first('.parity').map(setText(() => this.get('value') % 2 ? 'odd' : 'even'))
+			this.first('.double').map(setText(() => this.get('value') * 2))
+		}
     }
-    MyCounter.define('my-counter')  // custom element tag name
+    MyCounter.define('my-counter')
 
     class GreetingConfigurator extends UIElement {
-      connectedCallback() {
-        const first = this.querySelector('.first')
-        const last = this.querySelector('.last')
-        const useFullname = this.querySelector('input-checkbox')
-        this.first('hello-world').map(pass({
-          name: () => useFullname.get('checked')
-            ? `${first?.get('value')} ${last?.get('value')}`
-            : first?.get('value')
-        }))
-      }
+		connectedCallback() {
+			const firstName = this.querySelector('.first')
+			this.first('hello-world').map(pass({
+				name: () => this.querySelector('input-checkbox').get('checked')
+					? `${firstName?.get('value')} ${this.querySelector('.last')?.get('value')}`
+					: firstName?.get('value')
+			}))
+		}
     }
-    GreetingConfigurator.define('greeting-configurator');
+    GreetingConfigurator.define('greeting-configurator')
 
     class HelloWorld extends UIElement {
-      static observedAttributes = ['greeting'];
+		static observedAttributes = ['greeting']
 
-      connectedCallback() {
-        const greetingEl = this.querySelector('.greeting');
-        const nameEl = this.querySelector('.name');
-        const defaultName = nameEl.textContent;
-        this.set('greeting', greetingEl.textContent, false);
-        this.set('name', defaultName);
-
-        effect(enqueue => {
-          const value = this.get('greeting') || '';
-          enqueue(greetingEl, 't greeting', el => () => el.textContent = value)
-        })
-
-        effect(enqueue => {
-          const value = this.get('name') || defaultName
-          enqueue(nameEl, 't name', el => () => el.textContent = value)
-        })
-      }
+		connectedCallback() {
+			this.first('.greeting').map(setText('greeting'))
+			this.first('.name').map(setText('name'))
+		}
     }
-    HelloWorld.define('hello-world');
+    HelloWorld.define('hello-world')
 
     class InputField extends UIElement {
-
-      connectedCallback() {
-        const input = this.querySelector('input');
-        this.set('value', input.value);
-        input.onchange = () => this.set('value', input.value);
-      }
+		connectedCallback() {
+			const input = this.querySelector('input')
+			this.set('value', input.value)
+			input.onchange = () => this.set('value', input.value)
+		}
     }
-    InputField.define('input-field');
+    InputField.define('input-field')
 
     class InputCheckbox extends UIElement {
-
-      connectedCallback() {
-        const input = this.querySelector('input');
-        this.set('checked', input.checked);
-        input.onchange = () => this.set('checked', input.checked);
-      }
+		connectedCallback() {
+			const input = this.querySelector('input')
+			this.set('checked', input.checked)
+			input.onchange = () => this.set('checked', input.checked)
+		}
     }
     InputCheckbox.define('input-checkbox')
 
     class LazyLoad extends UIElement {
-      connectedCallback() {
-        this.set('error', '')
-        this.set('content', () => {
-          fetch(this.getAttribute('src')) // TODO ensure 'src' attribute is a valid URL from a trusted source
-            .then(async response => {
-              await wait(1500); // we wait a bit, otherwise Promise is already fulfilled when test runs
-              return response.ok
-                ? this.set('content', await response.text())
-                : this.set('error', response.statusText)
-            })
-            .catch(error => this.set('error', error))
-          return; // we don't return a fallback value
-        });
+		connectedCallback() {
+			this.set('error', '')
+			this.set('content', () => {
+				fetch(this.getAttribute('src')) // TODO ensure 'src' attribute is a valid URL from a trusted source
+					.then(async response => {
+					await wait(1500) // we wait a bit, otherwise Promise is already fulfilled when test runs
+					return response.ok
+						? this.set('content', await response.text())
+						: this.set('error', response.statusText)
+					})
+					.catch(error => this.set('error', error))
+				return // we don't return a fallback value
+			})
 
-        effect(() => {
-          const error = this.get('error')
-          if (!error) return
-          this.querySelector('.loading').remove() // remove placeholder for pending state
-          this.querySelector('.error').textContent = error
-        });
+			const loadingEl = this.querySelector('.loading')
+			const errorEl = this.querySelector('.error')
 
-        effect(() => {
-          const content = this.get('content')
-          if (!content) return
-          const shadow = this.shadowRoot || this.attachShadow({ mode: 'open' }) // we use shadow DOM to encapsulate styles
-          shadow.innerHTML = content // UNSAFE!, use only trusted sources in 'src' attribute
-          this.querySelector('.loading').remove() // remove placeholder for pending state
-          this.querySelector('.error').remove() // won't be needed anymore as request was successful
-        });
-      }
+			effect(enqueue => {
+				const error = this.get('error')
+				if (!error) return
+				enqueue(loadingEl, 'r', el => () => el.remove()) // remove placeholder for pending state
+				enqueue(errorEl, 't', el => () => el.textContent = error) // fill error message
+			})
+
+			effect(enqueue => {
+				const content = this.get('content')
+				if (!content) return
+				const shadow = this.shadowRoot || this.attachShadow({ mode: 'open' }) // we use shadow DOM to encapsulate styles
+				enqueue(shadow, 'h', el => () => el.innerHTML = content) // UNSAFE!, use only trusted sources in 'src' attribute
+				enqueue(loadingEl, 'r', el => () => el.remove()) // remove placeholder for pending state
+				enqueue(errorEl, 'r', el => () => el.remove()) // won't be needed anymore as request was successful
+			})
+     	}
     }
     LazyLoad.define('lazy-load')
 
@@ -490,10 +402,10 @@
           });
 
           it('should update from initial custom parser attribute', async function () {
-            const updatingComponent = document.getElementById('updating-with-number-attribute');
-            await paint();
-            const valueAttribute = updatingComponent.querySelector('input').getAttribute('value');
-            assert.equal(valueAttribute, '3.14', 'Should have initial value attribute from custom parser attribute');
+			const updatingComponent = document.getElementById('updating-with-number-attribute');
+			await paint();
+			const valueAttribute = updatingComponent.querySelector('input').value;
+			assert.equal(valueAttribute, '3.14', 'Should have initial value attribute from custom parser attribute');
           });
 
           it('should add class from boolean attribute', async function () {
@@ -531,7 +443,7 @@
             const updatingComponent = document.getElementById('updating-with-number-attribute');
             updatingComponent.setAttribute('value', 1.14);
             await paint();
-            const valueAttribute = updatingComponent.querySelector('input').getAttribute('value');
+            const valueAttribute = updatingComponent.querySelector('input').value;
             assert.equal(valueAttribute, '1', 'Should update value attribute of input element from setting value attribute and parse it as defined');
           });
 
@@ -625,7 +537,6 @@
           it('should update derived values', async function () {
             const counter = document.querySelector('my-counter');
             const decrement = counter.querySelector('.decrement');
-            const increment = counter.querySelector('.increment');
             const parity = counter.querySelector('.parity');
             const double = counter.querySelector('.double');
             assert.equal(normalizeText(parity.textContent), 'even', 'Should have derived parity textContent from attribute');

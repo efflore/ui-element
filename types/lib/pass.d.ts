@@ -1,7 +1,6 @@
-import { type Signal } from '../cause-effect';
-import type { UIElement } from '../ui-element';
+import type { UIElement, StateLike } from '../ui-element';
 import type { UI } from '../core/ui';
-type StateMap = Record<PropertyKey, PropertyKey | Signal<unknown> | (() => unknown)>;
+type StateMap = Record<PropertyKey, StateLike>;
 /**
  * Pass states from one UIElement to another
  *
