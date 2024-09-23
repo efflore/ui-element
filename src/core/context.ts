@@ -1,3 +1,6 @@
+import type { UIElement } from "../ui-element"
+import { isFunction } from "./is-type"
+
 /** @see https://github.com/webcomponents-cg/community-protocols/blob/main/proposals/context.md */
 
 /* === Type definitions === */
@@ -29,13 +32,13 @@ type ContextType<T extends UnknownContext> = T extends Context<infer _, infer V>
 type ContextCallback<V> = (value: V, unsubscribe?: () => void) => void
 
 declare global {
-  interface HTMLElementEventMap {
-    /**
-     * A 'context-request' event can be emitted by any element which desires
-     * a context value to be injected by an external provider.
-     */
-    'context-request': ContextRequestEvent<Context<unknown, unknown>>
-  }
+	interface HTMLElementEventMap {
+		/**
+		 * A 'context-request' event can be emitted by any element which desires
+		 * a context value to be injected by an external provider.
+		 */
+		'context-request': ContextRequestEvent<Context<unknown, unknown>>
+	}
 }
 
 /* === Constants === */
@@ -64,21 +67,50 @@ const CONTEXT_REQUEST = 'context-request'
  * @property {boolean} [subscribe=false] - whether to subscribe to context changes
  */
 class ContextRequestEvent<T extends UnknownContext> extends Event {
-  public constructor(
-    public readonly context: T,
-    public readonly callback: ContextCallback<ContextType<T>>,
-    public readonly subscribe: boolean = false
-  ) {
-    super(CONTEXT_REQUEST, { bubbles: true, composed: true })
-  }
+	public constructor(
+		public readonly context: T,
+		public readonly callback: ContextCallback<ContextType<T>>,
+		public readonly subscribe: boolean = false
+	) {
+		super(CONTEXT_REQUEST, {
+			bubbles: true,
+			composed: true
+		})
+	}
 }
 
 /**
- * A function which creates a Context value object
+ * Initialize context provider / consumer for a UIElement instance
+ * 
+ * @param {UIelement} host - UIElement instance to initialize context for
  */
-const createContext = <V>(key: unknown) => key as Context<typeof key, V>
+const initContext = (host: UIElement) => {
+	const proto = host.constructor as typeof UIElement
+
+	// context consumers
+	const consumed = proto.consumedContexts || []
+	for (const context of consumed)
+		host.set(String(context), undefined, false)
+	setTimeout(() => { // wait for all custom elements to be defined
+		for (const context of consumed)
+			host.dispatchEvent(new ContextRequestEvent(
+				context,
+				(value: unknown) => host.set(String(context), value)
+			))
+	})
+
+	// context providers
+	const provided = proto.providedContexts || []
+	if (!provided.length) return
+	host.addEventListener(CONTEXT_REQUEST, (e: ContextRequestEvent<UnknownContext>) => {
+		const { context, callback } = e
+		if (!provided.includes(context) || !isFunction(callback)) return
+		e.stopPropagation()
+		callback(host.get(String(context)))
+	})
+}
 
 export {
-  type Context, type UnknownContext,
-  CONTEXT_REQUEST, ContextRequestEvent, createContext
+	type Context, type UnknownContext,
+	CONTEXT_REQUEST, ContextRequestEvent, initContext
 }

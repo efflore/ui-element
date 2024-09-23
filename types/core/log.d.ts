@@ -5,4 +5,4 @@ declare const LOG_INFO: LogLevel;
 declare const LOG_WARN: LogLevel;
 declare const LOG_ERROR: LogLevel;
 declare const log: <T>(value: T, msg: string, level?: LogLevel) => T;
-export { /* type Log, */ log, DEV_MODE, LOG_DEBUG, LOG_INFO, LOG_WARN, LOG_ERROR };
+export { log, DEV_MODE, LOG_DEBUG, LOG_INFO, LOG_WARN, LOG_ERROR };

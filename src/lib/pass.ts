@@ -1,11 +1,10 @@
+import type { UI, UIElement, StateLike } from '../ui-element'
+import { cause, isSignal } from '../cause-effect'
 import { isFunction } from '../core/is-type'
-import { type Signal, cause, isSignal } from '../cause-effect'
-import type { UIElement } from '../ui-element'
-import type { UI } from '../core/ui'
 
 /* === Types === */
 
-type StateMap = Record<PropertyKey, PropertyKey | Signal<unknown> | (() => unknown)>
+type StateMap = Record<PropertyKey, StateLike>
 
 /* === Exported Function === */
 
@@ -18,20 +17,17 @@ type StateMap = Record<PropertyKey, PropertyKey | Signal<unknown> | (() => unkno
  */
 const pass = <E extends UIElement>(stateMap: StateMap) =>
 
-  /**
-   * Partially applied function that connects to params of UI map function
-   * 
-   * @param {UI<E>} ui - source UIElement to pass states from
-   * @returns - Promise that resolves to UI object of the target UIElement, when it is defined and got passed states
-   */
-  async ({ host, target }: UI<E>): Promise<UI<E>> => {
-    await (host.constructor as typeof UIElement).registry.whenDefined(target.localName)
-    for (const [key, source] of Object.entries(stateMap))
-      target.set(key, isSignal(source) ? source
-        : isFunction(source) ? cause(source)
-        : host.signal(source)
-      )
-    return { host, target }
-  }
+	/**
+	 * Partially applied function that connects to params of UI map function
+	 * 
+	 * @param {UI<E>} ui - source UIElement to pass states from
+	 * @returns - Promise that resolves to UI object of the target UIElement, when it is defined and got passed states
+	 */
+	async (ui: UI<E>): Promise<UI<E>> => {
+		await (ui.host.constructor as typeof UIElement).registry.whenDefined(ui.target.localName)
+		for (const [key, source] of Object.entries(stateMap))
+			ui.target.set(key, isSignal(source) ? source : isFunction(source) ? cause(source) : ui.host.signal(source))
+		return ui
+	}
 
 export { type StateMap, pass }
