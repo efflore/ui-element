@@ -1,16 +1,19 @@
 import { isFunction } from './core/is-type'
 import { maybe } from './core/maybe'
-import { type UI, ui, first, all } from './core/ui'
 import { type Signal, isState, isSignal, cause, effect } from './cause-effect'
 import { type UnknownContext, CONTEXT_REQUEST, ContextRequestEvent } from './core/context-request'
 import { log, LOG_ERROR } from './core/log'
 import { type StateMap, pass } from './lib/pass'
-import { on, off, dispatch } from './lib/event'
+import { on, off, emit } from './lib/event'
 import { asBoolean, asInteger, asJSON, asNumber, asString } from './lib/parse-attribute'
 import { setText, setProperty, setAttribute, toggleAttribute, toggleClass, setStyle } from './lib/auto-effects'
 
 /* === Types === */
 
+type UI<T> = {
+	host: UIElement,
+    target: T,
+}
 type AttributeParser = (value: string[], element: UIElement, old: string | undefined) => unknown[]
 type AttributeMap = Record<string, AttributeParser>
 type StateLike = PropertyKey | Signal<unknown> | (() => unknown)
@@ -63,7 +66,15 @@ class UIElement extends HTMLElement {
 	 * @since 0.8.1
 	 * @property {UI<UIElement>[]} self - single item array of UI object for this element
 	 */
-	self: UI<UIElement>[] = [ui(this, this)]
+	self: UI<UIElement>[] = [{
+		host: this,
+		target: this
+	}]
+
+	/**
+	 * @since 0.8.3
+	 */
+	root: Element | ShadowRoot = this.shadowRoot || this
 
 	/**
 	 * Native callback function when an observed attribute of the custom element changes
@@ -180,7 +191,9 @@ class UIElement extends HTMLElement {
 	 * @param {string} selector - selector to match sub-element
 	 * @returns {UI<Element>[]} - array of zero or one UI objects of matching sub-element
 	 */
-	first: (selector: string) => UI<Element>[] = first(this)
+	first(selector: string): UI<Element>[] {
+		return maybe(this.root.querySelector(selector)).map(target => ({ host: this, target }))
+	}
 
 	/**
 	 * Get array of all sub-elements matching a given selector within the custom element
@@ -189,13 +202,15 @@ class UIElement extends HTMLElement {
 	 * @param {string} selector - selector to match sub-elements
 	 * @returns {UI<Element>[]} - array of UI object of matching sub-elements
 	 */
-	all: (selector: string) => UI<Element>[] = all(this)
+	all(selector: string): UI<Element>[] {
+		return Array.from(this.root.querySelectorAll(selector)).map(target => ({ host: this, target }))
+	}
 
 }
 
 export {
-	type AttributeMap, type StateMap, type StateLike,
-	UIElement, effect, maybe, log, pass, on, off, dispatch,
+	type UI, type AttributeMap, type StateMap, type StateLike,
+	UIElement, effect, maybe, log, pass, on, off, emit,
 	asBoolean, asInteger, asNumber, asString, asJSON,
 	setText, setProperty, setAttribute, toggleAttribute, toggleClass, setStyle
 }

@@ -2,7 +2,7 @@
 
 UIElement - the "look ma, no JS framework!" library bringing signals-based reactivity to vanilla Web Components
 
-Version 0.8.2
+Version 0.8.3
 
 ## What is UIElement?
 
@@ -24,7 +24,7 @@ There are 7 pre-defined auto-effects that can be applied on elements with `this.
 - `toggleAttribute(name, state=name)`: toggles a boolean attribute on the element according to the value of state; expects a state of type boolean
 - `toggleClass(token, state=token)`: toggles a class on the element according to the value of state; expects a state of type boolean
 - `setStyle(prop, state=prop)`: set an inline style on the element to the value of state; expects a state of type string for the CSS property value
-- `dispatch(event, state=event)`: dispatch a custom event with the value of state as detail; accepts a state of any type
+- `emit(event, state=event)`: dispatch a custom event with the value of state as detail; accepts a state of any type
 
 You can define custom effects with `effect()`, either in the `connectedCallback()` or in a mapped function on `this.[self|first(selector)|all(selector)]`. `UIElement` will automatically trigger these effects and bundle the fine-grained DOM updates.
 

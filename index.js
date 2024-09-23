@@ -21,70 +21,14 @@ const isComment = (node) => node.nodeType !== Node.COMMENT_NODE;
  */
 const maybe = (value) => isNullish(value) ? [] : [value];
 
-/* === Helper Functions === */
-/**
- * Get root for element queries within the custom element
- *
- * @since 0.8.0
- * @param {UIElement} element
- * @returns {Element | ShadowRoot}
- */
-const getRoot = (element) => element.shadowRoot || element;
-/* === Exported Functions === */
-/**
- * Create a new UI object with the provided host UIElement
- *
- * @since 0.8.1
- * @param {UIElement} host - host UIElement for the new UI object
- * @param {Element} target - target element to use for the new UI object
- * @returns {UI<T>} - UI object with the provided host UIElement and target element
- */
-const ui = (host, target) => {
-    return { host, target };
-};
-/**
- * @since 0.8.1
- * @param {UIElement} host - host UIElement for the new UI instance
- */
-const first = (host) => 
-/**
- * @since 0.8.1
- * @param {string} selector - CSS selector to match against the host UIElement
- * @returns {UI<Element>[]} - array of zero or one UI objects with the matching element in the host UIElement
- */
-(selector) => {
-    return maybe(getRoot(host).querySelector(selector)).map(target => ui(host, target));
-};
-/**
- *
- * @since 0.8.1
- * @param {UIElement} host - host UIElement for the new UI instance
- */
-const all = (host) => 
-/**
- * @since 0.8.1
- * @param {string} selector - CSS selector to match against elements in the host UIElement
- * @returns {UI<Element>[]} - array UI objects with the matching elements in the host UIElement
- */
-(selector) => {
-    return Array.from(getRoot(host).querySelectorAll(selector)).map(target => ui(host, target));
-};
-
 /* === Types === */
-/* type Log<A> = {
-  (): A
-  map: <B>(f: (a: A) => B, mapMsg?: string, mapLevel?: LogLevel) => Log<B>
-  chain: <B>(f: (a: A) => Log<B>) => Log<B>
-} */
 /* === Constants === */
 const LOG_DEBUG = 'debug';
 const LOG_WARN = 'warn';
 const LOG_ERROR = 'error';
-/* === Internal Functions === */
-const shouldLog = (level) => (level === LOG_WARN) || (level === LOG_ERROR);
 /* === Default Export */
 const log = (value, msg, level = LOG_DEBUG) => {
-    if (shouldLog(level))
+    if ([LOG_ERROR, LOG_WARN].includes(level))
         console[level](msg, value);
     return value;
 };
@@ -266,11 +210,11 @@ const pass = (stateMap) =>
  * @param {UI<E>} ui - source UIElement to pass states from
  * @returns - Promise that resolves to UI object of the target UIElement, when it is defined and got passed states
  */
-async ({ host, target }) => {
-    await host.constructor.registry.whenDefined(target.localName);
+async (ui) => {
+    await ui.host.constructor.registry.whenDefined(ui.target.localName);
     for (const [key, source] of Object.entries(stateMap))
-        target.set(key, isSignal(source) ? source : isFunction(source) ? cause(source) : host.signal(source));
-    return { host, target };
+        ui.target.set(key, isSignal(source) ? source : isFunction(source) ? cause(source) : ui.host.signal(source));
+    return ui;
 };
 
 /**
@@ -287,9 +231,9 @@ const on = (event, handler) =>
  * @param {UI<E>} ui - UI object of target element to listen to events
  * @returns - returns ui object of the target
  */
-({ host, target }) => {
-    target.addEventListener(event, handler);
-    return { host, target };
+(ui) => {
+    ui.target.addEventListener(event, handler);
+    return ui;
 };
 /**
  * Remove event listener from target element
@@ -305,32 +249,32 @@ const off = (event, handler) =>
  * @param {UI<E>} ui - UI object of target element to listen to events
  * @returns - returns ui object of the target
  */
-({ host, target }) => {
-    target.removeEventListener(event, handler);
-    return { host, target };
+(ui) => {
+    ui.target.removeEventListener(event, handler);
+    return ui;
 };
 /**
- * Auto-Effect to dispatch a custom event when a state changes
+ * Auto-Effect to emit a custom event when a state changes
  *
- * @since 0.8.1
+ * @since 0.8.3
  * @param {string} event - event name to dispatch
- * @param {PropertyKey} state - state key
+ * @param {StateLike} state - state key
  */
-const dispatch = (event, state = event) => 
+const emit = (event, state = event) => 
 /**
  * Partially applied function to connect to params of UI map function
  *
  * @param {UI<E>} ui - UI object of target element to listen to events
  * @returns - returns ui object of the target
  */
-({ host, target }) => {
+(ui) => {
     effect(() => {
-        target.dispatchEvent(new CustomEvent(event, {
-            detail: host.get(state),
+        ui.target.dispatchEvent(new CustomEvent(event, {
+            detail: ui.host.get(state),
             bubbles: true
         }));
     });
-    return { host, target };
+    return ui;
 };
 
 /* === Exported functions === */
@@ -385,36 +329,82 @@ const asJSON = (value) => {
 };
 
 /* === Internal Functions === */
-const autoEffect = (host, state, target, prop, fallback, onNothing, onSomething) => {
-    host.set(state, isFunction(state) ? state : fallback, false);
+/**
+ * Auto-effect for setting properties of a target element according to a given state
+ *
+ * @param {UI} ui - UI object of host UIElement and target element to update properties
+ * @param {StateLike} state - state to be set to the host element
+ * @param {string} prop - property name to be updated
+ * @param {T} fallback - fallback value to be used if state is not defined
+ * @param {(element: E) => () => void} onNothing - callback to be executed when state is not defined
+ * @param {(value: T) => (element: E) => () => void} onSomething - callback to be executed when state is defined
+ * @returns {UI} object with host and target
+ */
+const autoEffect = (ui, state, prop, fallback, onNothing, onSomething) => {
+    ui.host.set(state, isFunction(state) ? state : fallback, false);
     effect((enqueue) => {
-        if (host.has(state)) {
-            const value = host.get(state);
-            enqueue(target, prop, isNullish(value) ? onNothing : onSomething(value));
+        if (ui.host.has(state)) {
+            const value = ui.host.get(state);
+            enqueue(ui.target, prop, isNullish(value) ? onNothing : onSomething(value));
         }
     });
-    return { host, target };
+    return ui;
 };
 /* === Exported Functions === */
-const setText = (state) => ({ host, target }) => {
-    const fallback = target.textContent || '';
+/**
+ * Set text content of an element
+ *
+ * @param {StateLike} state - state bounded to the text content
+ */
+const setText = (state) => (ui) => {
+    const fallback = ui.target.textContent || '';
     const setter = (value) => (element) => () => {
         Array.from(element.childNodes).filter(isComment).forEach(match => match.remove());
         element.append(document.createTextNode(value));
     };
-    return autoEffect(host, state, target, 't', fallback, setter(fallback), setter);
+    return autoEffect(ui, state, 't', fallback, setter(fallback), setter);
 };
-const setProperty = (key, state = key) => ({ host, target }) => {
+/**
+ * Set property of an element
+ *
+ * @param {PropertyKey} key - name of property to be set
+ * @param {StateLike} state - state bounded to the property value
+ */
+const setProperty = (key, state = key) => (ui) => {
     const setter = (value) => (element) => () => element[key] = value;
-    return autoEffect(host, state, target, `p-${String(key)}`, target[key], setter(null), setter);
+    return autoEffect(ui, state, `p-${String(key)}`, ui.target[key], setter(null), setter);
 };
-const setAttribute = (name, state = name) => ({ host, target }) => autoEffect(host, state, target, `a-${name}`, target.getAttribute(name), (element) => () => element.removeAttribute(name), (value) => (element) => () => element.setAttribute(name, value));
-const toggleAttribute = (name, state = name) => ({ host, target }) => {
+/**
+ * Set attribute of an element
+ *
+ * @param {string} name - name of attribute to be set
+ * @param {StateLike} state - state bounded to the attribute value
+ */
+const setAttribute = (name, state = name) => (ui) => autoEffect(ui, state, `a-${name}`, ui.target.getAttribute(name), (element) => () => element.removeAttribute(name), (value) => (element) => () => element.setAttribute(name, value));
+/**
+ * Toggle a boolan attribute of an element
+ *
+ * @param {string} name - name of attribute to be toggled
+ * @param {StateLike} state - state bounded to the attribute existence
+ */
+const toggleAttribute = (name, state = name) => (ui) => {
     const setter = (value) => (element) => () => element.toggleAttribute(name, value);
-    return autoEffect(host, state, target, `a-${name}`, target.hasAttribute(name), setter(false), setter);
+    return autoEffect(ui, state, `a-${name}`, ui.target.hasAttribute(name), setter(false), setter);
 };
-const toggleClass = (token, state = token) => ({ host, target }) => autoEffect(host, state, target, `c-${token}`, target.classList.contains(token), (element) => () => element.classList.remove(token), (value) => (element) => () => element.classList.toggle(token, value));
-const setStyle = (prop, state = prop) => ({ host, target }) => autoEffect(host, state, target, `s-${prop}`, target.style[prop], (element) => () => element.style.removeProperty(prop), (value) => (element) => () => element.style[prop] = value);
+/**
+ * Toggle a classList token of an element
+ *
+ * @param {string} token - class token to be toggled
+ * @param {StateLike} state - state bounded to the class existence
+ */
+const toggleClass = (token, state = token) => (ui) => autoEffect(ui, state, `c-${token}`, ui.target.classList.contains(token), (element) => () => element.classList.remove(token), (value) => (element) => () => element.classList.toggle(token, value));
+/**
+ * Set a style property of an element
+ *
+ * @param {string} prop - name of style property to be set
+ * @param {StateLike} state - state bounded to the style property value
+ */
+const setStyle = (prop, state = prop) => (ui) => autoEffect(ui, state, `s-${prop}`, ui.target.style[prop], (element) => () => element.style.removeProperty(prop), (value) => (element) => () => element.style[prop] = value);
 
 /* === Internal Functions === */
 /**
@@ -459,7 +449,14 @@ class UIElement extends HTMLElement {
      * @since 0.8.1
      * @property {UI<UIElement>[]} self - single item array of UI object for this element
      */
-    self = [ui(this, this)];
+    self = [{
+            host: this,
+            target: this
+        }];
+    /**
+     * @since 0.8.3
+     */
+    root = this.shadowRoot || this;
     /**
      * Native callback function when an observed attribute of the custom element changes
      *
@@ -570,7 +567,9 @@ class UIElement extends HTMLElement {
      * @param {string} selector - selector to match sub-element
      * @returns {UI<Element>[]} - array of zero or one UI objects of matching sub-element
      */
-    first = first(this);
+    first(selector) {
+        return maybe(this.root.querySelector(selector)).map(target => ({ host: this, target }));
+    }
     /**
      * Get array of all sub-elements matching a given selector within the custom element
      *
@@ -578,7 +577,9 @@ class UIElement extends HTMLElement {
      * @param {string} selector - selector to match sub-elements
      * @returns {UI<Element>[]} - array of UI object of matching sub-elements
      */
-    all = all(this);
+    all(selector) {
+        return Array.from(this.root.querySelectorAll(selector)).map(target => ({ host: this, target }));
+    }
 }
 
-export { UIElement, asBoolean, asInteger, asJSON, asNumber, asString, dispatch, effect, log, maybe, off, on, pass, setAttribute, setProperty, setStyle, setText, toggleAttribute, toggleClass };
+export { UIElement, asBoolean, asInteger, asJSON, asNumber, asString, effect, emit, log, maybe, off, on, pass, setAttribute, setProperty, setStyle, setText, toggleAttribute, toggleClass };

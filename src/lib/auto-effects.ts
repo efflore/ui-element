@@ -1,42 +1,55 @@
 import { isComment, isFunction, isNullish } from '../core/is-type'
 import { effect, type DOMInstruction } from '../cause-effect'
-import type { UIElement, StateLike } from '../ui-element'
-import type { UI } from '../core/ui'
+import type { UI, StateLike } from '../ui-element'
 
 /* === Internal Functions === */
 
+/**
+ * Auto-effect for setting properties of a target element according to a given state
+ * 
+ * @param {UI} ui - UI object of host UIElement and target element to update properties
+ * @param {StateLike} state - state to be set to the host element
+ * @param {string} prop - property name to be updated
+ * @param {T} fallback - fallback value to be used if state is not defined
+ * @param {(element: E) => () => void} onNothing - callback to be executed when state is not defined
+ * @param {(value: T) => (element: E) => () => void} onSomething - callback to be executed when state is defined
+ * @returns {UI} object with host and target
+ */
 const autoEffect = <E extends Element, T>(
-	host: UIElement,
+	ui: UI<E>,
 	state: StateLike,
-	target: E,
 	prop: string,
 	fallback: T,
 	onNothing: (element: E) => () => void,
 	onSomething: (value: T) => (element: E) => () => void
 ): UI<E> => {
-	host.set(state, isFunction(state) ? state : fallback, false)
+	ui.host.set(state, isFunction(state) ? state : fallback, false)
 	effect((enqueue: DOMInstruction) => {
-		if (host.has(state)) {
-			const value = host.get<T>(state)
-			enqueue(target, prop, isNullish(value) ? onNothing : onSomething(value))
+		if (ui.host.has(state)) {
+			const value = ui.host.get<T>(state)
+			enqueue(ui.target, prop, isNullish(value) ? onNothing : onSomething(value))
 		}
 	})
-	return { host, target }
+	return ui
 }
 
 /* === Exported Functions === */
 
+/**
+ * Set text content of an element
+ * 
+ * @param {StateLike} state - state bounded to the text content
+ */
 const setText = <E extends Element>(state: StateLike) =>
-	({ host, target }: UI<E>): UI<E> => {
-		const fallback = target.textContent || ''
+	(ui: UI<E>): UI<E> => {
+		const fallback = ui.target.textContent || ''
 		const setter = (value: string) => (element: E) => () => {
 			Array.from(element.childNodes).filter(isComment).forEach(match => match.remove())
 			element.append(document.createTextNode(value))
 		}
 		return autoEffect<E, string>(
-			host,
+			ui,
 			state,
-			target,
 			't',
 			fallback,
 			setter(fallback),
@@ -44,68 +57,108 @@ const setText = <E extends Element>(state: StateLike) =>
 		)
 	}
 
+/**
+ * Set property of an element
+ * 
+ * @param {PropertyKey} key - name of property to be set
+ * @param {StateLike} state - state bounded to the property value
+ */
 const setProperty = <E extends Element>(key: PropertyKey, state: StateLike = key) =>
-	({ host, target }: UI<E>): UI<E> => {
+	(ui: UI<E>): UI<E> => {
 		const setter = (value: any) => (element: E) => () => element[key] = value
 		return autoEffect<E, any>(
-			host,
+			ui,
 			state,
-			target,
 			`p-${String(key)}`,
-			target[key],
+			ui.target[key],
 			setter(null),
 			setter
 		)
 	}
 
+/**
+ * Set attribute of an element
+ * 
+ * @param {string} name - name of attribute to be set
+ * @param {StateLike} state - state bounded to the attribute value
+ */
 const setAttribute = <E extends Element>(name: string, state: StateLike = name) =>
-	({ host, target }: UI<E>): UI<E> =>
+	(ui: UI<E>): UI<E> =>
 		autoEffect<E, string | undefined>(
-			host,
+			ui,
 			state,
-			target,
 			`a-${name}`,
-			target.getAttribute(name),
+			ui.target.getAttribute(name),
 			(element: E) => () => element.removeAttribute(name),
 			(value: string) => (element: E) => () => element.setAttribute(name, value)
 		)
 
+/**
+ * Toggle a boolan attribute of an element
+ * 
+ * @param {string} name - name of attribute to be toggled
+ * @param {StateLike} state - state bounded to the attribute existence
+ */
 const toggleAttribute = <E extends Element>(name: string, state: StateLike = name) =>
-	({ host, target }: UI<E>): UI<E> => {
+	(ui: UI<E>): UI<E> => {
 		const setter = (value: boolean) => (element: E) => () => element.toggleAttribute(name, value)
 		return autoEffect<E, boolean>(
-			host,
+			ui,
 			state,
-			target,
 			`a-${name}`,
-			target.hasAttribute(name),
+			ui.target.hasAttribute(name),
 			setter(false),
 			setter
 		)
 	}
 
+/**
+ * Toggle a classList token of an element
+ * 
+ * @param {string} token - class token to be toggled
+ * @param {StateLike} state - state bounded to the class existence
+ */
 const toggleClass = <E extends Element>(token: string, state: StateLike = token) =>
-	({ host, target }: UI<E>): UI<E> =>
+	(ui: UI<E>): UI<E> =>
 		autoEffect<E, boolean>(
-			host,
+			ui,
 			state,
-			target,
 			`c-${token}`,
-			target.classList.contains(token),
+			ui.target.classList.contains(token),
 			(element: E) => () => element.classList.remove(token),
 			(value: boolean) => (element: E)  => () => element.classList.toggle(token, value)
 		)
 
+/**
+ * Set a style property of an element
+ * 
+ * @param {string} prop - name of style property to be set
+ * @param {StateLike} state - state bounded to the style property value
+ */
 const setStyle = <E extends (HTMLElement | SVGElement | MathMLElement)>(prop: string, state: StateLike = prop) =>
-	({ host, target }: UI<E>): UI<E> =>
+	(ui: UI<E>): UI<E> =>
 		autoEffect<E, string | undefined>(
-			host,
+			ui,
 			state,
-			target,
 			`s-${prop}`,
-			target.style[prop],
+			ui.target.style[prop],
 			(element: E) => () => element.style.removeProperty(prop),
 			(value: string) => (element: E) => () => element.style[prop] = value
 		)
+
+/* const remove = <E extends Element>(state: StateLike) =>
+	(ui: UI<E>): UI<E> =>
+        autoEffect<E, boolean>(
+			ui,
+			state,
+			`r`,
+			false,
+			() => () => {},
+			(value: boolean) => (element: E) => () => {
+				if (value) element.remove()
+			}
+		) */
+
+/* === Exported Types === */
 
 export { setText, setProperty, setAttribute, toggleAttribute, toggleClass, setStyle }

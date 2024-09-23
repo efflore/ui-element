@@ -10,20 +10,13 @@ const isDefinedObject = (value) => isDefined(value) && (isObject(value) || isFun
 const hasMethod = (obj, name) => isFunction(obj[name]);
 
 /* === Types === */
-/* type Log<A> = {
-  (): A
-  map: <B>(f: (a: A) => B, mapMsg?: string, mapLevel?: LogLevel) => Log<B>
-  chain: <B>(f: (a: A) => Log<B>) => Log<B>
-} */
 /* === Constants === */
 const LOG_DEBUG = 'debug';
 const LOG_WARN = 'warn';
 const LOG_ERROR = 'error';
-/* === Internal Functions === */
-const shouldLog = (level) => (level === LOG_WARN) || (level === LOG_ERROR);
 /* === Default Export */
 const log = (value, msg, level = LOG_DEBUG) => {
-    if (shouldLog(level))
+    if ([LOG_ERROR, LOG_WARN].includes(level))
         console[level](msg, value);
     return value;
 };

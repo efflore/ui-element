@@ -20,7 +20,7 @@ const asBoolean = (value: string[]): boolean[] => [isDefined(value[0])]
  * @returns {number[]}
  */
 const asInteger = (value: string[]): number[] =>
-  value.map(v => parseInt(v, 10)).filter(Number.isFinite)
+	value.map(v => parseInt(v, 10)).filter(Number.isFinite)
 
 /**
  * Parse an attribute as a number
@@ -30,7 +30,7 @@ const asInteger = (value: string[]): number[] =>
  * @returns {number[]}
  */
 const asNumber = (value: string[]): number[] =>
-  value.map(parseFloat).filter(Number.isFinite)
+	value.map(parseFloat).filter(Number.isFinite)
 
 /**
  * Parse an attribute as a string
@@ -49,13 +49,13 @@ const asString = (value: string[]): string[] => value
  * @returns {unknown[]}
  */
 const asJSON = (value: string[]): unknown[] => {
-  let result = []
-  try {
-    result = value.map(v => JSON.parse(v))
-  } catch (error) {
-    log(error, 'Failed to parse JSON', LOG_ERROR)
-  }
-  return result
+	let result = []
+	try {
+		result = value.map(v => JSON.parse(v))
+	} catch (error) {
+		log(error, 'Failed to parse JSON', LOG_ERROR)
+	}
+	return result
 }
 
 export { asBoolean, asInteger, asNumber, asString, asJSON }

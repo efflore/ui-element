@@ -1,4 +1,4 @@
-import type { UI } from '../core/ui';
+import type { UI, StateLike } from '../ui-element';
 /**
  * Add event listener to a target element
  *
@@ -6,7 +6,7 @@ import type { UI } from '../core/ui';
  * @param {string} event - event name to listen to
  * @param {EventListener} handler - event handler to add
  */
-declare const on: <E extends Element>(event: string, handler: EventListener) => ({ host, target }: UI<E>) => UI<E>;
+declare const on: <E extends Element>(event: string, handler: EventListener) => (ui: UI<E>) => UI<E>;
 /**
  * Remove event listener from target element
  *
@@ -14,13 +14,13 @@ declare const on: <E extends Element>(event: string, handler: EventListener) => 
  * @param {string} event - event name to listen to
  * @param {EventListener} handler - event handler to remove
  */
-declare const off: <E extends Element>(event: string, handler: EventListener) => ({ host, target }: UI<E>) => UI<E>;
+declare const off: <E extends Element>(event: string, handler: EventListener) => (ui: UI<E>) => UI<E>;
 /**
- * Auto-Effect to dispatch a custom event when a state changes
+ * Auto-Effect to emit a custom event when a state changes
  *
- * @since 0.8.1
+ * @since 0.8.3
  * @param {string} event - event name to dispatch
- * @param {PropertyKey} state - state key
+ * @param {StateLike} state - state key
  */
-declare const dispatch: <E extends Element>(event: string, state?: PropertyKey) => ({ host, target }: UI<E>) => UI<E>;
-export { on, off, dispatch };
+declare const emit: <E extends Element>(event: string, state?: StateLike) => (ui: UI<E>) => UI<E>;
+export { on, off, emit };

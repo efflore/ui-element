@@ -232,8 +232,8 @@
 			effect(enqueue => {
 				const content = this.get('content')
 				if (!content) return
-				const shadow = this.shadowRoot || this.attachShadow({ mode: 'open' }) // we use shadow DOM to encapsulate styles
-				enqueue(shadow, 'h', el => () => el.innerHTML = content) // UNSAFE!, use only trusted sources in 'src' attribute
+				this.root = this.shadowRoot || this.attachShadow({ mode: 'open' }) // we use shadow DOM to encapsulate styles
+				enqueue(this.root, 'h', el => () => el.innerHTML = content) // UNSAFE!, use only trusted sources in 'src' attribute
 				enqueue(loadingEl, 'r', el => () => el.remove()) // remove placeholder for pending state
 				enqueue(errorEl, 'r', el => () => el.remove()) // won't be needed anymore as request was successful
 			})
