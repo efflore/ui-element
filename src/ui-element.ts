@@ -1,7 +1,7 @@
 import { isFunction } from './core/is-type'
 import { maybe } from './core/maybe'
 import { type Signal, isState, isSignal, cause, effect } from './cause-effect'
-import { type UnknownContext, CONTEXT_REQUEST, ContextRequestEvent } from './core/context-request'
+import { type UnknownContext, initContext } from './core/context'
 import { log, LOG_ERROR } from './core/log'
 import { type StateMap, pass } from './lib/pass'
 import { on, off, emit } from './lib/event'
@@ -99,26 +99,7 @@ class UIElement extends HTMLElement {
      * @since 0.7.0
      */
 	connectedCallback(): void {
-		const proto = this.constructor as typeof UIElement
-
-		// context consumer
-		const consumed = proto.consumedContexts || []
-		for (const context of consumed) this.set(String(context), undefined)
-			setTimeout(() => { // wait for all custom elements to be defined
-			for (const context of consumed)
-				this.dispatchEvent(new ContextRequestEvent(context, (value: unknown) =>
-				this.set(String(context), value)))
-			})
-
-		// context provider: listen to context request events
-		const provided = proto.providedContexts || []
-		if (!provided.length) return
-		this.addEventListener(CONTEXT_REQUEST, (e: ContextRequestEvent<UnknownContext>) => {
-			const { context, callback } = e
-			if (!provided.includes(context) || !isFunction(callback)) return
-			e.stopPropagation()
-			callback(this.#states.get(String(context)))
-		})
+		initContext(this)
 	}
 
 	disconnectedCallback(): void {}

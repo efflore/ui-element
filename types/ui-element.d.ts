@@ -1,6 +1,6 @@
 import { maybe } from './core/maybe';
 import { type Signal, effect } from './cause-effect';
-import { type UnknownContext } from './core/context-request';
+import { type UnknownContext } from './core/context';
 import { log } from './core/log';
 import { type StateMap, pass } from './lib/pass';
 import { on, off, emit } from './lib/event';

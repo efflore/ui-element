@@ -1,3 +1,4 @@
+import type { UIElement } from "../ui-element";
 /** @see https://github.com/webcomponents-cg/community-protocols/blob/main/proposals/context.md */
 /**
  * A context key.
@@ -58,7 +59,9 @@ declare class ContextRequestEvent<T extends UnknownContext> extends Event {
     constructor(context: T, callback: ContextCallback<ContextType<T>>, subscribe?: boolean);
 }
 /**
- * A function which creates a Context value object
+ * Initialize context provider / consumer for a UIElement instance
+ *
+ * @param {UIelement} host - UIElement instance to initialize context for
  */
-declare const createContext: <V>(key: unknown) => Context<typeof key, V>;
-export { type Context, type UnknownContext, CONTEXT_REQUEST, ContextRequestEvent, createContext };
+declare const initContext: (host: UIElement) => void;
+export { type Context, type UnknownContext, CONTEXT_REQUEST, ContextRequestEvent, initContext };

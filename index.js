@@ -160,7 +160,6 @@ const effect = (fn) => {
     n();
 };
 
-/** @see https://github.com/webcomponents-cg/community-protocols/blob/main/proposals/context.md */
 /* === Constants === */
 const CONTEXT_REQUEST = 'context-request';
 /* === Exported class === */
@@ -188,12 +187,42 @@ class ContextRequestEvent extends Event {
     callback;
     subscribe;
     constructor(context, callback, subscribe = false) {
-        super(CONTEXT_REQUEST, { bubbles: true, composed: true });
+        super(CONTEXT_REQUEST, {
+            bubbles: true,
+            composed: true
+        });
         this.context = context;
         this.callback = callback;
         this.subscribe = subscribe;
     }
 }
+/**
+ * Initialize context provider / consumer for a UIElement instance
+ *
+ * @param {UIelement} host - UIElement instance to initialize context for
+ */
+const initContext = (host) => {
+    const proto = host.constructor;
+    // context consumers
+    const consumed = proto.consumedContexts || [];
+    for (const context of consumed)
+        host.set(String(context), undefined, false);
+    setTimeout(() => {
+        for (const context of consumed)
+            host.dispatchEvent(new ContextRequestEvent(context, (value) => host.set(String(context), value)));
+    });
+    // context providers
+    const provided = proto.providedContexts || [];
+    if (!provided.length)
+        return;
+    host.addEventListener(CONTEXT_REQUEST, (e) => {
+        const { context, callback } = e;
+        if (!provided.includes(context) || !isFunction(callback))
+            return;
+        e.stopPropagation();
+        callback(host.get(String(context)));
+    });
+};
 
 /* === Exported Function === */
 /**
@@ -217,6 +246,7 @@ async (ui) => {
     return ui;
 };
 
+/* === Exported Functions === */
 /**
  * Add event listener to a target element
  *
@@ -480,26 +510,7 @@ class UIElement extends HTMLElement {
      * @since 0.7.0
      */
     connectedCallback() {
-        const proto = this.constructor;
-        // context consumer
-        const consumed = proto.consumedContexts || [];
-        for (const context of consumed)
-            this.set(String(context), undefined);
-        setTimeout(() => {
-            for (const context of consumed)
-                this.dispatchEvent(new ContextRequestEvent(context, (value) => this.set(String(context), value)));
-        });
-        // context provider: listen to context request events
-        const provided = proto.providedContexts || [];
-        if (!provided.length)
-            return;
-        this.addEventListener(CONTEXT_REQUEST, (e) => {
-            const { context, callback } = e;
-            if (!provided.includes(context) || !isFunction(callback))
-                return;
-            e.stopPropagation();
-            callback(this.#states.get(String(context)));
-        });
+        initContext(this);
     }
     disconnectedCallback() { }
     /**

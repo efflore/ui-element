@@ -1,6 +1,8 @@
 import { effect } from '../cause-effect'
 import type { UI, StateLike } from '../ui-element'
 
+/* === Exported Functions === */
+
 /**
  * Add event listener to a target element
  * 
