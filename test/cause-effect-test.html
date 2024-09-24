@@ -258,7 +258,7 @@
           assert.equal(computed(), 43);
         });
 
-        it('should be added to state.effects', function () {
+        /* it('should be added to state.effects', function () {
           const state = cause();
           const computed = derive(() => 1 + state());
           effect(() => computed());
@@ -268,7 +268,7 @@
           assert.equal(state.effects.size, 2);
           effect(() => computed() + computed2());
           assert.equal(state.effects.size, 2);
-        });
+        }); */
 
         it('should compute function dependent on an updated signal', function() {
           const state = cause(42);
@@ -417,7 +417,7 @@
 
       describe('Effect', function () {
 
-        it('should be added to state.effects', function () {
+        /* it('should be added to state.effects', function () {
           const state = cause();
           effect(() => state());
           assert.equal(state.effects.size, 1);
@@ -434,7 +434,7 @@
           effect(() => computed() + computed2());
           assert.equal(computed.effects.size, 2);
           assert.equal(computed2.effects.size, 1);
-        });
+        }); */
 
         it('should be triggered after a state change', function() {
           const state = cause('foo');

@@ -1,22 +1,19 @@
 import { isFunction, hasMethod, isDefinedObject } from './core/is-type'
+import { log, LOG_ERROR } from './core/log'
 import scheduler from './core/scheduler'
 
 /* === Types === */
 
 interface Effect {
 	(): void
-	run(): void
-	targets?: Set<Element>
 }
 
 interface Computed<T> extends Effect {
 	(): T
-	effects: Set<Effect | Computed<unknown>>
 }
 
 interface State<T> {
 	(): T
-	effects: Set<Effect | Computed<unknown>>
 	set(value: T): void
 }
 
@@ -34,19 +31,43 @@ type EffectCallback = (enqueue: DOMInstruction) => MaybeCleanup
 
 /* === Internal === */
 
-// hold the currently active effect
-let activeEffect: Effect | undefined
-
-// hold schuduler instance
 const { enqueue, cleanup } = scheduler()
 
+// hold the currently active effect
+let active: () => void | undefined
+
+// hold schuduler instance
+// const { enqueue, cleanup } = scheduler()
+
 /**
- * Run all effects in the provided set
+ * Add notify function of active listener to the set of listeners
  * 
- * @param {Set<Effect | Computed<unknown>>} effects 
+ * @param {Set<() => void>} targets - set of current listeners
  */
-const autorun = (effects: Set<Effect | Computed<unknown>>) => {
-	for (const effect of effects) effect.run()
+const autotrack = (targets: Set<() => void>) => {
+	if (active) targets.add(active)
+}
+
+/**
+ * Run all notify function of dependent listeners
+ * 
+ * @param {Set<() => void>} targets 
+ */
+const autorun = (targets: Set<() => void>) => {
+	for (const notify of targets) notify()
+	targets.clear()
+}
+
+const reactive = (fn: () => void, notify: () => void) => {
+	const prev = active
+	active = notify
+	try {
+		fn()
+	} catch (error) {
+		log(error, 'Error during reactive computation:', LOG_ERROR)
+	} finally {
+		active = prev
+	}
 }
 
 /* === Exported functions === */
@@ -84,17 +105,17 @@ const isSignal = (value: unknown): value is Signal<unknown> =>
  * @returns {State<T>} getter function for the current value with a `set` method to update the value
  */
 const cause = <T>(value: any): State<T> => {
-	const s: State<T> = (): T => { // getter function
-		if (activeEffect) s.effects.add(activeEffect)
+	const targets = new Set<() => void>()
+	const state: State<T> = (): T => { // getter function
+		autotrack(targets)
 		return value
 	}
-	s.effects = new Set<Effect | Computed<unknown>>() // set of listeners
-	s.set = (updater: unknown | ((value: T) => unknown)) => { // setter function
+	state.set = (updater: unknown | ((value: T) => unknown)) => { // setter function
 		const old = value
-		value = isFunction(updater) && !isSignal(updater) ? updater(value) : updater
-		if (!Object.is(value, old)) autorun(s.effects)
+		value = isFunction(updater) ? updater(value) : updater
+		if (!Object.is(value, old)) autorun(targets)
 	}
-	return s
+	return state
 }
 
 /**
@@ -106,24 +127,22 @@ const cause = <T>(value: any): State<T> => {
  * @returns {UIComputed<T>} derived state
  */
 const derive = <T>(fn: () => T, memo: boolean = false): Computed<T> => {
+	const targets = new Set<() => void>()
 	let value: T
 	let dirty = true
-	const c = () => {
-		if (activeEffect) c.effects.add(activeEffect)
-		if (memo && !dirty) return value
-		const prev = activeEffect
-		activeEffect = c
-		value = fn()
-		dirty = false
-		activeEffect = prev
+	return () => {
+		autotrack(targets)
+		if (!memo || dirty) {
+			reactive(() => {
+				value = fn()
+                dirty = false
+			}, () => {
+				dirty = true
+				if (memo) autorun(targets)
+			})
+		}
 		return value
 	}
-	c.effects = new Set<Effect | Computed<unknown>>(); // set of listeners
-	c.run = () => {
-		dirty = true
-		if (memo) autorun(c.effects)
-	}
-	return c
 }
 
 /**
@@ -133,23 +152,139 @@ const derive = <T>(fn: () => T, memo: boolean = false): Computed<T> => {
  * @param {EffectCallback} fn - callback function to be executed when a state changes
  */
 const effect = (fn: EffectCallback) => {
-	const targets = new Set<Element>()
-	const n = () => {
-		const prev = activeEffect
-		activeEffect = n
-		const cleanupFn = fn((element: Element, prop: string, callback: (element: Element) => () => void): void => {
-			enqueue(element, prop, callback)
-			targets.add(element)
-		})
-		if (isFunction(cleanupFn)) cleanup(n, cleanupFn)
-		activeEffect = prev
-	}
-	n.run = () => n()
-	n.targets = targets
-	n()
+	const run = () => reactive(() => {
+		const cleanupFn = fn(enqueue)
+		if (isFunction(cleanupFn)) cleanup(fn, cleanupFn)
+	}, run)
+	run()
 }
 
 export {
 	type State, type Computed, type Signal, type Effect, type DOMInstruction,
 	isState, isSignal, cause, derive, effect
 }
+
+/* === Test === * /
+
+import { hasMethod, isDefinedObject, isFunction } from './core/is-type'
+import { log, LOG_ERROR } from './core/log'
+
+/* === Types === * /
+
+type State<T> = {
+	(): T
+	set(value: T): void
+}
+type Computed<T> = () => T
+type Signal<T> = State<T> | Computed<T>
+type Effect = () => void
+
+/* === Internal === * /
+
+// hold function to notify active listener when state changes
+let active: () => void | null
+
+/**
+ * Add notify function of active listener to the set of listeners
+ * 
+ * @param {Set<() => void>} targets - set of current listeners
+ * /
+const autotrack = (targets: Set<() => void>) => {
+	if (active) targets.add(active)
+}
+
+/**
+ * Run all notify function of dependent listeners
+ * 
+ * @param {Set<() => void>} targets 
+ * /
+const autorun = (targets: Set<() => void>) => {
+	for (const notify of targets) notify()
+	targets.clear()
+}
+  
+const reactive = (fn: () => void, notify: () => void) => {
+	const prev = active
+	active = notify
+	try {
+		fn()
+	} catch (error) {
+		log(error, 'Error during reactive computation:', LOG_ERROR)
+	} finally {
+		active = prev
+	}
+}
+
+/* === Exported functions === */
+
+/**
+ * Check if the given value is a reactive state
+ * 
+ * @param {unknown} value - value to check
+ * @returns {boolean} - true if the value is a reactive state
+ * /
+const isState = (value: unknown): value is State<unknown> =>
+	isDefinedObject(value) && hasMethod(value, 'set')
+
+/**
+ * Define a reactive state
+ * 
+ * @since 0.1.0
+ * @param {any} value - initial value of the state; may be a function for derived state
+ * @returns {State<T>} getter function for the current value with a `set` method to update the value
+ * /
+const cause = <T>(value: any): State<T> => {
+	const targets = new Set<() => void>()
+	const state: State<T> = (): T => { // getter function
+		autotrack(targets)
+		return value
+	}
+	state.set = (updater: unknown | ((value: T) => unknown)) => { // setter function
+		const old = value
+		value = isFunction(updater) ? updater(value) : updater
+		if (!Object.is(value, old)) autorun(targets)
+	}
+	return state
+}
+
+/**
+ * Create a derived state from an existing state
+ * 
+ * @since 0.1.0
+ * @param {() => T} fn - existing state to derive from
+ * @returns {Computed<T>} derived state
+ * /
+const derive = <T>(fn: () => T): Computed<T> => {
+	const targets = new Set<() => void>()
+	let value: T
+	let stale: boolean = true
+	return () => {
+		autotrack(targets)
+		if (stale) reactive(() => {
+			value = fn()
+			stale = false
+		}, () => {
+			stale = true
+			autorun(targets)
+		})
+		return value
+	}
+}
+
+/**
+ * Define what happens when a reactive state changes
+ * 
+ * @since 0.1.0
+ * @param {() => void} fn - callback function to be executed when a state changes
+ * /
+const effect = (fn: () => void) => {
+	const run = () => reactive(fn, run)
+	run()
+}
+
+export {
+	type State, type Computed, type Signal, type Effect,
+	isState, cause, derive, effect
+}
+
+*/

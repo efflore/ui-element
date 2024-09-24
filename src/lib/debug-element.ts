@@ -1,15 +1,15 @@
 import { isString, isDefined } from '../core/is-type'
-import type { Computed, Effect } from '../cause-effect'
+// import type { Computed, Effect } from '../cause-effect'
 import { UIElement } from '../ui-element'
 import { log, DEV_MODE } from '../core/log'
 
 /* === Constants === */
 
 const DEBUG_STATE = 'debug'
-const SELECTOR_PREFIX = 'data-'
+/* const SELECTOR_PREFIX = 'data-'
 const HOVER_SUFFIX = 'hover'
 const FOCUS_SUFFIX = 'focus'
-const EFFECT_CLASS = 'ui-effect'
+const EFFECT_CLASS = 'ui-effect' */
 
 /* === Internal Functions === */
 
@@ -141,7 +141,7 @@ class DebugElement extends UIElement {
    * 
    * @since 0.7.0
    * @param {PropertyKey} key - state to be observed
-   */
+   * /
   targets(key: PropertyKey): Element[] {
     let targets = []
     const state = this.signal(key)
@@ -154,14 +154,14 @@ class DebugElement extends UIElement {
     }
     recurse(state.effects)
     return targets
-  }
+  } */
 
   /**
    * Add event listeners to UIElement and sub-elements to auto-highlight targets when hovering or focusing on elements with given attribute
    * 
    * @since 0.7.0
    * @param {string} [className=EFFECT_CLASS] - CSS class to be added to highlighted targets
-   */
+   * /
   highlight(className: string = EFFECT_CLASS): void {
     [HOVER_SUFFIX, FOCUS_SUFFIX].forEach(suffix => {
       const [onOn, onOff] = suffix === HOVER_SUFFIX ? ['mouseenter','mouseleave'] : ['focus', 'blur']
@@ -180,7 +180,7 @@ class DebugElement extends UIElement {
       if (this.hasAttribute(attr)) apply(this)
       for (const node of (this.shadowRoot || this).querySelectorAll(`[${attr}]`)) apply(node)
     })
-  }
+  } */
 
 }
 
