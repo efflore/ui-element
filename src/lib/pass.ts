@@ -1,5 +1,5 @@
 import type { UI, UIElement, StateLike } from '../ui-element'
-import { cause, isSignal } from '../cause-effect'
+import { cause, isState } from '../cause-effect'
 import { isFunction } from '../core/is-type'
 
 /* === Types === */
@@ -26,7 +26,7 @@ const pass = <E extends UIElement>(stateMap: StateMap) =>
 	async (ui: UI<E>): Promise<UI<E>> => {
 		await (ui.host.constructor as typeof UIElement).registry.whenDefined(ui.target.localName)
 		for (const [key, source] of Object.entries(stateMap))
-			ui.target.set(key, isSignal(source) ? source : isFunction(source) ? cause(source) : ui.host.signal(source))
+			ui.target.set(key, isState(source) ? source : isFunction(source) ? cause(source) : ui.host.signal(source))
 		return ui
 	}
 

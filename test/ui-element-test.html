@@ -492,7 +492,7 @@
             assert.equal(textContent, 'Hello from Attribute'.toUpperCase(), 'Should have initial text derived from attribute of parent component');
           });
 
-          it('should receive passed and derived properties from changed attribute of parent component', async function () {
+          it('should receive passed and derived states from changed attribute of parent component', async function () {
             const parentComponent = document.getElementById('parent');
             const childComponent = document.getElementById('child');
             parentComponent.setAttribute('heading', 'Hello from Changed Attribute');
@@ -506,7 +506,6 @@
           it('should change heading if inherited state is set', async function () {
             const parentComponent = document.getElementById('parent');
             const childComponent = document.getElementById('child');
-            await customElements.whenDefined(childComponent.localName);
             parentComponent.set('heading', 'Hello from State on Parent');
             await paint();
             const headingContent = childComponent.querySelector('h1').textContent;

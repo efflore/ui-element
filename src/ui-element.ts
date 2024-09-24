@@ -1,6 +1,6 @@
 import { isFunction } from './core/is-type'
 import { maybe } from './core/maybe'
-import { type Signal, isState, isSignal, cause, effect } from './cause-effect'
+import { type Signal, isState, cause, effect } from './cause-effect'
 import { type UnknownContext, initContext } from './core/context'
 import { log, LOG_ERROR } from './core/log'
 import { type StateMap, pass } from './lib/pass'
@@ -136,7 +136,7 @@ class UIElement extends HTMLElement {
 	 */
 	set<T>(key: any, value: T | ((old: T | undefined) => T) | Signal<T>, update: boolean = true): void {
 		if (!this.#states.has(key)) {
-			this.#states.set(key, isSignal(value) ? value : cause(value))
+			this.#states.set(key, isState(value) ? value : cause(value))
 		} else if (update) {
 			const state = this.#states.get(key)
 			if (isState(state)) state.set(value)

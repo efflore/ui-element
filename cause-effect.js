@@ -36,13 +36,9 @@ const scheduler = () => {
     };
     const flush = () => {
         requestId = null;
-        for (const [el, elEffect] of effectQueue) {
-            for (const [prop, fn] of elEffect)
-                run(fn(el), ` Effect ${prop} on ${el?.localName || 'unknown'} failed`);
-        }
+        effectQueue.forEach((elEffect, el) => elEffect.forEach((fn, prop) => run(fn(el), `Effect ${prop} on ${el?.localName || 'unknown'} failed`)));
         effectQueue.clear();
-        for (const fn of cleanupQueue.values())
-            run(fn, 'Cleanup failed');
+        cleanupQueue.forEach(fn => run(fn, 'Cleanup failed'));
         cleanupQueue.clear();
     };
     const requestTick = () => {
@@ -88,11 +84,7 @@ const autotrack = (targets) => {
  *
  * @param {Set<() => void>} targets
  */
-const autorun = (targets) => {
-    for (const notify of targets)
-        notify();
-    targets.clear();
-};
+const autorun = (targets) => targets.forEach(notify => notify());
 const reactive = (fn, notify) => {
     const prev = active;
     active = notify;
@@ -100,7 +92,7 @@ const reactive = (fn, notify) => {
         fn();
     }
     catch (error) {
-        log(error, 'Error during reactive computation:', LOG_ERROR);
+        log(error, 'Error during reactive computation', LOG_ERROR);
     }
     finally {
         active = prev;
@@ -114,18 +106,6 @@ const reactive = (fn, notify) => {
  * @returns {boolean} true if supplied parameter is a reactive state
  */
 const isState = (value) => isDefinedObject(value) && hasMethod(value, 'set');
-/**
- * Check if a given variable is a reactive computed state
- *
- * @param {unknown} value - variable to check if it is a reactive computed state
- */
-const isComputed = (value) => isDefinedObject(value) && hasMethod(value, 'run') && 'effects' in value;
-/**
- * Check if a given variable is a reactive signal (state or computed state)
- *
- * @param {unknown} value - variable to check if it is a reactive signal
- */
-const isSignal = (value) => isState(value) || isComputed(value);
 /**
  * Define a reactive state
  *
@@ -141,7 +121,7 @@ const cause = (value) => {
     };
     state.set = (updater) => {
         const old = value;
-        value = isFunction(updater) ? updater(value) : updater;
+        value = isFunction(updater) && !isState(updater) ? updater(value) : updater;
         if (!Object.is(value, old))
             autorun(targets);
     };
@@ -158,15 +138,15 @@ const cause = (value) => {
 const derive = (fn, memo = false) => {
     const targets = new Set();
     let value;
-    let dirty = true;
+    let stale = true;
     return () => {
         autotrack(targets);
-        if (!memo || dirty) {
+        if (!memo || stale) {
             reactive(() => {
                 value = fn();
-                dirty = false;
+                stale = false;
             }, () => {
-                dirty = true;
+                stale = true;
                 if (memo)
                     autorun(targets);
             });
@@ -188,128 +168,5 @@ const effect = (fn) => {
     }, run);
     run();
 };
-/* === Test === * /
 
-import { hasMethod, isDefinedObject, isFunction } from './core/is-type'
-import { log, LOG_ERROR } from './core/log'
-
-/* === Types === * /
-
-type State<T> = {
-    (): T
-    set(value: T): void
-}
-type Computed<T> = () => T
-type Signal<T> = State<T> | Computed<T>
-type Effect = () => void
-
-/* === Internal === * /
-
-// hold function to notify active listener when state changes
-let active: () => void | null
-
-/**
- * Add notify function of active listener to the set of listeners
- *
- * @param {Set<() => void>} targets - set of current listeners
- * /
-const autotrack = (targets: Set<() => void>) => {
-    if (active) targets.add(active)
-}
-
-/**
- * Run all notify function of dependent listeners
- *
- * @param {Set<() => void>} targets
- * /
-const autorun = (targets: Set<() => void>) => {
-    for (const notify of targets) notify()
-    targets.clear()
-}
-  
-const reactive = (fn: () => void, notify: () => void) => {
-    const prev = active
-    active = notify
-    try {
-        fn()
-    } catch (error) {
-        log(error, 'Error during reactive computation:', LOG_ERROR)
-    } finally {
-        active = prev
-    }
-}
-
-/* === Exported functions === */
-/**
- * Check if the given value is a reactive state
- *
- * @param {unknown} value - value to check
- * @returns {boolean} - true if the value is a reactive state
- * /
-const isState = (value: unknown): value is State<unknown> =>
-    isDefinedObject(value) && hasMethod(value, 'set')
-
-/**
- * Define a reactive state
- *
- * @since 0.1.0
- * @param {any} value - initial value of the state; may be a function for derived state
- * @returns {State<T>} getter function for the current value with a `set` method to update the value
- * /
-const cause = <T>(value: any): State<T> => {
-    const targets = new Set<() => void>()
-    const state: State<T> = (): T => { // getter function
-        autotrack(targets)
-        return value
-    }
-    state.set = (updater: unknown | ((value: T) => unknown)) => { // setter function
-        const old = value
-        value = isFunction(updater) ? updater(value) : updater
-        if (!Object.is(value, old)) autorun(targets)
-    }
-    return state
-}
-
-/**
- * Create a derived state from an existing state
- *
- * @since 0.1.0
- * @param {() => T} fn - existing state to derive from
- * @returns {Computed<T>} derived state
- * /
-const derive = <T>(fn: () => T): Computed<T> => {
-    const targets = new Set<() => void>()
-    let value: T
-    let stale: boolean = true
-    return () => {
-        autotrack(targets)
-        if (stale) reactive(() => {
-            value = fn()
-            stale = false
-        }, () => {
-            stale = true
-            autorun(targets)
-        })
-        return value
-    }
-}
-
-/**
- * Define what happens when a reactive state changes
- *
- * @since 0.1.0
- * @param {() => void} fn - callback function to be executed when a state changes
- * /
-const effect = (fn: () => void) => {
-    const run = () => reactive(fn, run)
-    run()
-}
-
-export {
-    type State, type Computed, type Signal, type Effect,
-    isState, cause, derive, effect
-}
-
-*/
-
-export { cause, derive, effect, isSignal, isState };
+export { cause, derive, effect, isState };
