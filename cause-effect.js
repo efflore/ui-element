@@ -22,6 +22,12 @@ const log = (value, msg, level = LOG_DEBUG) => {
 };
 
 /* === Exported Function === */
+/**
+ * Schedules functions to be executed after the next animation frame or after all events have been dispatched
+ *
+ * @since 0.8.0
+ * @returns {Scheduler}
+ */
 const scheduler = () => {
     const effectQueue = new Map();
     const cleanupQueue = new Map();

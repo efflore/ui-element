@@ -2,12 +2,14 @@ import type { UI, StateLike } from '../ui-element';
 /**
  * Set text content of an element
  *
+ * @since 0.8.0
  * @param {StateLike} state - state bounded to the text content
  */
 declare const setText: <E extends Element>(state: StateLike) => (ui: UI<E>) => UI<E>;
 /**
  * Set property of an element
  *
+ * @since 0.8.0
  * @param {PropertyKey} key - name of property to be set
  * @param {StateLike} state - state bounded to the property value
  */
@@ -15,6 +17,7 @@ declare const setProperty: <E extends Element>(key: PropertyKey, state?: StateLi
 /**
  * Set attribute of an element
  *
+ * @since 0.8.0
  * @param {string} name - name of attribute to be set
  * @param {StateLike} state - state bounded to the attribute value
  */
@@ -22,6 +25,7 @@ declare const setAttribute: <E extends Element>(name: string, state?: StateLike)
 /**
  * Toggle a boolan attribute of an element
  *
+ * @since 0.8.0
  * @param {string} name - name of attribute to be toggled
  * @param {StateLike} state - state bounded to the attribute existence
  */
@@ -29,6 +33,7 @@ declare const toggleAttribute: <E extends Element>(name: string, state?: StateLi
 /**
  * Toggle a classList token of an element
  *
+ * @since 0.8.0
  * @param {string} token - class token to be toggled
  * @param {StateLike} state - state bounded to the class existence
  */
@@ -36,6 +41,7 @@ declare const toggleClass: <E extends Element>(token: string, state?: StateLike)
 /**
  * Set a style property of an element
  *
+ * @since 0.8.0
  * @param {string} prop - name of style property to be set
  * @param {StateLike} state - state bounded to the style property value
  */

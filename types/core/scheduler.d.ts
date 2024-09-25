@@ -1,7 +1,16 @@
 type UnknownFunction = (...args: unknown[]) => unknown;
 type ElementFunction = (element: Element) => () => void;
-declare const scheduler: () => {
-    enqueue: (element: Element, prop: string, fn: ElementFunction) => void;
-    cleanup: (key: unknown, fn: UnknownFunction) => void;
+type Enqueue = (element: Element, prop: string, fn: ElementFunction) => void;
+type Cleanup = (key: unknown, fn: UnknownFunction) => void;
+type Scheduler = {
+    enqueue: Enqueue;
+    cleanup: Cleanup;
 };
-export default scheduler;
+/**
+ * Schedules functions to be executed after the next animation frame or after all events have been dispatched
+ *
+ * @since 0.8.0
+ * @returns {Scheduler}
+ */
+declare const scheduler: () => Scheduler;
+export { type Enqueue, type Cleanup, type Scheduler, scheduler };

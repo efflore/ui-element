@@ -1,6 +1,6 @@
 import { isFunction, hasMethod, isDefinedObject } from './core/is-type'
 import { log, LOG_ERROR } from './core/log'
-import scheduler from './core/scheduler'
+import { type Enqueue, scheduler } from './core/scheduler'
 
 /* === Types === */
 
@@ -10,20 +10,12 @@ type State<T> = {
 }
 
 type Computed<T> = () => T
-
-type Effect = () => void
-
 type Signal<T> = State<T> | Computed<T>
-
-type DOMInstruction = (
-	element: Element,
-	prop: string,
-	callback: (element: Element) => () => void
-) => void
+type Effect = () => void
 
 type MaybeCleanup = void | (() => void)
 
-type EffectCallback = (enqueue: DOMInstruction) => MaybeCleanup
+type EffectCallback = (enqueue: Enqueue) => MaybeCleanup
 
 /* === Internal === */
 
@@ -139,6 +131,6 @@ const effect = (fn: EffectCallback) => {
 }
 
 export {
-	type State, type Computed, type Signal, type Effect, type DOMInstruction,
+	type State, type Computed, type Signal, type Effect,
 	isState, cause, derive, effect
 }

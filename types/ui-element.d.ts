@@ -1,7 +1,8 @@
 import { maybe } from './core/maybe';
 import { type Signal, effect } from './cause-effect';
-import { type UnknownContext } from './core/context';
 import { log } from './core/log';
+import { parse } from './core/parse';
+import { type UnknownContext } from './core/context';
 import { type StateMap, pass } from './lib/pass';
 import { on, off, emit } from './lib/event';
 import { asBoolean, asInteger, asJSON, asNumber, asString } from './lib/parse-attribute';
@@ -119,4 +120,4 @@ declare class UIElement extends HTMLElement {
      */
     all(selector: string): UI<Element>[];
 }
-export { type UI, type AttributeMap, type StateMap, type StateLike, UIElement, effect, maybe, log, pass, on, off, emit, asBoolean, asInteger, asNumber, asString, asJSON, setText, setProperty, setAttribute, toggleAttribute, toggleClass, setStyle };
+export { type UI, type AttributeMap, type StateMap, type StateLike, UIElement, parse, effect, maybe, log, pass, on, off, emit, asBoolean, asInteger, asNumber, asString, asJSON, setText, setProperty, setAttribute, toggleAttribute, toggleClass, setStyle };

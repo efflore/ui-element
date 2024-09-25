@@ -1,13 +1,13 @@
+import { type Enqueue } from './core/scheduler';
 type State<T> = {
     (): T;
     set(value: T): void;
 };
 type Computed<T> = () => T;
-type Effect = () => void;
 type Signal<T> = State<T> | Computed<T>;
-type DOMInstruction = (element: Element, prop: string, callback: (element: Element) => () => void) => void;
+type Effect = () => void;
 type MaybeCleanup = void | (() => void);
-type EffectCallback = (enqueue: DOMInstruction) => MaybeCleanup;
+type EffectCallback = (enqueue: Enqueue) => MaybeCleanup;
 /**
  * Check if a given variable is a reactive state
  *
@@ -39,4 +39,4 @@ declare const derive: <T>(fn: () => T, memo?: boolean) => Computed<T>;
  * @param {EffectCallback} fn - callback function to be executed when a state changes
  */
 declare const effect: (fn: EffectCallback) => void;
-export { type State, type Computed, type Signal, type Effect, type DOMInstruction, isState, cause, derive, effect };
+export { type State, type Computed, type Signal, type Effect, isState, cause, derive, effect };

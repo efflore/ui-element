@@ -1,6 +1,7 @@
 /* === Types === */
 /* === Exported Functions === */
 const isOfType = (type) => (value) => typeof value === type;
+const isString = isOfType('string');
 const isObject = isOfType('object');
 // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
 const isFunction = isOfType('function');
@@ -34,6 +35,12 @@ const log = (value, msg, level = LOG_DEBUG) => {
 };
 
 /* === Exported Function === */
+/**
+ * Schedules functions to be executed after the next animation frame or after all events have been dispatched
+ *
+ * @since 0.8.0
+ * @returns {Scheduler}
+ */
 const scheduler = () => {
     const effectQueue = new Map();
     const cleanupQueue = new Map();
@@ -152,6 +159,21 @@ const effect = (fn) => {
             cleanup(fn, cleanupFn);
     }, run);
     run();
+};
+
+/* === Exported Functions === */
+/**
+ * Parse according to static attributeMap
+ *
+ * @since 0.8.4
+ * @param {UIElement} host - host UIElement
+ * @param {string} name - attribute name
+ * @param {string} value - attribute value
+ * @param {string} old - old attribute value
+ */
+const parse = (host, name, value, old) => {
+    const parser = host.constructor.attributeMap[name];
+    return isFunction(parser) ? parser(maybe(value), host, old)[0] : value;
 };
 
 /* === Constants === */
@@ -356,6 +378,7 @@ const asJSON = (value) => {
 /**
  * Auto-effect for setting properties of a target element according to a given state
  *
+ * @since 0.8.0
  * @param {UI} ui - UI object of host UIElement and target element to update properties
  * @param {StateLike} state - state to be set to the host element
  * @param {string} prop - property name to be updated
@@ -365,7 +388,11 @@ const asJSON = (value) => {
  * @returns {UI} object with host and target
  */
 const autoEffect = (ui, state, prop, fallback, onNothing, onSomething) => {
-    ui.host.set(state, isFunction(state) ? state : fallback, false);
+    ui.host.set(state, isFunction(state)
+        ? state
+        : isString(state) && isString(fallback)
+            ? parse(ui.host, state, fallback, undefined)
+            : fallback, false);
     effect((enqueue) => {
         if (ui.host.has(state)) {
             const value = ui.host.get(state);
@@ -378,6 +405,7 @@ const autoEffect = (ui, state, prop, fallback, onNothing, onSomething) => {
 /**
  * Set text content of an element
  *
+ * @since 0.8.0
  * @param {StateLike} state - state bounded to the text content
  */
 const setText = (state) => (ui) => {
@@ -391,6 +419,7 @@ const setText = (state) => (ui) => {
 /**
  * Set property of an element
  *
+ * @since 0.8.0
  * @param {PropertyKey} key - name of property to be set
  * @param {StateLike} state - state bounded to the property value
  */
@@ -401,6 +430,7 @@ const setProperty = (key, state = key) => (ui) => {
 /**
  * Set attribute of an element
  *
+ * @since 0.8.0
  * @param {string} name - name of attribute to be set
  * @param {StateLike} state - state bounded to the attribute value
  */
@@ -408,6 +438,7 @@ const setAttribute = (name, state = name) => (ui) => autoEffect(ui, state, `a-${
 /**
  * Toggle a boolan attribute of an element
  *
+ * @since 0.8.0
  * @param {string} name - name of attribute to be toggled
  * @param {StateLike} state - state bounded to the attribute existence
  */
@@ -418,6 +449,7 @@ const toggleAttribute = (name, state = name) => (ui) => {
 /**
  * Toggle a classList token of an element
  *
+ * @since 0.8.0
  * @param {string} token - class token to be toggled
  * @param {StateLike} state - state bounded to the class existence
  */
@@ -425,6 +457,7 @@ const toggleClass = (token, state = token) => (ui) => autoEffect(ui, state, `c-$
 /**
  * Set a style property of an element
  *
+ * @since 0.8.0
  * @param {string} prop - name of style property to be set
  * @param {StateLike} state - state bounded to the style property value
  */
@@ -492,8 +525,7 @@ class UIElement extends HTMLElement {
     attributeChangedCallback(name, old, value) {
         if (value === old)
             return;
-        const parser = this.constructor.attributeMap[name];
-        this.set(name, isFunction(parser) ? parser(maybe(value), this, old)[0] : value);
+        this.set(name, parse(this, name, value, old));
     }
     /**
      * Native callback function when the custom element is first connected to the document

@@ -1,8 +1,9 @@
 import { isFunction } from './core/is-type'
 import { maybe } from './core/maybe'
 import { type Signal, isState, cause, effect } from './cause-effect'
-import { type UnknownContext, initContext } from './core/context'
 import { log, LOG_ERROR } from './core/log'
+import { parse } from './core/parse'
+import { type UnknownContext, initContext } from './core/context'
 import { type StateMap, pass } from './lib/pass'
 import { on, off, emit } from './lib/event'
 import { asBoolean, asInteger, asJSON, asNumber, asString } from './lib/parse-attribute'
@@ -86,8 +87,7 @@ class UIElement extends HTMLElement {
 	 */
 	attributeChangedCallback(name: string, old: string | undefined, value: string | undefined): void {
 		if (value === old) return
-		const parser = (this.constructor as typeof UIElement).attributeMap[name]
-		this.set(name, isFunction(parser) ? parser(maybe(value), this, old)[0] : value)
+		this.set(name, parse(this, name, value, old))
 	}
 
 	/**
@@ -191,7 +191,7 @@ class UIElement extends HTMLElement {
 
 export {
 	type UI, type AttributeMap, type StateMap, type StateLike,
-	UIElement, effect, maybe, log, pass, on, off, emit,
+	UIElement, parse, effect, maybe, log, pass, on, off, emit,
 	asBoolean, asInteger, asNumber, asString, asJSON,
 	setText, setProperty, setAttribute, toggleAttribute, toggleClass, setStyle
 }
