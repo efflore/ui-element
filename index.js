@@ -1,6 +1,6 @@
-/* === Types === */
 /* === Exported Functions === */
 const isOfType = (type) => (value) => typeof value === type;
+const isString = isOfType('string');
 const isObject = isOfType('object');
 // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
 const isFunction = isOfType('function');
@@ -34,6 +34,12 @@ const log = (value, msg, level = LOG_DEBUG) => {
 };
 
 /* === Exported Function === */
+/**
+ * Schedules functions to be executed after the next animation frame or after all events have been dispatched
+ *
+ * @since 0.8.0
+ * @returns {Scheduler}
+ */
 const scheduler = () => {
     const effectQueue = new Map();
     const cleanupQueue = new Map();
@@ -48,13 +54,9 @@ const scheduler = () => {
     };
     const flush = () => {
         requestId = null;
-        for (const [el, elEffect] of effectQueue) {
-            for (const [prop, fn] of elEffect)
-                run(fn(el), ` Effect ${prop} on ${el?.localName || 'unknown'} failed`);
-        }
+        effectQueue.forEach((elEffect, el) => elEffect.forEach((fn, prop) => run(fn(el), `Effect ${prop} on ${el?.localName || 'unknown'} failed`)));
         effectQueue.clear();
-        for (const fn of cleanupQueue.values())
-            run(fn, 'Cleanup failed');
+        cleanupQueue.forEach(fn => run(fn, 'Cleanup failed'));
         cleanupQueue.clear();
     };
     const requestTick = () => {
@@ -82,38 +84,51 @@ const scheduler = () => {
 
 /* === Internal === */
 // hold the currently active effect
-let activeEffect;
+let active;
 // hold schuduler instance
 const { enqueue, cleanup } = scheduler();
 /**
- * Run all effects in the provided set
+ * Add notify function of active listener to the set of listeners
  *
- * @param {Set<Effect | Computed<unknown>>} effects
+ * @param {Set<() => void>} targets - set of current listeners
  */
-const autorun = (effects) => {
-    for (const effect of effects)
-        effect.run();
+const autotrack = (targets) => {
+    if (active)
+        targets.add(active);
 };
-/* === Exported functions === */
 /**
- * Check if a given variable is a reactive state
+ * Run all notify function of dependent listeners
  *
- * @param {unknown} value - variable to check if it is a reactive state
- * @returns {boolean} true if supplied parameter is a reactive state
+ * @param {Set<() => void>} targets
+ */
+const autorun = (targets) => targets.forEach(notify => notify());
+/**
+ * Run a function in a reactive context
+ *
+ * @param {() => void} fn - function to run the computation or effect
+ * @param {() => void} notify - function to be called when the state changes
+ */
+const reactive = (fn, notify) => {
+    const prev = active;
+    active = notify;
+    try {
+        fn();
+    }
+    catch (error) {
+        log(error, 'Error during reactive computation', LOG_ERROR);
+    }
+    finally {
+        active = prev;
+    }
+};
+/* === Exported Functions === */
+/**
+ * Check if a given variable is a state signal
+ *
+ * @param {unknown} value - variable to check
+ * @returns {boolean} true if supplied parameter is a state signal
  */
 const isState = (value) => isDefinedObject(value) && hasMethod(value, 'set');
-/**
- * Check if a given variable is a reactive computed state
- *
- * @param {unknown} value - variable to check if it is a reactive computed state
- */
-const isComputed = (value) => isDefinedObject(value) && hasMethod(value, 'run') && 'effects' in value;
-/**
- * Check if a given variable is a reactive signal (state or computed state)
- *
- * @param {unknown} value - variable to check if it is a reactive signal
- */
-const isSignal = (value) => isState(value) || isComputed(value);
 /**
  * Define a reactive state
  *
@@ -122,19 +137,44 @@ const isSignal = (value) => isState(value) || isComputed(value);
  * @returns {State<T>} getter function for the current value with a `set` method to update the value
  */
 const cause = (value) => {
-    const s = () => {
-        if (activeEffect)
-            s.effects.add(activeEffect);
+    const targets = new Set();
+    const state = () => {
+        autotrack(targets);
         return value;
     };
-    s.effects = new Set(); // set of listeners
-    s.set = (updater) => {
+    state.set = (updater) => {
         const old = value;
-        value = isFunction(updater) && !isSignal(updater) ? updater(value) : updater;
+        value = isFunction(updater) && updater.length ? updater(value) : updater;
         if (!Object.is(value, old))
-            autorun(s.effects);
+            autorun(targets);
     };
-    return s;
+    return state;
+};
+/**
+ * Create a derived state from a existing states
+ *
+ * @since 0.1.0
+ * @param {() => T} fn - compute function to derive state
+ * @returns {Computed<T>} result of derived state
+ */
+const derive = (fn, memo = false) => {
+    const targets = new Set();
+    let value;
+    let stale = true;
+    const notify = () => {
+        stale = true;
+        if (memo)
+            autorun(targets);
+    };
+    return () => {
+        autotrack(targets);
+        if (!memo || stale)
+            reactive(() => {
+                value = fn();
+                stale = isNullish(value);
+            }, notify);
+        return value;
+    };
 };
 /**
  * Define what happens when a reactive state changes
@@ -143,21 +183,27 @@ const cause = (value) => {
  * @param {EffectCallback} fn - callback function to be executed when a state changes
  */
 const effect = (fn) => {
-    const targets = new Set();
-    const n = () => {
-        const prev = activeEffect;
-        activeEffect = n;
-        const cleanupFn = fn((element, prop, callback) => {
-            enqueue(element, prop, callback);
-            targets.add(element);
-        });
+    const run = () => reactive(() => {
+        const cleanupFn = fn(enqueue);
         if (isFunction(cleanupFn))
-            cleanup(n, cleanupFn);
-        activeEffect = prev;
-    };
-    n.run = () => n();
-    n.targets = targets;
-    n();
+            cleanup(fn, cleanupFn);
+    }, run);
+    run();
+};
+
+/* === Exported Functions === */
+/**
+ * Parse according to static attributeMap
+ *
+ * @since 0.8.4
+ * @param {UIElement} host - host UIElement
+ * @param {string} name - attribute name
+ * @param {string} value - attribute value
+ * @param {string | undefined} [old=undefined] - old attribute value
+ */
+const parse = (host, name, value, old = undefined) => {
+    const parser = host.constructor.attributeMap[name];
+    return isFunction(parser) ? parser(maybe(value), host, old)[0] : value;
 };
 
 /* === Constants === */
@@ -242,7 +288,11 @@ const pass = (stateMap) =>
 async (ui) => {
     await ui.host.constructor.registry.whenDefined(ui.target.localName);
     for (const [key, source] of Object.entries(stateMap))
-        ui.target.set(key, isSignal(source) ? source : isFunction(source) ? cause(source) : ui.host.signal(source));
+        ui.target.set(key, isState(source)
+            ? source
+            : isFunction(source)
+                ? cause(source) // we need cause() here; with derive() the lexical scope of the source would be lost
+                : ui.host.signal(source));
     return ui;
 };
 
@@ -362,6 +412,7 @@ const asJSON = (value) => {
 /**
  * Auto-effect for setting properties of a target element according to a given state
  *
+ * @since 0.8.0
  * @param {UI} ui - UI object of host UIElement and target element to update properties
  * @param {StateLike} state - state to be set to the host element
  * @param {string} prop - property name to be updated
@@ -371,12 +422,11 @@ const asJSON = (value) => {
  * @returns {UI} object with host and target
  */
 const autoEffect = (ui, state, prop, fallback, onNothing, onSomething) => {
-    ui.host.set(state, isFunction(state) ? state : fallback, false);
+    if (!isFunction(state))
+        ui.host.set(state, isString(state) && isString(fallback) ? parse(ui.host, state, fallback) : fallback, false);
     effect((enqueue) => {
-        if (ui.host.has(state)) {
-            const value = ui.host.get(state);
-            enqueue(ui.target, prop, isNullish(value) ? onNothing : onSomething(value));
-        }
+        const value = isFunction(state) ? state() : ui.host.get(state);
+        enqueue(ui.target, prop, isNullish(value) ? onNothing : onSomething(value));
     });
     return ui;
 };
@@ -384,6 +434,7 @@ const autoEffect = (ui, state, prop, fallback, onNothing, onSomething) => {
 /**
  * Set text content of an element
  *
+ * @since 0.8.0
  * @param {StateLike} state - state bounded to the text content
  */
 const setText = (state) => (ui) => {
@@ -397,6 +448,7 @@ const setText = (state) => (ui) => {
 /**
  * Set property of an element
  *
+ * @since 0.8.0
  * @param {PropertyKey} key - name of property to be set
  * @param {StateLike} state - state bounded to the property value
  */
@@ -407,6 +459,7 @@ const setProperty = (key, state = key) => (ui) => {
 /**
  * Set attribute of an element
  *
+ * @since 0.8.0
  * @param {string} name - name of attribute to be set
  * @param {StateLike} state - state bounded to the attribute value
  */
@@ -414,6 +467,7 @@ const setAttribute = (name, state = name) => (ui) => autoEffect(ui, state, `a-${
 /**
  * Toggle a boolan attribute of an element
  *
+ * @since 0.8.0
  * @param {string} name - name of attribute to be toggled
  * @param {StateLike} state - state bounded to the attribute existence
  */
@@ -424,6 +478,7 @@ const toggleAttribute = (name, state = name) => (ui) => {
 /**
  * Toggle a classList token of an element
  *
+ * @since 0.8.0
  * @param {string} token - class token to be toggled
  * @param {StateLike} state - state bounded to the class existence
  */
@@ -431,20 +486,12 @@ const toggleClass = (token, state = token) => (ui) => autoEffect(ui, state, `c-$
 /**
  * Set a style property of an element
  *
+ * @since 0.8.0
  * @param {string} prop - name of style property to be set
  * @param {StateLike} state - state bounded to the style property value
  */
 const setStyle = (prop, state = prop) => (ui) => autoEffect(ui, state, `s-${prop}`, ui.target.style[prop], (element) => () => element.style.removeProperty(prop), (value) => (element) => () => element.style[prop] = value);
 
-/* === Internal Functions === */
-/**
- * Unwrap any value wrapped in a function
- *
- * @since 0.8.0
- * @param {any} value - value to unwrap if it's a function
- * @returns {any} - unwrapped value, but might still be in a maybe container
- */
-const unwrap = (value) => isFunction(value) ? unwrap(value()) : value;
 /* === Exported Class and Functions === */
 /**
  * Base class for reactive custom elements
@@ -498,8 +545,7 @@ class UIElement extends HTMLElement {
     attributeChangedCallback(name, old, value) {
         if (value === old)
             return;
-        const parser = this.constructor.attributeMap[name];
-        this.set(name, isFunction(parser) ? parser(maybe(value), this, old)[0] : value);
+        this.set(name, parse(this, name, value, old));
     }
     /**
      * Native callback function when the custom element is first connected to the document
@@ -531,6 +577,7 @@ class UIElement extends HTMLElement {
      * @returns {T | undefined} current value of state; undefined if state does not exist
      */
     get(key) {
+        const unwrap = (v) => isFunction(v) ? unwrap(v()) : v;
         return unwrap(this.#states.get(key));
     }
     /**
@@ -543,7 +590,7 @@ class UIElement extends HTMLElement {
      */
     set(key, value, update = true) {
         if (!this.#states.has(key)) {
-            this.#states.set(key, isSignal(value) ? value : cause(value));
+            this.#states.set(key, isState(value) ? value : cause(value));
         }
         else if (update) {
             const state = this.#states.get(key);
@@ -593,4 +640,4 @@ class UIElement extends HTMLElement {
     }
 }
 
-export { UIElement, asBoolean, asInteger, asJSON, asNumber, asString, effect, emit, log, maybe, off, on, pass, setAttribute, setProperty, setStyle, setText, toggleAttribute, toggleClass };
+export { UIElement, asBoolean, asInteger, asJSON, asNumber, asString, derive, effect, emit, log, maybe, off, on, pass, setAttribute, setProperty, setStyle, setText, toggleAttribute, toggleClass };

@@ -1,9 +1,9 @@
-/* === Types === */
 /* === Exported Functions === */
 const isOfType = (type) => (value) => typeof value === type;
 const isObject = isOfType('object');
 // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
 const isFunction = isOfType('function');
+const isNullish = (value) => value == null;
 const isDefined = (value) => value != null;
 const isDefinedObject = (value) => isDefined(value) && (isObject(value) || isFunction(value));
 // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
@@ -22,6 +22,12 @@ const log = (value, msg, level = LOG_DEBUG) => {
 };
 
 /* === Exported Function === */
+/**
+ * Schedules functions to be executed after the next animation frame or after all events have been dispatched
+ *
+ * @since 0.8.0
+ * @returns {Scheduler}
+ */
 const scheduler = () => {
     const effectQueue = new Map();
     const cleanupQueue = new Map();
@@ -36,13 +42,9 @@ const scheduler = () => {
     };
     const flush = () => {
         requestId = null;
-        for (const [el, elEffect] of effectQueue) {
-            for (const [prop, fn] of elEffect)
-                run(fn(el), ` Effect ${prop} on ${el?.localName || 'unknown'} failed`);
-        }
+        effectQueue.forEach((elEffect, el) => elEffect.forEach((fn, prop) => run(fn(el), `Effect ${prop} on ${el?.localName || 'unknown'} failed`)));
         effectQueue.clear();
-        for (const fn of cleanupQueue.values())
-            run(fn, 'Cleanup failed');
+        cleanupQueue.forEach(fn => run(fn, 'Cleanup failed'));
         cleanupQueue.clear();
     };
     const requestTick = () => {
@@ -70,38 +72,51 @@ const scheduler = () => {
 
 /* === Internal === */
 // hold the currently active effect
-let activeEffect;
+let active;
 // hold schuduler instance
 const { enqueue, cleanup } = scheduler();
 /**
- * Run all effects in the provided set
+ * Add notify function of active listener to the set of listeners
  *
- * @param {Set<Effect | Computed<unknown>>} effects
+ * @param {Set<() => void>} targets - set of current listeners
  */
-const autorun = (effects) => {
-    for (const effect of effects)
-        effect.run();
+const autotrack = (targets) => {
+    if (active)
+        targets.add(active);
 };
-/* === Exported functions === */
 /**
- * Check if a given variable is a reactive state
+ * Run all notify function of dependent listeners
  *
- * @param {unknown} value - variable to check if it is a reactive state
- * @returns {boolean} true if supplied parameter is a reactive state
+ * @param {Set<() => void>} targets
+ */
+const autorun = (targets) => targets.forEach(notify => notify());
+/**
+ * Run a function in a reactive context
+ *
+ * @param {() => void} fn - function to run the computation or effect
+ * @param {() => void} notify - function to be called when the state changes
+ */
+const reactive = (fn, notify) => {
+    const prev = active;
+    active = notify;
+    try {
+        fn();
+    }
+    catch (error) {
+        log(error, 'Error during reactive computation', LOG_ERROR);
+    }
+    finally {
+        active = prev;
+    }
+};
+/* === Exported Functions === */
+/**
+ * Check if a given variable is a state signal
+ *
+ * @param {unknown} value - variable to check
+ * @returns {boolean} true if supplied parameter is a state signal
  */
 const isState = (value) => isDefinedObject(value) && hasMethod(value, 'set');
-/**
- * Check if a given variable is a reactive computed state
- *
- * @param {unknown} value - variable to check if it is a reactive computed state
- */
-const isComputed = (value) => isDefinedObject(value) && hasMethod(value, 'run') && 'effects' in value;
-/**
- * Check if a given variable is a reactive signal (state or computed state)
- *
- * @param {unknown} value - variable to check if it is a reactive signal
- */
-const isSignal = (value) => isState(value) || isComputed(value);
 /**
  * Define a reactive state
  *
@@ -110,50 +125,44 @@ const isSignal = (value) => isState(value) || isComputed(value);
  * @returns {State<T>} getter function for the current value with a `set` method to update the value
  */
 const cause = (value) => {
-    const s = () => {
-        if (activeEffect)
-            s.effects.add(activeEffect);
+    const targets = new Set();
+    const state = () => {
+        autotrack(targets);
         return value;
     };
-    s.effects = new Set(); // set of listeners
-    s.set = (updater) => {
+    state.set = (updater) => {
         const old = value;
-        value = isFunction(updater) && !isSignal(updater) ? updater(value) : updater;
+        value = isFunction(updater) && updater.length ? updater(value) : updater;
         if (!Object.is(value, old))
-            autorun(s.effects);
+            autorun(targets);
     };
-    return s;
+    return state;
 };
 /**
- * Create a derived state from an existing state
+ * Create a derived state from a existing states
  *
  * @since 0.1.0
- * @param {() => T} fn - existing state to derive from
- * @param {boolean} [memo=false] - whether to use memoization
- * @returns {UIComputed<T>} derived state
+ * @param {() => T} fn - compute function to derive state
+ * @returns {Computed<T>} result of derived state
  */
 const derive = (fn, memo = false) => {
+    const targets = new Set();
     let value;
-    let dirty = true;
-    const c = () => {
-        if (activeEffect)
-            c.effects.add(activeEffect);
-        if (memo && !dirty)
-            return value;
-        const prev = activeEffect;
-        activeEffect = c;
-        value = fn();
-        dirty = false;
-        activeEffect = prev;
+    let stale = true;
+    const notify = () => {
+        stale = true;
+        if (memo)
+            autorun(targets);
+    };
+    return () => {
+        autotrack(targets);
+        if (!memo || stale)
+            reactive(() => {
+                value = fn();
+                stale = isNullish(value);
+            }, notify);
         return value;
     };
-    c.effects = new Set(); // set of listeners
-    c.run = () => {
-        dirty = true;
-        if (memo)
-            autorun(c.effects);
-    };
-    return c;
 };
 /**
  * Define what happens when a reactive state changes
@@ -162,21 +171,12 @@ const derive = (fn, memo = false) => {
  * @param {EffectCallback} fn - callback function to be executed when a state changes
  */
 const effect = (fn) => {
-    const targets = new Set();
-    const n = () => {
-        const prev = activeEffect;
-        activeEffect = n;
-        const cleanupFn = fn((element, prop, callback) => {
-            enqueue(element, prop, callback);
-            targets.add(element);
-        });
+    const run = () => reactive(() => {
+        const cleanupFn = fn(enqueue);
         if (isFunction(cleanupFn))
-            cleanup(n, cleanupFn);
-        activeEffect = prev;
-    };
-    n.run = () => n();
-    n.targets = targets;
-    n();
+            cleanup(fn, cleanupFn);
+    }, run);
+    run();
 };
 
-export { cause, derive, effect, isSignal, isState };
+export { cause, derive, effect, isState };

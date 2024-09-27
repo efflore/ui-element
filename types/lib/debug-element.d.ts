@@ -55,19 +55,5 @@ declare class DebugElement extends UIElement {
      * @returns {boolean} - whether the state was deleted
      */
     delete(key: PropertyKey): boolean;
-    /**
-     * Recursively get all target elements of a given state
-     *
-     * @since 0.7.0
-     * @param {PropertyKey} key - state to be observed
-     */
-    targets(key: PropertyKey): Element[];
-    /**
-     * Add event listeners to UIElement and sub-elements to auto-highlight targets when hovering or focusing on elements with given attribute
-     *
-     * @since 0.7.0
-     * @param {string} [className=EFFECT_CLASS] - CSS class to be added to highlighted targets
-     */
-    highlight(className?: string): void;
 }
 export { DEV_MODE, DebugElement };
