@@ -3,10 +3,18 @@
 	<head>
 		<title>UIElement Documentation</title>
 		<link rel="stylesheet" href="assets/css/global.css">
-		<script type="module" src="assets/js/index.min.js"></script>
+		<link rel="stylesheet" href="assets/css/main.css">
+		<script type="module" src="assets/js/main.js"></script>
 	</head>
 	<body>
 		<h1>UIElement Documentation</h1>
-        <p>Hello World!</p>
+        <my-counter count="42">
+			<p>
+				Count: <span class="count"></span>
+				Parity: <span class="parity"></span>
+			</p>
+			<button class="decrement">-</button>
+			<button class="increment">+</button>
+		</my-counter>
 	</body>
 </html>
