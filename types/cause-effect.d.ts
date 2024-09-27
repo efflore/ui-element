@@ -9,10 +9,10 @@ type Effect = () => void;
 type MaybeCleanup = void | (() => void);
 type EffectCallback = (enqueue: Enqueue) => MaybeCleanup;
 /**
- * Check if a given variable is a reactive state
+ * Check if a given variable is a state signal
  *
- * @param {unknown} value - variable to check if it is a reactive state
- * @returns {boolean} true if supplied parameter is a reactive state
+ * @param {unknown} value - variable to check
+ * @returns {boolean} true if supplied parameter is a state signal
  */
 declare const isState: (value: unknown) => value is State<unknown>;
 /**
@@ -22,16 +22,15 @@ declare const isState: (value: unknown) => value is State<unknown>;
  * @param {any} value - initial value of the state; may be a function for derived state
  * @returns {State<T>} getter function for the current value with a `set` method to update the value
  */
-declare const cause: <T>(value: any) => State<T>;
+declare const cause: <T>(value: T) => State<T>;
 /**
- * Create a derived state from an existing state
+ * Create a derived state from a existing states
  *
  * @since 0.1.0
- * @param {() => T} fn - existing state to derive from
- * @param {boolean} [memo=false] - whether to use memoization
- * @returns {UIComputed<T>} derived state
+ * @param {() => T} fn - compute function to derive state
+ * @returns {Computed<T>} result of derived state
  */
-declare const derive: <T>(fn: () => T, memo?: boolean) => Computed<T>;
+declare const derive: <T>(fn: () => T | undefined, memo?: boolean) => Computed<T>;
 /**
  * Define what happens when a reactive state changes
  *

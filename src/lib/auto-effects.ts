@@ -20,26 +20,20 @@ import type { UI, StateLike } from '../ui-element'
  */
 const autoEffect = <E extends Element, T>(
 	ui: UI<E>,
-	state: StateLike,
+	state: StateLike<T>,
 	prop: string,
 	fallback: T,
 	onNothing: (element: E) => () => void,
 	onSomething: (value: T) => (element: E) => () => void
 ): UI<E> => {
-	ui.host.set(
+	if (!isFunction(state)) ui.host.set(
 		state,
-		isFunction(state)
-			? state
-			: isString(state) && isString(fallback)
-				? parse(ui.host, state, fallback, undefined)
-				: fallback,
+		isString(state) && isString(fallback) ? parse(ui.host, state, fallback) : fallback,
 		false
 	)
 	effect((enqueue: Enqueue) => {
-		if (ui.host.has(state)) {
-			const value = ui.host.get<T>(state)
-			enqueue(ui.target, prop, isNullish(value) ? onNothing : onSomething(value))
-		}
+		const value = isFunction(state) ? state() : ui.host.get<T>(state)
+		enqueue(ui.target, prop, isNullish(value) ? onNothing : onSomething(value))
 	})
 	return ui
 }
@@ -52,7 +46,7 @@ const autoEffect = <E extends Element, T>(
  * @since 0.8.0
  * @param {StateLike} state - state bounded to the text content
  */
-const setText = <E extends Element>(state: StateLike) =>
+const setText = <E extends Element>(state: StateLike<string>) =>
 	(ui: UI<E>): UI<E> => {
 		const fallback = ui.target.textContent || ''
 		const setter = (value: string) => (element: E) => () => {
@@ -76,7 +70,7 @@ const setText = <E extends Element>(state: StateLike) =>
  * @param {PropertyKey} key - name of property to be set
  * @param {StateLike} state - state bounded to the property value
  */
-const setProperty = <E extends Element>(key: PropertyKey, state: StateLike = key) =>
+const setProperty = <E extends Element>(key: PropertyKey, state: StateLike<unknown> = key) =>
 	(ui: UI<E>): UI<E> => {
 		const setter = (value: any) => (element: E) => () => element[key] = value
 		return autoEffect<E, any>(
@@ -96,7 +90,7 @@ const setProperty = <E extends Element>(key: PropertyKey, state: StateLike = key
  * @param {string} name - name of attribute to be set
  * @param {StateLike} state - state bounded to the attribute value
  */
-const setAttribute = <E extends Element>(name: string, state: StateLike = name) =>
+const setAttribute = <E extends Element>(name: string, state: StateLike<string> = name) =>
 	(ui: UI<E>): UI<E> =>
 		autoEffect<E, string | undefined>(
 			ui,
@@ -114,7 +108,7 @@ const setAttribute = <E extends Element>(name: string, state: StateLike = name) 
  * @param {string} name - name of attribute to be toggled
  * @param {StateLike} state - state bounded to the attribute existence
  */
-const toggleAttribute = <E extends Element>(name: string, state: StateLike = name) =>
+const toggleAttribute = <E extends Element>(name: string, state: StateLike<boolean> = name) =>
 	(ui: UI<E>): UI<E> => {
 		const setter = (value: boolean) => (element: E) => () => element.toggleAttribute(name, value)
 		return autoEffect<E, boolean>(
@@ -134,7 +128,7 @@ const toggleAttribute = <E extends Element>(name: string, state: StateLike = nam
  * @param {string} token - class token to be toggled
  * @param {StateLike} state - state bounded to the class existence
  */
-const toggleClass = <E extends Element>(token: string, state: StateLike = token) =>
+const toggleClass = <E extends Element>(token: string, state: StateLike<boolean> = token) =>
 	(ui: UI<E>): UI<E> =>
 		autoEffect<E, boolean>(
 			ui,
@@ -152,7 +146,7 @@ const toggleClass = <E extends Element>(token: string, state: StateLike = token)
  * @param {string} prop - name of style property to be set
  * @param {StateLike} state - state bounded to the style property value
  */
-const setStyle = <E extends (HTMLElement | SVGElement | MathMLElement)>(prop: string, state: StateLike = prop) =>
+const setStyle = <E extends (HTMLElement | SVGElement | MathMLElement)>(prop: string, state: StateLike<string> = prop) =>
 	(ui: UI<E>): UI<E> =>
 		autoEffect<E, string | undefined>(
 			ui,
@@ -162,19 +156,6 @@ const setStyle = <E extends (HTMLElement | SVGElement | MathMLElement)>(prop: st
 			(element: E) => () => element.style.removeProperty(prop),
 			(value: string) => (element: E) => () => element.style[prop] = value
 		)
-
-/* const remove = <E extends Element>(state: StateLike) =>
-	(ui: UI<E>): UI<E> =>
-        autoEffect<E, boolean>(
-			ui,
-			state,
-			`r`,
-			false,
-			() => () => {},
-			(value: boolean) => (element: E) => () => {
-				if (value) element.remove()
-			}
-		) */
 
 /* === Exported Types === */
 

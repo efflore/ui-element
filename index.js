@@ -1,4 +1,3 @@
-/* === Types === */
 /* === Exported Functions === */
 const isOfType = (type) => (value) => typeof value === type;
 const isString = isOfType('string');
@@ -84,11 +83,10 @@ const scheduler = () => {
 };
 
 /* === Internal === */
-const { enqueue, cleanup } = scheduler();
 // hold the currently active effect
 let active;
 // hold schuduler instance
-// const { enqueue, cleanup } = scheduler()
+const { enqueue, cleanup } = scheduler();
 /**
  * Add notify function of active listener to the set of listeners
  *
@@ -104,6 +102,12 @@ const autotrack = (targets) => {
  * @param {Set<() => void>} targets
  */
 const autorun = (targets) => targets.forEach(notify => notify());
+/**
+ * Run a function in a reactive context
+ *
+ * @param {() => void} fn - function to run the computation or effect
+ * @param {() => void} notify - function to be called when the state changes
+ */
 const reactive = (fn, notify) => {
     const prev = active;
     active = notify;
@@ -117,12 +121,12 @@ const reactive = (fn, notify) => {
         active = prev;
     }
 };
-/* === Exported functions === */
+/* === Exported Functions === */
 /**
- * Check if a given variable is a reactive state
+ * Check if a given variable is a state signal
  *
- * @param {unknown} value - variable to check if it is a reactive state
- * @returns {boolean} true if supplied parameter is a reactive state
+ * @param {unknown} value - variable to check
+ * @returns {boolean} true if supplied parameter is a state signal
  */
 const isState = (value) => isDefinedObject(value) && hasMethod(value, 'set');
 /**
@@ -140,11 +144,37 @@ const cause = (value) => {
     };
     state.set = (updater) => {
         const old = value;
-        value = isFunction(updater) && !isState(updater) ? updater(value) : updater;
+        value = isFunction(updater) && updater.length ? updater(value) : updater;
         if (!Object.is(value, old))
             autorun(targets);
     };
     return state;
+};
+/**
+ * Create a derived state from a existing states
+ *
+ * @since 0.1.0
+ * @param {() => T} fn - compute function to derive state
+ * @returns {Computed<T>} result of derived state
+ */
+const derive = (fn, memo = false) => {
+    const targets = new Set();
+    let value;
+    let stale = true;
+    const notify = () => {
+        stale = true;
+        if (memo)
+            autorun(targets);
+    };
+    return () => {
+        autotrack(targets);
+        if (!memo || stale)
+            reactive(() => {
+                value = fn();
+                stale = isNullish(value);
+            }, notify);
+        return value;
+    };
 };
 /**
  * Define what happens when a reactive state changes
@@ -169,9 +199,9 @@ const effect = (fn) => {
  * @param {UIElement} host - host UIElement
  * @param {string} name - attribute name
  * @param {string} value - attribute value
- * @param {string} old - old attribute value
+ * @param {string | undefined} [old=undefined] - old attribute value
  */
-const parse = (host, name, value, old) => {
+const parse = (host, name, value, old = undefined) => {
     const parser = host.constructor.attributeMap[name];
     return isFunction(parser) ? parser(maybe(value), host, old)[0] : value;
 };
@@ -258,7 +288,11 @@ const pass = (stateMap) =>
 async (ui) => {
     await ui.host.constructor.registry.whenDefined(ui.target.localName);
     for (const [key, source] of Object.entries(stateMap))
-        ui.target.set(key, isState(source) ? source : isFunction(source) ? cause(source) : ui.host.signal(source));
+        ui.target.set(key, isState(source)
+            ? source
+            : isFunction(source)
+                ? cause(source) // we need cause() here; with derive() the lexical scope of the source would be lost
+                : ui.host.signal(source));
     return ui;
 };
 
@@ -388,16 +422,11 @@ const asJSON = (value) => {
  * @returns {UI} object with host and target
  */
 const autoEffect = (ui, state, prop, fallback, onNothing, onSomething) => {
-    ui.host.set(state, isFunction(state)
-        ? state
-        : isString(state) && isString(fallback)
-            ? parse(ui.host, state, fallback, undefined)
-            : fallback, false);
+    if (!isFunction(state))
+        ui.host.set(state, isString(state) && isString(fallback) ? parse(ui.host, state, fallback) : fallback, false);
     effect((enqueue) => {
-        if (ui.host.has(state)) {
-            const value = ui.host.get(state);
-            enqueue(ui.target, prop, isNullish(value) ? onNothing : onSomething(value));
-        }
+        const value = isFunction(state) ? state() : ui.host.get(state);
+        enqueue(ui.target, prop, isNullish(value) ? onNothing : onSomething(value));
     });
     return ui;
 };
@@ -463,15 +492,6 @@ const toggleClass = (token, state = token) => (ui) => autoEffect(ui, state, `c-$
  */
 const setStyle = (prop, state = prop) => (ui) => autoEffect(ui, state, `s-${prop}`, ui.target.style[prop], (element) => () => element.style.removeProperty(prop), (value) => (element) => () => element.style[prop] = value);
 
-/* === Internal Functions === */
-/**
- * Unwrap any value wrapped in a function
- *
- * @since 0.8.0
- * @param {any} value - value to unwrap if it's a function
- * @returns {any} - unwrapped value, but might still be in a maybe container
- */
-const unwrap = (value) => isFunction(value) ? unwrap(value()) : value;
 /* === Exported Class and Functions === */
 /**
  * Base class for reactive custom elements
@@ -557,6 +577,7 @@ class UIElement extends HTMLElement {
      * @returns {T | undefined} current value of state; undefined if state does not exist
      */
     get(key) {
+        const unwrap = (v) => isFunction(v) ? unwrap(v()) : v;
         return unwrap(this.#states.get(key));
     }
     /**
@@ -619,4 +640,4 @@ class UIElement extends HTMLElement {
     }
 }
 
-export { UIElement, asBoolean, asInteger, asJSON, asNumber, asString, effect, emit, log, maybe, off, on, pass, setAttribute, setProperty, setStyle, setText, toggleAttribute, toggleClass };
+export { UIElement, asBoolean, asInteger, asJSON, asNumber, asString, derive, effect, emit, log, maybe, off, on, pass, setAttribute, setProperty, setStyle, setText, toggleAttribute, toggleClass };

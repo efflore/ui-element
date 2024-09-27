@@ -1,6 +1,6 @@
 import { isFunction } from './core/is-type'
 import { maybe } from './core/maybe'
-import { type Signal, isState, cause, effect } from './cause-effect'
+import { type Signal, isState, cause, derive, effect } from './cause-effect'
 import { log, LOG_ERROR } from './core/log'
 import { parse } from './core/parse'
 import { type UnknownContext, initContext } from './core/context'
@@ -17,19 +17,7 @@ type UI<T> = {
 }
 type AttributeParser = (value: string[], element: UIElement, old: string | undefined) => unknown[]
 type AttributeMap = Record<string, AttributeParser>
-type StateLike = PropertyKey | Signal<unknown> | (() => unknown)
-
-/* === Internal Functions === */
-
-/**
- * Unwrap any value wrapped in a function
- * 
- * @since 0.8.0
- * @param {any} value - value to unwrap if it's a function
- * @returns {any} - unwrapped value, but might still be in a maybe container
- */
-const unwrap = (value: any): any =>
-	isFunction(value) ? unwrap(value()) : value
+type StateLike<T> = PropertyKey | Signal<T>
 
 /* === Exported Class and Functions === */
 
@@ -123,6 +111,7 @@ class UIElement extends HTMLElement {
 	 * @returns {T | undefined} current value of state; undefined if state does not exist
 	 */
 	get<T>(key: any): T | undefined {
+		const unwrap = (v: any): any => isFunction(v) ? unwrap(v()) : v
 		return unwrap(this.#states.get(key))
 	}
 
@@ -134,7 +123,7 @@ class UIElement extends HTMLElement {
 	 * @param {T | ((old: T | undefined) => T) | Signal<T>} value - initial or new value; may be a function (gets old value as parameter) to be evaluated when value is retrieved
 	 * @param {boolean} [update=true] - if `true` (default), the state is updated; if `false`, do nothing if state already exists
 	 */
-	set<T>(key: any, value: T | ((old: T | undefined) => T) | Signal<T>, update: boolean = true): void {
+	set<T>(key: any, value: T | Signal<T> | ((old: T | undefined) => T), update: boolean = true): void {
 		if (!this.#states.has(key)) {
 			this.#states.set(key, isState(value) ? value : cause(value))
 		} else if (update) {
@@ -191,7 +180,7 @@ class UIElement extends HTMLElement {
 
 export {
 	type UI, type AttributeMap, type StateMap, type StateLike,
-	UIElement, parse, effect, maybe, log, pass, on, off, emit,
+	UIElement, parse, derive, effect, maybe, log, pass, on, off, emit,
 	asBoolean, asInteger, asNumber, asString, asJSON,
 	setText, setProperty, setAttribute, toggleAttribute, toggleClass, setStyle
 }

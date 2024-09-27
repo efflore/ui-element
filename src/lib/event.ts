@@ -50,7 +50,7 @@ const off = <E extends Element>(event: string, handler: EventListener) =>
  * @param {string} event - event name to dispatch
  * @param {StateLike} state - state key
  */
-const emit = <E extends Element>(event: string, state: StateLike = event) =>
+const emit = <E extends Element>(event: string, state: StateLike<unknown> = event) =>
 
 	/**
 	 * Partially applied function to connect to params of UI map function

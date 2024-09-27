@@ -5,7 +5,7 @@ import type { UI, StateLike } from '../ui-element';
  * @since 0.8.0
  * @param {StateLike} state - state bounded to the text content
  */
-declare const setText: <E extends Element>(state: StateLike) => (ui: UI<E>) => UI<E>;
+declare const setText: <E extends Element>(state: StateLike<string>) => (ui: UI<E>) => UI<E>;
 /**
  * Set property of an element
  *
@@ -13,7 +13,7 @@ declare const setText: <E extends Element>(state: StateLike) => (ui: UI<E>) => U
  * @param {PropertyKey} key - name of property to be set
  * @param {StateLike} state - state bounded to the property value
  */
-declare const setProperty: <E extends Element>(key: PropertyKey, state?: StateLike) => (ui: UI<E>) => UI<E>;
+declare const setProperty: <E extends Element>(key: PropertyKey, state?: StateLike<unknown>) => (ui: UI<E>) => UI<E>;
 /**
  * Set attribute of an element
  *
@@ -21,7 +21,7 @@ declare const setProperty: <E extends Element>(key: PropertyKey, state?: StateLi
  * @param {string} name - name of attribute to be set
  * @param {StateLike} state - state bounded to the attribute value
  */
-declare const setAttribute: <E extends Element>(name: string, state?: StateLike) => (ui: UI<E>) => UI<E>;
+declare const setAttribute: <E extends Element>(name: string, state?: StateLike<string>) => (ui: UI<E>) => UI<E>;
 /**
  * Toggle a boolan attribute of an element
  *
@@ -29,7 +29,7 @@ declare const setAttribute: <E extends Element>(name: string, state?: StateLike)
  * @param {string} name - name of attribute to be toggled
  * @param {StateLike} state - state bounded to the attribute existence
  */
-declare const toggleAttribute: <E extends Element>(name: string, state?: StateLike) => (ui: UI<E>) => UI<E>;
+declare const toggleAttribute: <E extends Element>(name: string, state?: StateLike<boolean>) => (ui: UI<E>) => UI<E>;
 /**
  * Toggle a classList token of an element
  *
@@ -37,7 +37,7 @@ declare const toggleAttribute: <E extends Element>(name: string, state?: StateLi
  * @param {string} token - class token to be toggled
  * @param {StateLike} state - state bounded to the class existence
  */
-declare const toggleClass: <E extends Element>(token: string, state?: StateLike) => (ui: UI<E>) => UI<E>;
+declare const toggleClass: <E extends Element>(token: string, state?: StateLike<boolean>) => (ui: UI<E>) => UI<E>;
 /**
  * Set a style property of an element
  *
@@ -45,5 +45,5 @@ declare const toggleClass: <E extends Element>(token: string, state?: StateLike)
  * @param {string} prop - name of style property to be set
  * @param {StateLike} state - state bounded to the style property value
  */
-declare const setStyle: <E extends (HTMLElement | SVGElement | MathMLElement)>(prop: string, state?: StateLike) => (ui: UI<E>) => UI<E>;
+declare const setStyle: <E extends (HTMLElement | SVGElement | MathMLElement)>(prop: string, state?: StateLike<string>) => (ui: UI<E>) => UI<E>;
 export { setText, setProperty, setAttribute, toggleAttribute, toggleClass, setStyle };

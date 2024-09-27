@@ -11,7 +11,7 @@
     import { cause, derive, effect } from '../cause-effect.js';
 
     const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
-    const paint = () => new Promise(resolve => requestAnimationFrame(resolve));
+    const paint = () => new Promise(requestAnimationFrame);
 
     runTests(() => {
 
@@ -126,9 +126,9 @@
           it('should be result of async function after promise is resolved', async function () {
             const x = 42;
             const state = cause(() => {
-              new Promise(resolve => setTimeout(() => resolve(state.set(x * 2)), 100));
-              return;
-            });
+				new Promise(resolve => setTimeout(() => resolve(state.set(x * 2)), 100));
+            	return;
+		  	});
             assert.isUndefined(state().call(), 'should be undefined while promise is pending with promise resolver () => x * 2 and x = 42');
             await wait(100);
             assert.equal(state(), 84, 'should be 84 after a delay with resolved promise for () => x * 2 and x = 42');
@@ -138,9 +138,9 @@
             const x = 42;
             const error = cause();
             const state = cause(() => {
-              new Promise((resolve, reject) => setTimeout(() => reject('error occurred')), 100).catch(reason => error.set(reason));
-              return;
-            });
+				new Promise((resolve, reject) => setTimeout(() => reject('error occurred')), 100).catch(reason => error.set(reason));
+              	return;
+		  	});
             assert.isUndefined(state().call(), 'should be undefined while promise is pending');
             await wait(100);
             assert.equal(error(), 'error occurred', 'should set error message after a delay with rejected promise');
@@ -162,7 +162,7 @@
           it('should set new value with .set(() => x / 2)', function () {
             const x = 42;
             const state = cause(() => x * 2);
-            state.set(() => () => x / 2);
+            state.set(() => x / 2);
             assert.equal(state().call(), 21, 'should be 21 with any initial value and x = 21');
           });
 
@@ -278,55 +278,47 @@
         });
 
         it('should compute function dependent on an async signal', async function() {
-          const status = cause('unset');
-          const state = cause(() => {
-            new Promise(resolve => {
-              status.set('pending');
-              setTimeout(() => resolve(state.set(42)), 100);
-            }).then(() => status.set('success'));
-            return;
-          });
-          const computed = derive(() => {
-            const asyncState = state();
-            if (typeof asyncState === 'function') {
-              asyncState();
-              return;
-            }
-            return 1 + asyncState;
-          });
-          assert.isUndefined(computed(), 'should be undefined while pending');
-          assert.equal(status(), 'pending');
-          await wait(100);
-          assert.equal(computed(), 43, 'should be 43 after promise is resolved');
-          assert.equal(status(), 'success');
+			const status = cause('unset');
+			const state = cause(() => {
+				new Promise(resolve => {
+					status.set('pending');
+					setTimeout(() => resolve(state.set(42)), 100);
+				}).then(() => status.set('success'));
+				return undefined;
+			});
+			const computed = derive(() => {
+				const value = state()
+				return typeof value === 'function' ? value.call() : value + 1
+			});
+			assert.isUndefined(computed(), 'should be undefined while pending');
+			assert.equal(status(), 'pending');
+			await wait(100);
+			assert.equal(computed(), 43, 'should be 43 after promise is resolved');
+			assert.equal(status(), 'success');
         });
 
         it('should handle errors from an async signal gracefully', async function() {
-          const status = cause('unset');
-          const error = cause();
-          const state = cause(() => {
-            new Promise((resolve, reject) => {
-              status.set('pending');
-              setTimeout(() => reject('error occurred'), 100);
-            }).catch(reason => {
-              status.set('error');
-              error.set(reason);
-            });
-            return;
-          });
-          const computed = derive(() => {
-            const asyncState = state();
-            if (typeof asyncState === 'function') {
-              asyncState();
-              return;
-            }
-            return 1 + asyncState;
-          });
-          assert.isUndefined(computed(), 'should be undefined while pending');
-          assert.equal(status(), 'pending');
-          await wait(100);
-          assert.equal(error(), 'error occurred', 'should set error message after promise is rejected');
-          assert.equal(status(), 'error');
+			const status = cause('unset');
+			const error = cause();
+			const state = cause(() => {
+				new Promise((resolve, reject) => {
+					status.set('pending');
+					setTimeout(() => reject('error occurred'), 100);
+				}).catch(reason => {
+					status.set('error');
+					error.set(reason);
+				});
+				return undefined;
+			});
+			const computed = derive(() => {
+				const value = state()
+				return typeof value === 'function' ? value.call() : value + 1
+			});
+			assert.isUndefined(computed(), 'should be undefined while pending');
+			assert.equal(status(), 'pending');
+			await wait(100);
+			assert.equal(error(), 'error occurred', 'should set error message after promise is rejected');
+			assert.equal(status(), 'error');
         });
 
         it('should compute function dependent on a chain of computed states dependent on a signal', function() {
@@ -396,22 +388,64 @@
         });
 
         it('should bail out if result is the same', function() {
-          let count = 0;
-          const x = cause('a');
-          const a = derive(() => {
-            x();
-            return 'foo';
-          });
-          const b = derive(() => {
-            count++;
-            return a();
-          }, true); // turn memoization on
-          assert.equal(b(), 'foo');
-          assert.equal(count, 1);
-          x.set('aa');
-          assert.equal(b(), 'foo');
-          assert.equal(count, 1);
-        });
+			let count = 0
+			const x = cause('a')
+			const a = derive(() => {
+				x()
+				return 'foo'
+			})
+			const b = derive(() => {
+				count++;
+				return a()
+			}, true) // turn memoization on
+			assert.equal(b(), 'foo')
+			assert.equal(count, 1)
+			x.set('aa')
+			assert.equal(b(), 'foo')
+			assert.equal(count, 1)
+        })
+
+		it('should block if result remains unchanged', function() {
+			let count = 0
+			const x = cause(42)
+			const a = derive(() => x() % 2)
+			const b = derive(() => a() ? 'odd' : 'even', true)
+			const c = derive(() => {
+				count++
+				return `c: ${b()}`
+			}, true)
+			assert.equal(c(), 'c: even')
+			assert.equal(count, 1)
+			x.set(44)
+			assert.equal(c(), 'c: even')
+			assert.equal(count, 1)
+		})
+
+		it('should block if an error occurred', function() {
+			let count = 0
+			const x = cause(0)
+			const a = derive(() => {
+				if (x() === 1) throw new Error('Calculation error')
+				return 1
+			}, true)
+			const b = derive(() => a() ? 'success' : 'pending')
+			const c = derive(() => {
+				count++
+				return `c: ${b()}`
+			}, true)
+			assert.equal(a(), 1)
+			assert.equal(c(), 'c: success')
+			assert.equal(count, 1)
+			x.set(1)
+			try {
+				assert.equal(a(), 1)
+			} catch (error) {
+				assert.fail(`Error during reactive computation ${error.message}`);
+            } finally {
+				assert.equal(c(), 'c: success')
+				assert.equal(count, 1)
+			}
+		})
 
       });
 

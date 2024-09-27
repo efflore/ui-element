@@ -1,4 +1,4 @@
-import { isFunction, hasMethod, isDefinedObject } from './core/is-type'
+import { isFunction, hasMethod, isDefinedObject, isNullish } from './core/is-type'
 import { log, LOG_ERROR } from './core/log'
 import { type Enqueue, scheduler } from './core/scheduler'
 
@@ -19,13 +19,11 @@ type EffectCallback = (enqueue: Enqueue) => MaybeCleanup
 
 /* === Internal === */
 
-const { enqueue, cleanup } = scheduler()
-
 // hold the currently active effect
 let active: () => void | undefined
 
 // hold schuduler instance
-// const { enqueue, cleanup } = scheduler()
+const { enqueue, cleanup } = scheduler()
 
 /**
  * Add notify function of active listener to the set of listeners
@@ -45,7 +43,13 @@ const autorun = (targets: Set<() => void>) =>
 	targets.forEach(notify => notify())
 
 
-const reactive = (fn: () => void, notify: () => void) => {
+/**
+ * Run a function in a reactive context
+ * 
+ * @param {() => void} fn - function to run the computation or effect
+ * @param {() => void} notify - function to be called when the state changes
+ */
+const reactive = (fn: () => void, notify: () => void): void => {
 	const prev = active
 	active = notify
 	try {
@@ -57,13 +61,13 @@ const reactive = (fn: () => void, notify: () => void) => {
 	}
 }
 
-/* === Exported functions === */
+/* === Exported Functions === */
 
 /**
- * Check if a given variable is a reactive state
+ * Check if a given variable is a state signal
  * 
- * @param {unknown} value - variable to check if it is a reactive state
- * @returns {boolean} true if supplied parameter is a reactive state
+ * @param {unknown} value - variable to check
+ * @returns {boolean} true if supplied parameter is a state signal
  */
 const isState = (value: unknown): value is State<unknown> =>
 	isDefinedObject(value) && hasMethod(value, 'set')
@@ -75,43 +79,41 @@ const isState = (value: unknown): value is State<unknown> =>
  * @param {any} value - initial value of the state; may be a function for derived state
  * @returns {State<T>} getter function for the current value with a `set` method to update the value
  */
-const cause = <T>(value: any): State<T> => {
+const cause = <T>(value: T): State<T> => {
 	const targets = new Set<() => void>()
-	const state: State<T> = (): T => { // getter function
+	const state: State<T> = (): T | undefined => { // getter function
 		autotrack(targets)
 		return value
 	}
-	state.set = (updater: unknown | ((value: T) => unknown)) => { // setter function
+	state.set = (updater: unknown | ((v: T | undefined) => T | undefined)) => { // setter function
 		const old = value
-		value = isFunction(updater) && !isState(updater) ? updater(value) : updater
+		value = isFunction(updater) && updater.length ? updater(value) : updater
 		if (!Object.is(value, old)) autorun(targets)
 	}
 	return state
 }
 
 /**
- * Create a derived state from an existing state
+ * Create a derived state from a existing states
  * 
  * @since 0.1.0
- * @param {() => T} fn - existing state to derive from
- * @param {boolean} [memo=false] - whether to use memoization
- * @returns {UIComputed<T>} derived state
+ * @param {() => T} fn - compute function to derive state
+ * @returns {Computed<T>} result of derived state
  */
-const derive = <T>(fn: () => T, memo: boolean = false): Computed<T> => {
+const derive = <T>(fn: () => T | undefined, memo: boolean = false): Computed<T> => {
 	const targets = new Set<() => void>()
-	let value: T
+	let value: T | undefined
 	let stale = true
+	const notify = () => {
+		stale = true
+		if (memo) autorun(targets)
+	}
 	return () => {
 		autotrack(targets)
-		if (!memo || stale) {
-			reactive(() => {
-				value = fn()
-				stale = false
-			}, () => {
-				stale = true
-				if (memo) autorun(targets)
-			})
-		}
+		if (!memo || stale) reactive(() => {
+			value = fn()
+			stale = isNullish(value)
+		}, notify)
 		return value
 	}
 }

@@ -1,10 +1,10 @@
 import type { UI, UIElement, StateLike } from '../ui-element'
-import { cause, isState } from '../cause-effect'
+import { isState, cause } from '../cause-effect'
 import { isFunction } from '../core/is-type'
 
 /* === Types === */
 
-type StateMap = Record<PropertyKey, StateLike>
+type StateMap = Record<PropertyKey, StateLike<unknown>>
 
 /* === Exported Function === */
 
@@ -26,7 +26,14 @@ const pass = <E extends UIElement>(stateMap: StateMap) =>
 	async (ui: UI<E>): Promise<UI<E>> => {
 		await (ui.host.constructor as typeof UIElement).registry.whenDefined(ui.target.localName)
 		for (const [key, source] of Object.entries(stateMap))
-			ui.target.set(key, isState(source) ? source : isFunction(source) ? cause(source) : ui.host.signal(source))
+			ui.target.set(
+				key,
+				isState(source)
+					? source
+					: isFunction(source)
+						? cause(source) // we need cause() here; with derive() the lexical scope of the source would be lost
+						: ui.host.signal(source)
+			)
 		return ui
 	}
 

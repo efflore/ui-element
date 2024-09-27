@@ -151,9 +151,15 @@
       describe('asJSON()', function () {
 
         it('should be undefined for undefined', function () {
-          const result = asJSON(maybe());
-          assert.isUndefined(result[0], 'Should return undefined for undefined attribute');
-        });
+			let result
+			try {
+				result = asJSON(maybe())
+			} catch (error) {
+                assert.fail(`Failed to parse JSON ${error.message}`)
+            } finally {
+                assert.isUndefined(result[0], 'Should return undefined for undefined attribute')
+            }
+        })
 
         it('should be undefined for boolean attribute', function () {
           const result = asJSON(maybe(''));

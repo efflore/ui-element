@@ -95,7 +95,7 @@
   <script type="module">
     import { runTests } from '@web/test-runner-mocha'
     import { assert } from '@esm-bundle/chai'
-    import { UIElement, effect, maybe, pass, on, setText, setProperty, setAttribute, toggleAttribute, toggleClass, setStyle, asBoolean, asInteger, asNumber } from '../index.js'
+    import { UIElement, derive, effect, maybe, pass, on, setText, setProperty, setAttribute, toggleAttribute, toggleClass, setStyle, asBoolean, asInteger, asNumber } from '../index.js'
 
     const wait = ms => new Promise(resolve => setTimeout(resolve, ms))
     const paint = () => new Promise(resolve => requestAnimationFrame(resolve))

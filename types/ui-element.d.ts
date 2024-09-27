@@ -1,5 +1,5 @@
 import { maybe } from './core/maybe';
-import { type Signal, effect } from './cause-effect';
+import { type Signal, derive, effect } from './cause-effect';
 import { log } from './core/log';
 import { parse } from './core/parse';
 import { type UnknownContext } from './core/context';
@@ -13,7 +13,7 @@ type UI<T> = {
 };
 type AttributeParser = (value: string[], element: UIElement, old: string | undefined) => unknown[];
 type AttributeMap = Record<string, AttributeParser>;
-type StateLike = PropertyKey | Signal<unknown> | (() => unknown);
+type StateLike<T> = PropertyKey | Signal<T>;
 /**
  * Base class for reactive custom elements
  *
@@ -86,7 +86,7 @@ declare class UIElement extends HTMLElement {
      * @param {T | ((old: T | undefined) => T) | Signal<T>} value - initial or new value; may be a function (gets old value as parameter) to be evaluated when value is retrieved
      * @param {boolean} [update=true] - if `true` (default), the state is updated; if `false`, do nothing if state already exists
      */
-    set<T>(key: any, value: T | ((old: T | undefined) => T) | Signal<T>, update?: boolean): void;
+    set<T>(key: any, value: T | Signal<T> | ((old: T | undefined) => T), update?: boolean): void;
     /**
      * Delete a state, also removing all effects dependent on the state
      *
@@ -120,4 +120,4 @@ declare class UIElement extends HTMLElement {
      */
     all(selector: string): UI<Element>[];
 }
-export { type UI, type AttributeMap, type StateMap, type StateLike, UIElement, parse, effect, maybe, log, pass, on, off, emit, asBoolean, asInteger, asNumber, asString, asJSON, setText, setProperty, setAttribute, toggleAttribute, toggleClass, setStyle };
+export { type UI, type AttributeMap, type StateMap, type StateLike, UIElement, parse, derive, effect, maybe, log, pass, on, off, emit, asBoolean, asInteger, asNumber, asString, asJSON, setText, setProperty, setAttribute, toggleAttribute, toggleClass, setStyle };

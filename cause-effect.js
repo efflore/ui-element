@@ -1,9 +1,9 @@
-/* === Types === */
 /* === Exported Functions === */
 const isOfType = (type) => (value) => typeof value === type;
 const isObject = isOfType('object');
 // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
 const isFunction = isOfType('function');
+const isNullish = (value) => value == null;
 const isDefined = (value) => value != null;
 const isDefinedObject = (value) => isDefined(value) && (isObject(value) || isFunction(value));
 // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
@@ -71,11 +71,10 @@ const scheduler = () => {
 };
 
 /* === Internal === */
-const { enqueue, cleanup } = scheduler();
 // hold the currently active effect
 let active;
 // hold schuduler instance
-// const { enqueue, cleanup } = scheduler()
+const { enqueue, cleanup } = scheduler();
 /**
  * Add notify function of active listener to the set of listeners
  *
@@ -91,6 +90,12 @@ const autotrack = (targets) => {
  * @param {Set<() => void>} targets
  */
 const autorun = (targets) => targets.forEach(notify => notify());
+/**
+ * Run a function in a reactive context
+ *
+ * @param {() => void} fn - function to run the computation or effect
+ * @param {() => void} notify - function to be called when the state changes
+ */
 const reactive = (fn, notify) => {
     const prev = active;
     active = notify;
@@ -104,12 +109,12 @@ const reactive = (fn, notify) => {
         active = prev;
     }
 };
-/* === Exported functions === */
+/* === Exported Functions === */
 /**
- * Check if a given variable is a reactive state
+ * Check if a given variable is a state signal
  *
- * @param {unknown} value - variable to check if it is a reactive state
- * @returns {boolean} true if supplied parameter is a reactive state
+ * @param {unknown} value - variable to check
+ * @returns {boolean} true if supplied parameter is a state signal
  */
 const isState = (value) => isDefinedObject(value) && hasMethod(value, 'set');
 /**
@@ -127,36 +132,35 @@ const cause = (value) => {
     };
     state.set = (updater) => {
         const old = value;
-        value = isFunction(updater) && !isState(updater) ? updater(value) : updater;
+        value = isFunction(updater) && updater.length ? updater(value) : updater;
         if (!Object.is(value, old))
             autorun(targets);
     };
     return state;
 };
 /**
- * Create a derived state from an existing state
+ * Create a derived state from a existing states
  *
  * @since 0.1.0
- * @param {() => T} fn - existing state to derive from
- * @param {boolean} [memo=false] - whether to use memoization
- * @returns {UIComputed<T>} derived state
+ * @param {() => T} fn - compute function to derive state
+ * @returns {Computed<T>} result of derived state
  */
 const derive = (fn, memo = false) => {
     const targets = new Set();
     let value;
     let stale = true;
+    const notify = () => {
+        stale = true;
+        if (memo)
+            autorun(targets);
+    };
     return () => {
         autotrack(targets);
-        if (!memo || stale) {
+        if (!memo || stale)
             reactive(() => {
                 value = fn();
-                stale = false;
-            }, () => {
-                stale = true;
-                if (memo)
-                    autorun(targets);
-            });
-        }
+                stale = isNullish(value);
+            }, notify);
         return value;
     };
 };
