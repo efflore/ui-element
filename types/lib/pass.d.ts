@@ -1,5 +1,5 @@
 import type { UI, UIElement, StateLike } from '../ui-element';
-type StateMap = Record<PropertyKey, StateLike>;
+type StateMap = Record<PropertyKey, StateLike<unknown>>;
 /**
  * Pass states from one UIElement to another
  *
