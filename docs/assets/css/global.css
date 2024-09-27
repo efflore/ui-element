@@ -1,0 +1,70 @@
+html {
+	font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+header {
+	ol {
+		display: grid;
+		list-style: none;
+        gap: 1rem;
+        margin-block: 1rem;
+        grid-template-columns: 1fr 1fr 1fr;
+        padding: 0;
+	}
+
+	li {
+		padding: 0;
+
+		&.active {
+			background-color: #eee;
+		}
+	}
+
+	a {
+		display: grid;
+		grid-template-areas: "icon title" "icon description";
+		grid-template-columns: auto 1fr;
+		gap: 0.25rem 0.5rem;
+		padding: 0.5rem;
+        color: #333;
+        text-decoration: none;
+
+		&:hover,
+		&:focus {
+			background-color: #ddd;
+			color: #000;
+
+			small {
+				color: #333;
+			}
+		}
+
+		.icon {
+			grid-area: icon;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+			font-size: 1.2rem;
+            width: 2rem;
+            height: 2rem;
+            border-radius: 50%;
+            background-color: #fff;
+            border: 1px solid #ccc;
+		}
+
+		strong {
+			grid-area: title;
+            font-size: 1rem;
+			line-height: 1;
+            margin: 0;
+		}
+
+		small {
+			grid-area: description;
+            font-size: 0.8rem;
+			line-height: 1.2;
+            margin: 0;
+            color: #666;
+		}
+    }
+}

@@ -1,4 +1,4 @@
-import { UIElement, asInteger, on, setText } from 'index.min.js'
+import { UIElement, asInteger, on, setText } from './index.min.js'
 
 class MyCounter extends UIElement {
 	static observedAttributes = ['count']
