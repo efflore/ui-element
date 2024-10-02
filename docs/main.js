@@ -2,8 +2,8 @@ import {
 	UIElement, maybe, pass, on, effect,
 	asBoolean, asInteger,
 	setText, setProperty, setAttribute, toggleAttribute, toggleClass
-} from './index.min.js'
-import Prism from './prism.min.js'
+} from '@efflore/ui-element'
+import Prism from './assets/js/prism.min.js'
 
 class MyCounter extends UIElement {
 	static observedAttributes = ['count']
@@ -89,7 +89,7 @@ class TabList extends UIElement {
 		    .map(toggleAttribute('accordion'))
 		this.first('.tab-nav')
 			.map(setProperty('ariaHidden', 'accordion'))
-		this.all('.tab-button')
+		this.all('.tab-nav button')
 			.map((ui, idx) => setProperty('ariaPressed', () => this.get('active') === idx)(ui))
 			.map((ui, idx) => on('click', () => this.set('active', idx))(ui))
 		this.all('accordion-panel')
