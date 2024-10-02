@@ -440,7 +440,9 @@ const autoEffect = (ui, state, prop, fallback, onNothing, onSomething) => {
 const setText = (state) => (ui) => {
     const fallback = ui.target.textContent || '';
     const setter = (value) => (element) => () => {
-        Array.from(element.childNodes).filter(isComment).forEach(match => match.remove());
+        Array.from(element.childNodes)
+            .filter(isComment)
+            .forEach(match => match.remove());
         element.append(document.createTextNode(value));
     };
     return autoEffect(ui, state, 't', fallback, setter(fallback), setter);
