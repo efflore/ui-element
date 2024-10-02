@@ -1,0 +1,272 @@
+<!doctype html>
+<html>
+	<head>
+		<title>UIElement Docs</title>
+		<link rel="stylesheet" href="assets/css/global.css">
+		<link rel="stylesheet" href="assets/css/components.css">
+		<script type="module" src="assets/js/main.js"></script>
+	</head>
+	<body>
+		<header class="content-grid">
+			<h1 class="content">UIElement Docs <small>Version 0.8.5</small></h1>
+			<nav class="breakout">
+				<ol>
+					<li>
+						<a href="index.html">
+							<span class="icon">📘</span>
+							<strong>Introduction</strong>
+							<small>Overview and key benefits of UIElement</small>
+						</a>
+					</li>
+					<li>
+						<a href="installation-setup.html">
+							<span class="icon">⚙️</span>
+							<strong>Installation & Setup</strong>
+							<small>How to install and set up the library</small>
+						</a>
+					</li>
+					<li>
+						<a href="core-concepts.html">
+							<span class="icon">🧩</span>
+							<strong>Core Concepts</strong>
+							<small>Learn about signals, state, and reactivity</small>
+						</a>
+					</li>
+					<li class="active">
+						<a href="detailed-walkthrough.html">
+							<span class="icon">📋</span>
+							<strong>Detailed Walkthrough</strong>
+							<small>Step-by-step guide to creating components</small>
+						</a>
+					</li>
+					<li>
+						<a href="best-practices-patterns.html">
+							<span class="icon">💡</span>
+							<strong>Best Practices & Patterns</strong>
+							<small>Tips for effective and scalable usage</small>
+						</a>
+					</li>
+					<li>
+						<a href="advanced-topics.html">
+							<span class="icon">🚀</span>
+							<strong>Advanced Topics</strong>
+							<small>Diving deeper into contexts and performance</small>
+						</a>
+					</li>
+					<li>
+						<a href="examples-recipes.html">
+							<span class="icon">🧪</span>
+							<strong>Examples & Recipes</strong>
+							<small>Sample components and practical use cases</small>
+						</a>
+					</li>
+					<li>
+						<a href="troubleshooting-faqs.html">
+							<span class="icon">❓</span>
+							<strong>Troubleshooting & FAQs</strong>
+							<small>Common issues and frequently asked questions</small>
+						</a>
+					</li>
+					<li>
+						<a href="api-reference.html">
+							<span class="icon">📚</span>
+							<strong>API Reference</strong>
+							<small>Detailed documentation of classes and methods</small>
+						</a>
+					</li>
+					<li>
+						<a href="contributing-development.html">
+							<span class="icon">🤝</span>
+							<strong>Contributing & Development</strong>
+							<small>How to contribute and set up the dev environment</small>
+						</a>
+					</li>
+					<li>
+						<a href="changelog-versioning.html">
+							<span class="icon">📝</span>
+							<strong>Changelog & Versioning</strong>
+							<small>Track changes and understand versioning</small>
+						</a>
+					</li>
+					<li>
+						<a href="licensing-credits.html">
+							<span class="icon">⚖️</span>
+							<strong>Licensing & Credits</strong>
+							<small>License details and acknowledgments</small>
+						</a>
+					</li>
+				</ol>				  
+			</nav>
+		</header>
+
+		<main>
+			<section class="hero">
+			  <h1>📋 Detailed Walkthrough</h1>
+			  <p class="lead">
+				This guide provides an in-depth look at how state flows through your components, from initialization to mutation, and how to build efficient, reactive Web Components.
+			  </p>
+			</section>
+		  
+			<section>
+			  <h2>Accessing Sub-Elements within a Component</h2>
+			  <p>
+				Accessing sub-elements within your `UIElement` component is essential for setting up event listeners, auto-effects, or custom effects.
+			  </p>
+		  
+			  <h3><code>this.self</code></h3>
+			  <p>
+				A reference to the custom element itself, which acts as the component wrapper. Useful for setting attributes or managing the component as a whole.
+			  </p>
+		  
+			  <h3><code>this.first(selector)</code></h3>
+			  <p>
+				Returns the first matching sub-element within the component using <code>querySelector()</code>. This is best for targeting unique elements that are expected to exist once within the component.
+			  </p>
+			  <pre><code>this.first('.count').map(setText('count'));</code></pre>
+		  
+			  <h3><code>this.all(selector)</code></h3>
+			  <p>
+				Returns all matching sub-elements within the component using <code>querySelectorAll()</code>. Use this for targeting groups of elements that require batch processing or multiple effects.
+			  </p>
+			  <pre><code>this.all('.item').map(toggleClass('active', 'isActive'));</code></pre>
+		  
+			  <h3>Chaining Effects, Event Handlers & Array Methods</h3>
+			  <p>
+				It is possible to chain multiple effects and event handlers on the same accessed element. Additionally, array methods like <code>.filter()</code>, <code>.find()</code>, and <code>.every()</code> can be used to further refine or manipulate the list of elements returned by <code>this.all()</code>.
+			  </p>
+			  <pre><code>// Example chaining event handler and effect
+		  this.first('button')
+			.map(on('click', () => this.set('clicked', true)))
+			.map(toggleClass('clicked', 'clicked'));
+		  
+		  // Example filtering elements
+		  this.all('.item')
+			.filter(item => item.target.textContent.includes('Important'))
+			.map(toggleClass('highlight', 'highlighted'));</code></pre>
+			</section>
+		  
+			<section>
+			  <h2>Ways State Enters a Component</h2>
+			  <p>
+				State in a component can come from several sources, each with its own way of being initialized and managed.
+			  </p>
+		  
+			  <h3>Observed Attributes</h3>
+			  <p>
+				Attributes declared in <code>static observedAttributes</code> are automatically parsed and converted into reactive signals using <code>attributeMap</code>.
+			  </p>
+			  <pre><code>import { asInteger } from 'ui-element';
+		  
+		  static observedAttributes = ['count'];
+		  static attributeMap = { count: asInteger };</code></pre>
+			  <p>
+				If you set an attribute on your custom element, it becomes a signal within the component.
+			  </p>
+			  <pre><code>&lt;counter-component count="5"&gt;&lt;/counter-component&gt;</code></pre>
+		  
+			  <h3>Defaults from DOM in Auto-Effects</h3>
+			  <p>
+				When an auto-effect like <code>setText()</code> is used, the content of the target DOM element is taken as the default value of the signal if it hasn't been set manually.
+			  </p>
+			  <pre><code>&lt;hello-world&gt;
+			&lt;p&gt;Hello, &lt;span class="greeting"&gt;World&lt;/span&gt;!&lt;/p&gt;
+		  &lt;/hello-world&gt;</code></pre>
+			  <pre><code>this.first('.greeting').map(setText('name'));</code></pre>
+			  <p>
+				In this case, the <code>name</code> signal defaults to <code>"World"</code> as it uses the initial content of <code>.greeting</code>.
+			  </p>
+		  
+			  <h3>Manually Set Signals</h3>
+			  <p>
+				You can set signals manually using <code>this.set()</code>. This is necessary in the following cases:
+			  </p>
+			  <ul>
+				<li>Awaiting an async source or external API to get the initial value.</li>
+				<li>Creating derived signals with arrow functions based on other state.</li>
+			  </ul>
+			  <pre><code>// Setting a default state
+		  this.set('count', 10);
+		  
+		  // Setting a derived state
+		  this.set('isEven', () => this.get('count') % 2 === 0);</code></pre>
+		  
+			  <h3>Context Consumers</h3>
+			  <p>
+				State can also be provided to a component through context. This allows sharing state across components and will be covered in the "Advanced Topics" section.
+			  </p>
+			</section>
+		  
+			<section>
+			  <h2>Ways State is Mutated</h2>
+			  <p>
+				Once signals are established, they can be mutated through user interactions or asynchronous operations.
+			  </p>
+		  
+			  <h3>Event Handlers</h3>
+			  <p>
+				Event handlers are the primary way to mutate state based on user input. You can use <code>.map()</code> and <code>on()</code> to attach event listeners to elements within the component.
+			  </p>
+			  <pre><code>this.first('input').map(on('input', (event) => this.set('name', event.target.value)));</code></pre>
+			  <p>
+				When an event occurs, the signal <code>name</code> is updated, triggering any bound effects.
+			  </p>
+		  
+			  <h3>Resolved Promises</h3>
+			  <p>
+				Asynchronous data sources, such as <code>fetch</code> requests or other Promises, can be used to mutate signals once resolved.
+			  </p>
+			  <pre><code>fetch('/data')
+			.then(response => response.json())
+			.then(data => this.set('data', data));</code></pre>
+			</section>
+		  
+			<section>
+			  <h2>Ways to React to State Changes</h2>
+			  <p>
+				When state changes in a component, `UIElement` provides various mechanisms to react and update the DOM or perform other side effects.
+			  </p>
+		  
+			  <h3>Auto-Effects for DOM Updates</h3>
+			  <p>
+				Auto-effects are declarative bindings between signals and the DOM, automatically updating elements when signals change.
+			  </p>
+			  <ul>
+				<li><code>setText()</code>: Sets the text content of an element.</li>
+				<li><code>setProperty()</code>: Sets a property on an element.</li>
+				<li><code>setAttribute()</code>: Sets an attribute based on a signal.</li>
+				<li><code>toggleAttribute()</code>: Toggles an attribute conditionally.</li>
+				<li><code>toggleClass()</code>: Adds or removes a class based on a signal.</li>
+				<li><code>setStyle()</code>: Updates a style property dynamically.</li>
+				<li><code>emit()</code>: Triggers a custom event based on signal changes.</li>
+			  </ul>
+			  <pre><code>// Using multiple auto-effects
+		  this.first('.count').map(setText('count'));
+		  this.all('.item').map(toggleClass('active', 'isActive'));
+		  this.self.map(toggleAttribute('selected', 'isSelected'));</code></pre>
+		  
+			  <h3>Custom Effects with <code>effect()</code></h3>
+			  <p>
+				For more complex or custom reactions to state changes, use the <code>effect()</code> method to define your own effect handlers.
+			  </p>
+			  <pre><code>this.effect(() => {
+			const count = this.get('count');
+			console.log('Count changed:', count);
+		  });</code></pre>
+			  <p>
+				Custom effects allow you to perform side effects such as logging, manipulating multiple DOM elements, or calling external APIs when state changes.
+			  </p>
+			  <p>
+				Be careful to avoid creating infinite loops by not setting signals within effect handlers unless managing derived states thoughtfully.
+			  </p>
+			</section>
+		  
+			<section>
+			  <h2>Conclusion & Next Steps</h2>
+			  <p>
+				Understanding how state flows into, through, and out of your `UIElement` components is key to building efficient, reactive Web Components. Now that you've learned about data flow and reactivity, explore the next sections to master "Best Practices & Patterns" or delve deeper into "Advanced Topics."
+			  </p>
+			</section>
+		  </main>
+		  
+	</body>
+</html>

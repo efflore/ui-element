@@ -1,20 +1,299 @@
 <!doctype html>
 <html>
 	<head>
-		<title>UIElement Documentation</title>
+		<title>UIElement Docs</title>
 		<link rel="stylesheet" href="assets/css/global.css">
-		<link rel="stylesheet" href="assets/css/main.css">
+		<link rel="stylesheet" href="assets/css/components.css">
 		<script type="module" src="assets/js/main.js"></script>
 	</head>
 	<body>
-		<h1>UIElement Documentation</h1>
-        <my-counter count="42">
-			<p>
-				Count: <span class="count"></span>
-				Parity: <span class="parity"></span>
-			</p>
-			<button class="decrement">-</button>
-			<button class="increment">+</button>
-		</my-counter>
+		<header class="content-grid">
+			<h1 class="content">UIElement Docs <small>Version 0.8.5</small></h1>
+			<nav class="breakout">
+				<ol>
+					<li class="active">
+						<a href="index.html">
+							<span class="icon">📘</span>
+							<strong>Introduction</strong>
+							<small>Overview and key benefits of UIElement</small>
+						</a>
+					</li>
+					<li>
+						<a href="installation-setup.html">
+							<span class="icon">⚙️</span>
+							<strong>Installation & Setup</strong>
+							<small>How to install and set up the library</small>
+						</a>
+					</li>
+					<li>
+						<a href="core-concepts.html">
+							<span class="icon">🧩</span>
+							<strong>Core Concepts</strong>
+							<small>Learn about signals, state, and reactivity</small>
+						</a>
+					</li>
+					<li>
+						<a href="detailed-walkthrough.html">
+							<span class="icon">📋</span>
+							<strong>Detailed Walkthrough</strong>
+							<small>Step-by-step guide to creating components</small>
+						</a>
+					</li>
+					<li>
+						<a href="best-practices-patterns.html">
+							<span class="icon">💡</span>
+							<strong>Best Practices & Patterns</strong>
+							<small>Tips for effective and scalable usage</small>
+						</a>
+					</li>
+					<li>
+						<a href="advanced-topics.html">
+							<span class="icon">🚀</span>
+							<strong>Advanced Topics</strong>
+							<small>Diving deeper into contexts and performance</small>
+						</a>
+					</li>
+					<li>
+						<a href="examples-recipes.html">
+							<span class="icon">🧪</span>
+							<strong>Examples & Recipes</strong>
+							<small>Sample components and practical use cases</small>
+						</a>
+					</li>
+					<li>
+						<a href="troubleshooting-faqs.html">
+							<span class="icon">❓</span>
+							<strong>Troubleshooting & FAQs</strong>
+							<small>Common issues and frequently asked questions</small>
+						</a>
+					</li>
+					<li>
+						<a href="api-reference.html">
+							<span class="icon">📚</span>
+							<strong>API Reference</strong>
+							<small>Detailed documentation of classes and methods</small>
+						</a>
+					</li>
+					<li>
+						<a href="contributing-development.html">
+							<span class="icon">🤝</span>
+							<strong>Contributing & Development</strong>
+							<small>How to contribute and set up the dev environment</small>
+						</a>
+					</li>
+					<li>
+						<a href="changelog-versioning.html">
+							<span class="icon">📝</span>
+							<strong>Changelog & Versioning</strong>
+							<small>Track changes and understand versioning</small>
+						</a>
+					</li>
+					<li>
+						<a href="licensing-credits.html">
+							<span class="icon">⚖️</span>
+							<strong>Licensing & Credits</strong>
+							<small>License details and acknowledgments</small>
+						</a>
+					</li>
+				</ol>				  
+			</nav>
+		</header>
+
+		<main>
+			<section class="hero">
+				<h1>📘 Introduction</h1>
+				<p class="lead">A lightweight solution to bring signals-based reactivity and state management to vanilla Web Components without the need for a complex framework.</p>
+			</section>
+		  
+			<section>
+				<h2>What is UIElement?</h2>
+				<p>
+					<strong>UIElement</strong> is a lightweight JavaScript library that extends the native <code>HTMLElement</code> class to bring efficient state management and reactivity to your Web Components without client-side rendering or the overhead of a larger framework.
+				</p>
+				<ul>
+					<li><strong>Minimalist & Lightweight</strong>: Only what you need to manage state and reactivity.</li>
+					<li><strong>Signals-Based Reactivity</strong>: Fine-grained updates based on state changes.</li>
+					<li><strong>Server-Rendered HTML Updates</strong>: Designed to work seamlessly with HTML rendered on the server, only updating what's necessary on the client side.</li>
+				</ul>
+			</section>
+		  
+			<section>
+				<h2>Why Use UIElement?</h2>
+				<p>If you're looking for:</p>
+				<ul>
+					<li><strong>Efficient State Management</strong>: No need for large frameworks—just manage client-side state and update HTML efficiently.</li>
+					<li><strong>Full Control with Web Standards</strong>: Build fully functional components with standard Web Components, no special syntax or magic.</li>
+					<li><strong>Fine-Grained Reactivity</strong>: Update exactly what's needed when state changes, reducing re-renders and keeping components performant.</li>
+					<li><strong>Flexibility to Work with Existing HTML</strong>: Update server-rendered HTML dynamically without re-rendering the entire page.</li>
+				</ul>
+			</section>
+		  
+			<section>
+				<h2>When Should You Use UIElement?</h2>
+				<p><strong>Best Use Cases:</strong></p>
+				<ul>
+					<li><strong>Enhancing Server-Rendered Pages</strong>: When you want to add interactivity to server-rendered pages without doing client-side rendering.</li>
+					<li><strong>Building Web Components with State</strong>: When creating custom elements that require easy state management.</li>
+					<li><strong>Projects Prioritizing Performance & Simplicity</strong>: When you want to maintain a simple, fast project without the need for a full JavaScript framework like React, Vue, or Angular.</li>
+				</ul>
+				<p><strong>Example Scenarios:</strong></p>
+				<ul>
+					<li>Enhancing form interactions without reloading the page.</li>
+					<li>Adding client-side features like counters, tabs, or toggles to a server-rendered app.</li>
+					<li>Managing shared state between multiple components on the client.</li>
+				</ul>
+			</section>
+		  
+			<section>
+				<h2>How UIElement Works</h2>
+				<p>
+					UIElement relies on signals—small pieces of reactive state that notify your components when changes occur. This allows for efficient updates to HTML content, handling reactivity only when necessary.
+				</p>
+				<p>
+					<strong>Signals & Auto-Effects:</strong> Signals automatically trigger updates to the DOM when they change.
+				</p>
+				<code-block language="js">
+					<pre><code class="language-js">this.set('count', 0); // Define a signal for 'count'
+this.first('.count').map(setText('count')); // Automatically update content when 'count' changes</code></pre>
+				</code-block>
+			</section>
+		  
+			<section>
+				<h2>Benefits of UIElement over Traditional Frameworks</h2>
+				<ul>
+					<li><strong>No Virtual DOM</strong>: Unlike React or Vue, UIElement updates HTML directly, avoiding unnecessary renders.</li>
+					<li><strong>Minimal Overhead</strong>: Since it builds on Web Components, it has minimal impact on performance and bundle size.</li>
+					<li><strong>Simple API</strong>: Few, clear concepts (signals, effects, context) allow developers to quickly build interactive components.</li>
+				</ul>
+			</section>
+		  
+			<section>
+				<h2>Quick Start Guide</h2>
+				<p>A simple example to get started:</p>
+				<component-demo>
+					<div class="preview">
+						<my-counter count="42">
+							<p>
+								Count: <span class="count"></span>
+								Parity: <span class="parity"></span>
+							</p>
+							<button class="decrement">-</button>
+							<button class="increment">+</button>
+						</my-counter>
+					</div>
+					<accordion-panel collapsible>
+						<details>
+							<summary>
+								<div class="summary">Source Code</div>
+							</summary>
+							<tab-list>
+								<ul class="tab-nav">
+									<li><button type="button">HTML</button></li>
+									<li><button type="button">CSS</button></li>
+									<li><button type="button">JavaScript</button></li>
+								</ul>
+							</tab-list>
+							<accordion-panel open>
+								<details open aria-disabled="true">
+									<summary class="visually-hidden">
+										<div class="summary">HTML</div>
+									</summary>
+									<code-block language="html" copy-success="Copied!" copy-error="Error trying to copy to clipboard!">
+										<p class="meta">
+											<span class="file">my-counter.html</span>
+											<span class="language">html</span>
+										</p>
+										<pre><code class="language-html">&lt;my-counter count="42"&gt;
+	&lt;p&gt;
+		Count: &lt;span class="count"&gt;&lt;/span&gt;
+		Parity: &lt;span class="parity"&gt;&lt;/span&gt;
+	&lt;/p&gt;
+	&lt;button id="increment"&gt;+&lt;/button&gt;
+	&lt;button id="decrement"&gt;-&lt;/button&gt;
+&lt;/my-counter&gt;</code></pre>
+										<input-button>
+										    <button type="button" class="secondary small">Copy</button>
+										</input-button>
+									</code-block>
+								</details>
+							</accordion-panel>
+							<accordion-panel>
+								<details aria-disabled="true">
+									<summary class="visually-hidden">
+										<div class="summary">CSS</div>
+									</summary>
+									<code-block language="css" copy-success="Copied!" copy-error="Error trying to copy to clipboard!">
+										<p class="meta">
+											<span class="file">my-counter.css</span>
+											<span class="language">css</span>
+										</p>
+										<pre><code class="language-css">my-counter {
+	display: flex;
+	gap: 0.5rem;
+	margin-block: 1rem;
+
+	p {
+		display: inline-block;
+		margin: 0;
+	}
+
+	span {
+		margin-right: 0.5rem;
+	}
+}</code></pre>
+										<input-button>
+										    <button type="button" class="secondary small">Copy</button>
+										</input-button>
+									</code-block>
+								</details>
+							</accordion-panel>
+							<accordion-panel>
+								<details aria-disabled="true">
+									<summary class="visually-hidden">
+										<div class="summary">JavaScript</div>
+									</summary>
+									<code-block language="js" copy-success="Copied!" copy-error="Error trying to copy to clipboard!">
+										<p class="meta">
+											<span class="file">my-counter.js</span>
+											<span class="language">js</span>
+										</p>
+										<pre><code class="language-js">import { UIElement, asInteger, on, setText } from '@efflore/ui-element'
+
+class MyCounter extends UIElement {
+	static observedAttributes = ['count']
+	static attributeMap = {
+		count: asInteger
+	}
+
+	connectedCallback() {
+		this.set('parity', () => this.get('count') % 2 ? 'odd' : 'even')
+		this.first('.increment').map(on('click', () => this.set('count', v => ++v)))
+		this.first('.decrement').map(on('click', () => this.set('count', v => --v)))
+		this.first('.count').map(setText('count'))
+		this.first('.parity').map(setText('parity'))
+	}
+}
+MyCounter.define('my-counter')</code></pre>
+										<input-button>
+										    <button type="button" class="secondary small">Copy</button>
+										</input-button>
+									</code-block>
+								</details>
+							</accordion-panel>
+						</details>
+					</accordion-panel>
+				</component-demo>			
+				<p>
+					For a full setup, see the <a href="installation-setup.html">Installation & Setup</a> page, or jump into the <a href="detailed-walkthrough.html">Detailed Walkthrough</a> to learn how to build your first component.
+				</p>
+			</section>
+		  
+			<section>
+				<h2>Next Steps</h2>
+				<p>
+					Continue to the <a href="installation-setup.html">Installation & Setup</a> to get started, or dive into <a href="core-concepts.html">Core Concepts</a> to learn more about signals and reactivity.
+				</p>
+			</section>
+		</main>
 	</body>
 </html>

@@ -1,0 +1,292 @@
+<!doctype html>
+<html>
+	<head>
+		<title>UIElement Docs</title>
+		<link rel="stylesheet" href="assets/css/global.css">
+		<link rel="stylesheet" href="assets/css/components.css">
+		<script type="module" src="assets/js/main.js"></script>
+	</head>
+	<body>
+		<header class="content-grid">
+			<h1 class="content">UIElement Docs <small>Version 0.8.5</small></h1>
+			<nav class="breakout">
+				<ol>
+					<li>
+						<a href="index.html">
+							<span class="icon">📘</span>
+							<strong>Introduction</strong>
+							<small>Overview and key benefits of UIElement</small>
+						</a>
+					</li>
+					<li>
+						<a href="installation-setup.html">
+							<span class="icon">⚙️</span>
+							<strong>Installation & Setup</strong>
+							<small>How to install and set up the library</small>
+						</a>
+					</li>
+					<li>
+						<a href="core-concepts.html">
+							<span class="icon">🧩</span>
+							<strong>Core Concepts</strong>
+							<small>Learn about signals, state, and reactivity</small>
+						</a>
+					</li>
+					<li>
+						<a href="detailed-walkthrough.html">
+							<span class="icon">📋</span>
+							<strong>Detailed Walkthrough</strong>
+							<small>Step-by-step guide to creating components</small>
+						</a>
+					</li>
+					<li>
+						<a href="best-practices-patterns.html">
+							<span class="icon">💡</span>
+							<strong>Best Practices & Patterns</strong>
+							<small>Tips for effective and scalable usage</small>
+						</a>
+					</li>
+					<li>
+						<a href="advanced-topics.html">
+							<span class="icon">🚀</span>
+							<strong>Advanced Topics</strong>
+							<small>Diving deeper into contexts and performance</small>
+						</a>
+					</li>
+					<li>
+						<a href="examples-recipes.html">
+							<span class="icon">🧪</span>
+							<strong>Examples & Recipes</strong>
+							<small>Sample components and practical use cases</small>
+						</a>
+					</li>
+					<li>
+						<a href="troubleshooting-faqs.html">
+							<span class="icon">❓</span>
+							<strong>Troubleshooting & FAQs</strong>
+							<small>Common issues and frequently asked questions</small>
+						</a>
+					</li>
+					<li>
+						<a href="api-reference.html">
+							<span class="icon">📚</span>
+							<strong>API Reference</strong>
+							<small>Detailed documentation of classes and methods</small>
+						</a>
+					</li>
+					<li>
+						<a href="contributing-development.html">
+							<span class="icon">🤝</span>
+							<strong>Contributing & Development</strong>
+							<small>How to contribute and set up the dev environment</small>
+						</a>
+					</li>
+					<li class="active">
+						<a href="changelog-versioning.html">
+							<span class="icon">📝</span>
+							<strong>Changelog & Versioning</strong>
+							<small>Track changes and understand versioning</small>
+						</a>
+					</li>
+					<li>
+						<a href="licensing-credits.html">
+							<span class="icon">⚖️</span>
+							<strong>Licensing & Credits</strong>
+							<small>License details and acknowledgments</small>
+						</a>
+					</li>
+				</ol>				  
+			</nav>
+		</header>
+
+		<main>
+
+			<section class="hero">
+				<h1>📝 Changelog & Versioning</h1>
+				<p class="lead">
+				Track the progress and improvements of UIElement with our changelog. This page outlines the versioning scheme used, notable changes, and updates across all pre-releases. Once version 1.0 is released, the changelog will be organized with more detailed information about each version.
+				</p>
+			</section>
+			
+			<section>
+				<h2>1. Versioning Scheme</h2>
+				<p>
+				UIElement follows <a href="https://semver.org/">Semantic Versioning</a> (SemVer), which is structured as <code>MAJOR.MINOR.PATCH</code>.
+				</p>
+				<ul>
+				<li><strong>MAJOR</strong>: Breaking changes that require migrations.</li>
+				<li><strong>MINOR</strong>: New features that are backwards compatible.</li>
+				<li><strong>PATCH</strong>: Bug fixes and performance improvements.</li>
+				</ul>
+			</section>
+			
+			<section>
+				<h2>2. Pre-Releases Overview</h2>
+				<p>
+				The following is a chronological list of changes and improvements made to UIElement in the pre-release versions. Once version 1.0 is reached, these changes will be grouped under a <code>&lt;details&gt;</code> section for archival purposes.
+				</p>
+				<ul>
+				<li>
+					<strong>v0.8.3</strong> (2023-09-29)
+					<ul>
+					<li>New Features:
+						<ul>
+						<li>Auto-effects now accept anonymous functions for passing state.</li>
+						<li>Map interface methods on <code>UIElement</code> now accept any key type.</li>
+						</ul>
+					</li>
+					<li>Breaking Changes:
+						<ul>
+						<li><code>dispatch()</code> auto-effect renamed to <code>emit()</code>.</li>
+						</ul>
+					</li>
+					<li>Other Changes:
+						<ul>
+						<li>Optimizations for context and functions connected to the UI interface.</li>
+						<li>Updated test cases to use the latest API.</li>
+						</ul>
+					</li>
+					</ul>
+				</li>
+				<li>
+					<strong>v8.0.2</strong> (2023-08-30)
+					<ul>
+					<li>Bugfixes:
+						<ul>
+						<li>Attribute parser now returns <code>unknown[]</code> to avoid issues with partially applied parser functions.</li>
+						<li>Fixed scheduler bug where updated state was skipped if another update was scheduled for the same property.</li>
+						<li>Slight optimizations to the scheduler.</li>
+						</ul>
+					</li>
+					</ul>
+				</li>
+				<li>
+					<strong>v0.8.1</strong> (2023-08-21)
+					<ul>
+					<li>New Features:
+						<ul>
+						<li>Scheduler deduplicates DOM instructions on the same element property within the same tick.</li>
+						<li>Chainable UI API for selecting elements using <code>this.self</code>, <code>this.first(selector)</code>, and <code>this.all(selector)</code>.</li>
+						<li>Partially applied <code>pass(stateMap)</code> to connect with the chainable UI interface.</li>
+						<li>Auto-effects and event handlers now integrate with the chainable UI interface.</li>
+						</ul>
+					</li>
+					<li>Breaking Changes to Core Features since v0.7.3:
+						<ul>
+						<li><code>attributeMap</code> is now static like <code>observedAttributes</code>.</li>
+						<li><code>this.pass(element, stateMap)</code> is replaced by <code>this.[first|all](selector).map(pass(stateMap))</code>.</li>
+						</ul>
+					</li>
+					</ul>
+				</li>
+				<li>
+					<strong>v0.7.3</strong> (2023-08-01)
+					<ul>
+					<li>Bugfixes and Tests:
+						<ul>
+						<li>Improved context provider and consumer logic.</li>
+						<li>Enhanced attribute parser functions and type definitions.</li>
+						</ul>
+					</li>
+					<li>Breaking Changes since 0.7.2:
+						<ul>
+						<li>Removed support for array values in <code>attributeMap</code>.</li>
+						<li>Refactored component props interface.</li>
+						</ul>
+					</li>
+					</ul>
+				</li>
+				<li>
+					<strong>v0.7.2</strong> (2023-07-22)
+					<ul>
+					<li>New Features:
+						<ul>
+						<li>Glitch-free <code>derive()</code> with memoization for expensive computations.</li>
+						<li>Faster Cause & Effect.</li>
+						</ul>
+					</li>
+					<li>Non-Core Features:
+						<ul>
+						<li>Introduced new auto-effects methods and event handlers on UI references.</li>
+						<li>New <code>asJSON()</code> attribute parser.</li>
+						</ul>
+					</li>
+					</ul>
+				</li>
+				<li>
+					<strong>v0.7.1</strong> (2023-07-15)
+					<ul>
+					<li>Bugfixes:
+						<ul>
+						<li>Fixed performance issues with derived signals.</li>
+						<li>Enhanced type checking for attributes and context maps.</li>
+						</ul>
+					</li>
+					</ul>
+				</li>
+				<li>
+					<strong>v0.7.0</strong> (2023-07-15)
+					<ul>
+					<li>New Features:
+						<ul>
+						<li>Source code refactored and converted to TypeScript.</li>
+						<li>Context controller added with <code>providedContexts</code> and <code>consumedContexts</code>.</li>
+						<li>New core method <code>this.targets()</code> for target highlighting.</li>
+						</ul>
+					</li>
+					<li>Breaking Changes since v0.6.2:
+						<ul>
+						<li>Renamed attribute parsing functions for consistency.</li>
+						<li>Updated context controller implementation.</li>
+						</ul>
+					</li>
+					</ul>
+				</li>
+				<li>
+					<strong>v0.6.2</strong> (2023-07-03)
+					<ul>
+					<li>New Features:
+						<ul>
+						<li>Added <code>this.set()</code> and <code>this.pass()</code> functions with enhanced functionality.</li>
+						<li>Effect callback functions receive a queue function for fine-grained updates.</li>
+						</ul>
+					</li>
+					<li>Breaking Changes since v0.4.0:
+						<ul>
+						<li><code>attributeMapping</code> renamed to <code>attributeMap</code>.</li>
+						</ul>
+					</li>
+					</ul>
+				</li>
+				<li>
+					<strong>v0.4.0</strong> (2023-05-01)
+					<ul>
+					<li>New Features:
+						<ul>
+						<li>Consolidated API with a Map-like interface for state management.</li>
+						</ul>
+					</li>
+					<li>Breaking Changes from v0.3.0:
+						<ul>
+						<li>Refined signal handling to follow the TC39 Signals Proposal.</li>
+						</ul>
+					</li>
+					</ul>
+				</li>
+				</ul>
+			</section>		  
+			
+			<section>
+				<h2>3. Resources</h2>
+				<p>
+				For more information on changes and releases:
+				</p>
+				<ul>
+				<li><a href="https://github.com/efflore/ui-element/releases">GitHub Releases</a>: View all releases and associated notes.</li>
+				<li><a href="https://semver.org/">Semantic Versioning</a>: Learn more about the versioning scheme followed by UIElement.</li>
+				</ul>
+			</section>
+		</main>
+
+	</body>
+</html>

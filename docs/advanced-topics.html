@@ -1,0 +1,287 @@
+<!doctype html>
+<html>
+	<head>
+		<title>UIElement Docs</title>
+		<link rel="stylesheet" href="assets/css/global.css">
+		<link rel="stylesheet" href="assets/css/components.css">
+		<script type="module" src="assets/js/main.js"></script>
+	</head>
+	<body>
+		<header class="content-grid">
+			<h1 class="content">UIElement Docs <small>Version 0.8.5</small></h1>
+			<nav class="breakout">
+				<ol>
+					<li>
+						<a href="index.html">
+							<span class="icon">📘</span>
+							<strong>Introduction</strong>
+							<small>Overview and key benefits of UIElement</small>
+						</a>
+					</li>
+					<li>
+						<a href="installation-setup.html">
+							<span class="icon">⚙️</span>
+							<strong>Installation & Setup</strong>
+							<small>How to install and set up the library</small>
+						</a>
+					</li>
+					<li>
+						<a href="core-concepts.html">
+							<span class="icon">🧩</span>
+							<strong>Core Concepts</strong>
+							<small>Learn about signals, state, and reactivity</small>
+						</a>
+					</li>
+					<li>
+						<a href="detailed-walkthrough.html">
+							<span class="icon">📋</span>
+							<strong>Detailed Walkthrough</strong>
+							<small>Step-by-step guide to creating components</small>
+						</a>
+					</li>
+					<li>
+						<a href="best-practices-patterns.html">
+							<span class="icon">💡</span>
+							<strong>Best Practices & Patterns</strong>
+							<small>Tips for effective and scalable usage</small>
+						</a>
+					</li>
+					<li class="active">
+						<a href="advanced-topics.html">
+							<span class="icon">🚀</span>
+							<strong>Advanced Topics</strong>
+							<small>Diving deeper into contexts and performance</small>
+						</a>
+					</li>
+					<li>
+						<a href="examples-recipes.html">
+							<span class="icon">🧪</span>
+							<strong>Examples & Recipes</strong>
+							<small>Sample components and practical use cases</small>
+						</a>
+					</li>
+					<li>
+						<a href="troubleshooting-faqs.html">
+							<span class="icon">❓</span>
+							<strong>Troubleshooting & FAQs</strong>
+							<small>Common issues and frequently asked questions</small>
+						</a>
+					</li>
+					<li>
+						<a href="api-reference.html">
+							<span class="icon">📚</span>
+							<strong>API Reference</strong>
+							<small>Detailed documentation of classes and methods</small>
+						</a>
+					</li>
+					<li>
+						<a href="contributing-development.html">
+							<span class="icon">🤝</span>
+							<strong>Contributing & Development</strong>
+							<small>How to contribute and set up the dev environment</small>
+						</a>
+					</li>
+					<li>
+						<a href="changelog-versioning.html">
+							<span class="icon">📝</span>
+							<strong>Changelog & Versioning</strong>
+							<small>Track changes and understand versioning</small>
+						</a>
+					</li>
+					<li>
+						<a href="licensing-credits.html">
+							<span class="icon">⚖️</span>
+							<strong>Licensing & Credits</strong>
+							<small>License details and acknowledgments</small>
+						</a>
+					</li>
+				</ol>				  
+			</nav>
+		</header>
+
+		<main>
+			<section class="hero">
+			  <h1>🚀 Advanced Topics</h1>
+			  <p class="lead">
+				Explore the advanced features of <code>UIElement</code>, including context for managing shared client-side state, scheduling mechanisms to control timing in custom effects, and shared functionality through composition.
+			  </p>
+			</section>
+		  
+			<section>
+			  <h2>Managing Global State with Context</h2>
+			  <p>
+				Context allows sharing client-side state across components, particularly for states that depend on browser APIs like media queries. Use context mainly for client-only state, and pass server-rendered state as attributes.
+			  </p>
+		  
+			  <h3>Context Providers</h3>
+			  <p>
+				A context provider component manages shared state and exposes it to all sub-components. Use the naming pattern <code>${something}-provider</code> and provide contexts prefixed with <code>${something}-</code> for clear namespacing.
+			  </p>
+			  <pre><code>class MediaProvider extends UIElement {
+			static providedContexts = ['media-theme'];
+		  
+			connectedCallback() {
+			  // Monitor changes to the (prefers-color-scheme) media query
+			  const mql = matchMedia('(prefers-color-scheme: dark)');
+			  this.set('media-theme', mql.matches);
+			  super.connectedCallback();
+			  mql.onchange = (e) => this.set('media-theme', e.matches);
+			}
+		  }
+		  MediaProvider.define('media-provider');</code></pre>
+		  
+			  <h3>Context Consumers</h3>
+			  <p>
+				Components that consume context need to declare which context keys they use through <code>static consumedContexts</code>. This allows them to inherit state from any context provider up the DOM tree.
+			  </p>
+			  <pre><code>class ThemedComponent extends UIElement {
+			static consumedContexts = ['media-theme'];
+		  
+			connectedCallback() {
+			  super.connectedCallback();
+			  this.first('.box').map(setStyle('background-color', () =>
+				this.get('media-theme') ? 'black' : 'white'
+			  ));
+			}
+		  }
+		  ThemedComponent.define('themed-component');</code></pre>
+		  
+			  <h3>Best Practices for Context Usage</h3>
+			  <ul>
+				<li><strong>Use namespaced keys:</strong> Context keys should be two words separated by a dash (e.g., <code>media-theme</code>).</li>
+				<li><strong>Client-side state only:</strong> Use context for browser-dependent state. Server-rendered state should be passed as attributes.</li>
+				<li><strong>Call super lifecycle methods:</strong> Always call <code>super.connectedCallback()</code> and <code>super.disconnectedCallback()</code> if overriding them in context providers or consumers.</li>
+			  </ul>
+			</section>
+		  
+			<section>
+			  <h2>Scheduling & Controlling Effects</h2>
+			  <p>
+				The scheduler in <code>UIElement</code> manages effect timing across three phases: preparation, DOM updates, and cleanup. This ensures efficient batching and deduplication of DOM changes.
+			  </p>
+		  
+			  <h3>Preparation Phase</h3>
+			  <p>
+				This is where signals are accessed and processed synchronously. You can also enqueue DOM updates and cleanup functions manually.
+			  </p>
+			  <pre><code>this.effect(enqueue => {
+			const newItem = this.get('add');
+			if (newItem) {
+			  const template = this.querySelector('template').content.cloneNode(true);
+			  template.querySelector('li').textContent = newItem; // fill content from signal
+			  enqueue(this.querySelector('ul'), 'insert', el => () => el.appendChild(template));
+			  this.set('add', ''); // clear the 'add' signal
+			}
+			return () => console.log(`New item '${newItem}' added`);
+		  });</code></pre>
+			  <p>
+				In this example, a new item is created from a template and appended to a list, and the <code>add</code> signal is cleared. A cleanup function logs the new item after updates are complete.
+			  </p>
+		  
+			  <h3>DOM Update Phase</h3>
+			  <p>
+				All DOM updates are efficiently batched and flushed on the next animation frame. Multiple updates to the same element within the same tick are merged, reducing unnecessary reflows.
+			  </p>
+			  <pre><code>// Multiple updates on the same element
+		  this.first('.status').map(setText('statusText'));
+		  this.first('.status').map(setStyle('color', 'textColor')); // Deduplicated</code></pre>
+		  
+			  <h3>Cleanup Phase</h3>
+			  <p>
+				After all DOM updates are completed, any enqueued cleanup operations are executed. Cleanup functions are returned directly from the effect.
+			  </p>
+			  <pre><code>this.effect(() => {
+			// Preparation logic here
+			return () => {
+			  // Cleanup logic
+			};
+		  });</code></pre>
+			  <p>
+				Keep cleanup operations minimal to maintain optimal performance and only use them when necessary.
+			  </p>
+		  
+			  <h3>Best Practices for Custom Effects</h3>
+			  <ul>
+				<li><strong>Avoid double encapsulation:</strong> Do not use auto-effects within custom effects. Handle DOM manipulations manually when needed.</li>
+				<li><strong>Separate logic phases:</strong> Clearly separate signal preparation, DOM updates, and cleanup for better performance.</li>
+			  </ul>
+			</section>
+		  
+			<section>
+			  <h2>Sharing Functionality Across Components</h2>
+			  <p>
+				Instead of using inheritance or mixins, which can lead to tight coupling, you can share common functionality across multiple components using composition. A controller class is an excellent way to achieve this.
+			  </p>
+		  
+			  <h3>Using a Controller for Composition</h3>
+			  <p>
+				A controller encapsulates reusable logic and can be attached to any component as a field. One example is a <code>VisibilityObserver</code>, which tracks whether a component is visible in the viewport.
+			  </p>
+			  
+			  <pre><code>// controllers/VisibilityObserver.js
+		  export class VisibilityObserver {
+			constructor() {
+			  this.observer = new IntersectionObserver((entries) => {
+				entries.forEach(entry => {
+				  entry.target.set('visible', entry.isIntersecting);
+				});
+			  });
+			}
+		  
+			connect(component) {
+			  this.observer.observe(component);
+			}
+		  
+			disconnect() {
+			  this.observer.disconnect();
+			}
+		  }</code></pre>
+		  
+			  <h3>Integrating the Controller into a Component</h3>
+			  <p>
+				To use the <code>VisibilityObserver</code>, import it and attach it as a field on your component. Then connect it during <code>connectedCallback()</code> and disconnect it in <code>disconnectedCallback()</code>.
+			  </p>
+			  <pre><code>import { VisibilityObserver } from './controllers/VisibilityObserver.js';
+		  
+		  class VisibilityComponent extends UIElement {
+			constructor() {
+			  super();
+			  this.visibilityObserver = new VisibilityObserver();
+			}
+		  
+			connectedCallback() {
+			  super.connectedCallback();
+			  this.visibilityObserver.connect(this); // Connect the observer
+			  this.first('.box').map(setText(() => this.get('visible') ? 'Visible' : 'Hidden'));
+			}
+		  
+			disconnectedCallback() {
+			  super.disconnectedCallback();
+			  this.visibilityObserver.disconnect(); // Clean up the observer
+			}
+		  }
+		  VisibilityComponent.define('visibility-component');</code></pre>
+		  
+			  <h3>HTML Usage Example</h3>
+			  <pre><code>&lt;visibility-component&gt;
+			&lt;div class="box"&gt;Visibility state will be shown here&lt;/div&gt;
+		  &lt;/visibility-component&gt;</code></pre>
+		  
+			  <h3>Best Practices for Using Controllers</h3>
+			  <ul>
+				<li><strong>Encapsulation:</strong> Keep the controller logic separate from the component logic to ensure modularity and reusability.</li>
+				<li><strong>Attach Controllers as Fields:</strong> Attach controllers to components as fields (e.g., <code>this.visibilityObserver</code>) for easy access and management.</li>
+				<li><strong>Manage Lifecycle Carefully:</strong> Ensure that the controller’s <code>connect()</code> and <code>disconnect()</code> methods are properly tied to the component's lifecycle callbacks.</li>
+			  </ul>
+			</section>
+		  
+			<section>
+			  <h2>Conclusion & Next Steps</h2>
+			  <p>
+				By using context, scheduling effects efficiently, and sharing functionality through composition, you can build robust and maintainable <code>UIElement</code> components. Explore "Examples & Recipes" to see these concepts in action or visit "Troubleshooting & FAQs" for solutions to common issues.
+			  </p>
+			</section>
+		</main>		  
+		  
+	</body>
+</html>

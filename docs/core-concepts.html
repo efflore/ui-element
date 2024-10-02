@@ -1,0 +1,235 @@
+<!doctype html>
+<html>
+	<head>
+		<title>UIElement Docs</title>
+		<link rel="stylesheet" href="assets/css/global.css">
+		<link rel="stylesheet" href="assets/css/components.css">
+		<script type="module" src="assets/js/main.js"></script>
+	</head>
+	<body>
+		<header class="content-grid">
+			<h1 class="content">UIElement Docs <small>Version 0.8.5</small></h1>
+			<nav class="breakout">
+				<ol>
+					<li>
+						<a href="index.html">
+							<span class="icon">📘</span>
+							<strong>Introduction</strong>
+							<small>Overview and key benefits of UIElement</small>
+						</a>
+					</li>
+					<li>
+						<a href="installation-setup.html">
+							<span class="icon">⚙️</span>
+							<strong>Installation & Setup</strong>
+							<small>How to install and set up the library</small>
+						</a>
+					</li>
+					<li class="active">
+						<a href="core-concepts.html">
+							<span class="icon">🧩</span>
+							<strong>Core Concepts</strong>
+							<small>Learn about signals, state, and reactivity</small>
+						</a>
+					</li>
+					<li>
+						<a href="detailed-walkthrough.html">
+							<span class="icon">📋</span>
+							<strong>Detailed Walkthrough</strong>
+							<small>Step-by-step guide to creating components</small>
+						</a>
+					</li>
+					<li>
+						<a href="best-practices-patterns.html">
+							<span class="icon">💡</span>
+							<strong>Best Practices & Patterns</strong>
+							<small>Tips for effective and scalable usage</small>
+						</a>
+					</li>
+					<li>
+						<a href="advanced-topics.html">
+							<span class="icon">🚀</span>
+							<strong>Advanced Topics</strong>
+							<small>Diving deeper into contexts and performance</small>
+						</a>
+					</li>
+					<li>
+						<a href="examples-recipes.html">
+							<span class="icon">🧪</span>
+							<strong>Examples & Recipes</strong>
+							<small>Sample components and practical use cases</small>
+						</a>
+					</li>
+					<li>
+						<a href="troubleshooting-faqs.html">
+							<span class="icon">❓</span>
+							<strong>Troubleshooting & FAQs</strong>
+							<small>Common issues and frequently asked questions</small>
+						</a>
+					</li>
+					<li>
+						<a href="api-reference.html">
+							<span class="icon">📚</span>
+							<strong>API Reference</strong>
+							<small>Detailed documentation of classes and methods</small>
+						</a>
+					</li>
+					<li>
+						<a href="contributing-development.html">
+							<span class="icon">🤝</span>
+							<strong>Contributing & Development</strong>
+							<small>How to contribute and set up the dev environment</small>
+						</a>
+					</li>
+					<li>
+						<a href="changelog-versioning.html">
+							<span class="icon">📝</span>
+							<strong>Changelog & Versioning</strong>
+							<small>Track changes and understand versioning</small>
+						</a>
+					</li>
+					<li>
+						<a href="licensing-credits.html">
+							<span class="icon">⚖️</span>
+							<strong>Licensing & Credits</strong>
+							<small>License details and acknowledgments</small>
+						</a>
+					</li>
+				</ol>				  
+			</nav>
+		</header>
+
+		<main>
+			<section class="hero">
+			  <h1>🧩 Core Concepts</h1>
+			  <p class="lead">
+				UIElement is a minimalist library that builds on the power of Web Components, extending them with lightweight, reactive state management.
+			  </p>
+			</section>
+		  
+			<section>
+			  <h2>Anatomy of a UIElement Web Component</h2>
+			  <h3>Extending Web Components</h3>
+			  <p>
+				UIElement extends the native <code>HTMLElement</code> class to add state management and reactivity to Web Components. You can create your own custom elements by extending <code>UIElement</code>.
+			  </p>
+			  <pre><code>class MyComponent extends UIElement {
+			/* component definition */
+		  }</code></pre>
+			  <h3>Defining Custom Elements</h3>
+			  <p>
+				You must define the custom element's tag name in kebab-case using the <code>define()</code> method to make it available for use in HTML.
+			  </p>
+			  <pre><code>MyComponent.define('my-component');</code></pre>
+			  <p>Make sure to use valid custom element names and avoid defining the same element more than once.</p>
+			  <h3>Using the Custom Element</h3>
+			  <p>
+				Once defined, you can use the custom element in HTML just like any other tag.
+			  </p>
+			  <pre><code>&lt;my-component&gt;Content goes here&lt;/my-component&gt;</code></pre>
+			</section>
+		  
+			<section>
+			  <h2>Web Components Lifecycle</h2>
+			  <p>
+				Each UIElement component goes through a lifecycle. Here’s how the core lifecycle callbacks work:
+			  </p>
+			  <h3>constructor()</h3>
+			  <p>
+				Called when the element is created. Avoid accessing attributes or DOM elements here; use <code>connectedCallback()</code> instead.
+			  </p>
+			  <h3>connectedCallback()</h3>
+			  <p>
+				Called when the component is attached to the DOM. This is where you can initialize state, add event listeners, and set up reactive effects.
+			  </p>
+			  <h3>disconnectedCallback()</h3>
+			  <p>
+				Called when the component is removed from the DOM. Clean up any external event listeners here.
+			  </p>
+			  <h3>adoptedCallback()</h3>
+			  <p>
+				Called when the component is moved to a new document. Rarely needed unless you're dealing with advanced scenarios like drag-and-drop.
+			  </p>
+			  <h3>attributeChangedCallback()</h3>
+			  <p>
+				Called when an observed attribute is changed. <code>UIElement</code> handles this automatically, so usually, there's no need to override it.
+			  </p>
+			</section>
+		  
+			<section>
+			  <h2>Signals & State Management in UIElement</h2>
+			  <p>
+				Signals are the fundamental units of reactive state in UIElement. You can create and update signals using <code>this.set()</code>.
+			  </p>
+			  <pre><code>this.set('count', 0); // Create a signal
+		  this.set('isEven', () => this.get('count') % 2 === 0); // Create a derived signal</code></pre>
+			  <p>
+				Signals automatically trigger updates to elements in the DOM that are bound to them.
+			  </p>
+			</section>
+		  
+			<section>
+			  <h2>Auto-Effects & Reactive Bindings</h2>
+			  <p>
+				Auto-effects like <code>setText()</code> automatically update the DOM when signals change. Use the <code>.map()</code> method to bind signals to HTML elements.
+			  </p>
+			  <pre><code>this.first('.count').map(setText('count'));</code></pre>
+			  <p>
+				The content of the <code>.count</code> element will update whenever the <code>count</code> signal changes.
+			  </p>
+			</section>
+		  
+			<section>
+			  <h2>Attributes & State Synchronization</h2>
+			  <p>
+				Observed attributes in UIElement are automatically converted into reactive signals. You can declare them using the <code>observedAttributes</code> static property.
+			  </p>
+			  <pre><code>static observedAttributes = ['count'];</code></pre>
+			  <p>
+				To parse and map attributes to specific state types, use the <code>attributeMapping</code> property.
+			  </p>
+			  <pre><code>static attributeMapping = {
+			count: 'integer',
+		  };</code></pre>
+			  <p>
+				You can also use custom parsing functions for more complex attribute handling.
+			  </p>
+			  <pre><code>attributeMapping = {
+			date: (value) => new Date(value),
+		  };</code></pre>
+			</section>
+		  
+			<section>
+			  <h2>Handling Events & State Changes</h2>
+			  <p>
+				Use <code>.map()</code> and <code>on()</code> to attach event listeners to elements. These event handlers can trigger state changes and update the DOM.
+			  </p>
+			  <pre><code>this.first('#increment').map(on('click', () => this.set('count', (prev) => prev + 1)));</code></pre>
+			  <p>
+				User interactions like clicks or form inputs can trigger signal updates, which are reflected immediately in the DOM.
+			  </p>
+			</section>
+		  
+			<section>
+			  <h2>Efficient & Fine-Grained Updates</h2>
+			  <p>
+				UIElement efficiently updates only the parts of the DOM affected by signal changes, avoiding full re-renders. This ensures optimal performance and precise updates.
+			  </p>
+			  <p>
+				Unlike virtual DOM approaches, updates are fine-grained, affecting only the relevant elements in the view.
+			  </p>
+			</section>
+		  
+			<section>
+			  <h2>Outlook: State Sharing & Context</h2>
+			  <p>
+				While most components manage their own state, sometimes you need to share state between components. UIElement allows this through <code>pass()</code> for parent-child state sharing and context providers for more advanced scenarios.
+			  </p>
+			  <p>
+				These advanced features will be covered in detail in later sections on Best Practices & Patterns and Advanced Topics.
+			  </p>
+			</section>
+		  </main>
+		  
+	</body>
+</html>
