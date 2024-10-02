@@ -1,0 +1,211 @@
+<!doctype html>
+<html>
+	<head>
+		<title>UIElement Docs</title>
+		<link rel="stylesheet" href="assets/css/global.css">
+		<link rel="stylesheet" href="assets/css/components.css">
+		<script type="module" src="assets/js/main.js"></script>
+	</head>
+	<body>
+		<header class="content-grid">
+			<h1 class="content">UIElement Docs <small>Version 0.8.5</small></h1>
+			<nav class="breakout">
+				<ol>
+					<li>
+						<a href="index.html">
+							<span class="icon">📘</span>
+							<strong>Introduction</strong>
+							<small>Overview and key benefits of UIElement</small>
+						</a>
+					</li>
+					<li>
+						<a href="installation-setup.html">
+							<span class="icon">⚙️</span>
+							<strong>Installation & Setup</strong>
+							<small>How to install and set up the library</small>
+						</a>
+					</li>
+					<li>
+						<a href="core-concepts.html">
+							<span class="icon">🧩</span>
+							<strong>Core Concepts</strong>
+							<small>Learn about signals, state, and reactivity</small>
+						</a>
+					</li>
+					<li>
+						<a href="detailed-walkthrough.html">
+							<span class="icon">📋</span>
+							<strong>Detailed Walkthrough</strong>
+							<small>Step-by-step guide to creating components</small>
+						</a>
+					</li>
+					<li>
+						<a href="best-practices-patterns.html">
+							<span class="icon">💡</span>
+							<strong>Best Practices & Patterns</strong>
+							<small>Tips for effective and scalable usage</small>
+						</a>
+					</li>
+					<li>
+						<a href="advanced-topics.html">
+							<span class="icon">🚀</span>
+							<strong>Advanced Topics</strong>
+							<small>Diving deeper into contexts and performance</small>
+						</a>
+					</li>
+					<li>
+						<a href="examples-recipes.html">
+							<span class="icon">🧪</span>
+							<strong>Examples & Recipes</strong>
+							<small>Sample components and practical use cases</small>
+						</a>
+					</li>
+					<li>
+						<a href="troubleshooting-faqs.html">
+							<span class="icon">❓</span>
+							<strong>Troubleshooting & FAQs</strong>
+							<small>Common issues and frequently asked questions</small>
+						</a>
+					</li>
+					<li>
+						<a href="api-reference.html">
+							<span class="icon">📚</span>
+							<strong>API Reference</strong>
+							<small>Detailed documentation of classes and methods</small>
+						</a>
+					</li>
+					<li class="active">
+						<a href="contributing-development.html">
+							<span class="icon">🤝</span>
+							<strong>Contributing & Development</strong>
+							<small>How to contribute and set up the dev environment</small>
+						</a>
+					</li>
+					<li>
+						<a href="changelog-versioning.html">
+							<span class="icon">📝</span>
+							<strong>Changelog & Versioning</strong>
+							<small>Track changes and understand versioning</small>
+						</a>
+					</li>
+					<li>
+						<a href="licensing-credits.html">
+							<span class="icon">⚖️</span>
+							<strong>Licensing & Credits</strong>
+							<small>License details and acknowledgments</small>
+						</a>
+					</li>
+				</ol>				  
+			</nav>
+		</header>
+
+		<main>
+			<section class="hero">
+				<h1>🤝 Contributing & Development</h1>
+				<p class="lead">
+				  Contributions to UIElement are welcome! This page provides guidelines for setting up your development environment, contributing code, and reporting issues to ensure a smooth collaboration process.
+				</p>
+			  </section>
+			  
+			  <section>
+				<h2>1. Code of Conduct</h2>
+				<p>
+				  Please read and follow our <a href="https://github.com/efflore/ui-element/blob/main/CODE_OF_CONDUCT.md">Code of Conduct</a> to foster an inclusive and respectful community.
+				</p>
+			  </section>
+			  
+			  <section>
+				<h2>2. How to Contribute</h2>
+				<ul>
+				  <li>
+					<strong>Reporting Issues</strong>: If you encounter bugs or have feature requests, please open an issue in the <a href="https://github.com/efflore/ui-element/issues">GitHub Issues</a> section.
+				  </li>
+				  <li>
+					<strong>Submitting Pull Requests</strong>: To contribute code or documentation, fork the repository, create a new branch, and submit a pull request. See the <a href="https://github.com/efflore/ui-element/blob/main/CONTRIBUTING.md">Contributing Guidelines</a> for more details.
+				  </li>
+				  <li>
+					<strong>Proposing Enhancements</strong>: For feature proposals or enhancements, it's a good idea to first open an issue to discuss your idea before starting to code.
+				  </li>
+				</ul>
+			  </section>
+			  
+			  <section>
+				<h2>3. Setting Up the Development Environment</h2>
+				<ol>
+				  <li>
+					<strong>Clone the Repository</strong>: Clone the UIElement repository from GitHub:
+					<pre><code class="language-bash">git clone https://github.com/efflore/ui-element.git</code></pre>
+				  </li>
+				  <li>
+					<strong>Install Dependencies</strong>: Navigate to the project directory and install the necessary dependencies using npm:
+					<pre><code class="language-bash">cd ui-element
+			  npm install</code></pre>
+				  </li>
+				  <li>
+					<strong>Run the Development Server</strong>: Start the development server to work on the code and see live updates:
+					<pre><code class="language-bash">npm start</code></pre>
+					This will run the build process and serve the project locally.
+				  </li>
+				</ol>
+			  </section>
+			  
+			  <section>
+				<h2>4. Testing and Building</h2>
+				<ul>
+				  <li>
+					<strong>Linting</strong>: Run linting to maintain code quality and formatting:
+					<pre><code class="language-bash">npm run lint</code></pre>
+				  </li>
+				  <li>
+					<strong>Unit Testing</strong>: Execute the test suite to ensure everything works correctly:
+					<pre><code class="language-bash">npm test</code></pre>
+				  </li>
+				  <li>
+					<strong>Building for Production</strong>: When you're ready to build the project for production, run:
+					<pre><code class="language-bash">npm run build</code></pre>
+					The production build will be created in the `dist` directory.
+				  </li>
+				</ul>
+			  </section>
+			  
+			  <section>
+				<h2>5. Commit Message Guidelines</h2>
+				<p>
+				  Use conventional commit messages for consistency and clarity. Examples include:
+				  <pre><code class="language-bash">
+			  feat: add new feature to the component
+			  fix: resolve issue with context updates
+			  docs: update documentation for new API
+			  chore: update build process and tooling</code></pre>
+				  Refer to the <a href="https://www.conventionalcommits.org/">Conventional Commits specification</a> for more details.
+				</p>
+			  </section>
+			  
+			  <section>
+				<h2>6. Project Structure</h2>
+				<p>
+				  Familiarize yourself with the project's folder structure:
+				</p>
+				<ul>
+				  <li><strong>src/</strong>: Source code for UIElement components and utilities.</li>
+				  <li><strong>docs/</strong>: Documentation files and assets for the GitHub Pages site.</li>
+				  <li><strong>tests/</strong>: Unit and integration tests for UIElement.</li>
+				  <li><strong>dist/</strong>: Compiled and minified production build output.</li>
+				</ul>
+			  </section>
+			  
+			  <section>
+				<h2>7. Resources</h2>
+				<p>
+				  For more information and resources:
+				</p>
+				<ul>
+				  <li><a href="https://github.com/efflore/ui-element/blob/main/README.md">README</a>: Overview of the project and its goals.</li>
+				  <li><a href="https://github.com/efflore/ui-element/blob/main/CHANGELOG.md">Changelog</a>: A log of changes, bug fixes, and improvements.</li>
+				  <li><a href="https://github.com/efflore/ui-element/blob/main/LICENSE">License</a>: Information about the licensing of UIElement.</li>
+				</ul>
+			  </section>			  
+		</main>
+
+	</body>
+</html>

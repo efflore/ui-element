@@ -50,7 +50,9 @@ const setText = <E extends Element>(state: StateLike<string>) =>
 	(ui: UI<E>): UI<E> => {
 		const fallback = ui.target.textContent || ''
 		const setter = (value: string) => (element: E) => () => {
-			Array.from(element.childNodes).filter(isComment).forEach(match => match.remove())
+			Array.from(element.childNodes)
+				.filter(isComment)
+				.forEach(match => match.remove())
 			element.append(document.createTextNode(value))
 		}
 		return autoEffect<E, string>(

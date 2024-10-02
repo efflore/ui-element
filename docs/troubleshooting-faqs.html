@@ -1,0 +1,245 @@
+<!doctype html>
+<html>
+	<head>
+		<title>UIElement Docs</title>
+		<link rel="stylesheet" href="assets/css/global.css">
+		<link rel="stylesheet" href="assets/css/components.css">
+		<script type="module" src="assets/js/main.js"></script>
+	</head>
+	<body>
+		<header class="content-grid">
+			<h1 class="content">UIElement Docs <small>Version 0.8.5</small></h1>
+			<nav class="breakout">
+				<ol>
+					<li>
+						<a href="index.html">
+							<span class="icon">📘</span>
+							<strong>Introduction</strong>
+							<small>Overview and key benefits of UIElement</small>
+						</a>
+					</li>
+					<li>
+						<a href="installation-setup.html">
+							<span class="icon">⚙️</span>
+							<strong>Installation & Setup</strong>
+							<small>How to install and set up the library</small>
+						</a>
+					</li>
+					<li>
+						<a href="core-concepts.html">
+							<span class="icon">🧩</span>
+							<strong>Core Concepts</strong>
+							<small>Learn about signals, state, and reactivity</small>
+						</a>
+					</li>
+					<li>
+						<a href="detailed-walkthrough.html">
+							<span class="icon">📋</span>
+							<strong>Detailed Walkthrough</strong>
+							<small>Step-by-step guide to creating components</small>
+						</a>
+					</li>
+					<li>
+						<a href="best-practices-patterns.html">
+							<span class="icon">💡</span>
+							<strong>Best Practices & Patterns</strong>
+							<small>Tips for effective and scalable usage</small>
+						</a>
+					</li>
+					<li>
+						<a href="advanced-topics.html">
+							<span class="icon">🚀</span>
+							<strong>Advanced Topics</strong>
+							<small>Diving deeper into contexts and performance</small>
+						</a>
+					</li>
+					<li>
+						<a href="examples-recipes.html">
+							<span class="icon">🧪</span>
+							<strong>Examples & Recipes</strong>
+							<small>Sample components and practical use cases</small>
+						</a>
+					</li>
+					<li class="active">
+						<a href="troubleshooting-faqs.html">
+							<span class="icon">❓</span>
+							<strong>Troubleshooting & FAQs</strong>
+							<small>Common issues and frequently asked questions</small>
+						</a>
+					</li>
+					<li>
+						<a href="api-reference.html">
+							<span class="icon">📚</span>
+							<strong>API Reference</strong>
+							<small>Detailed documentation of classes and methods</small>
+						</a>
+					</li>
+					<li>
+						<a href="contributing-development.html">
+							<span class="icon">🤝</span>
+							<strong>Contributing & Development</strong>
+							<small>How to contribute and set up the dev environment</small>
+						</a>
+					</li>
+					<li>
+						<a href="changelog-versioning.html">
+							<span class="icon">📝</span>
+							<strong>Changelog & Versioning</strong>
+							<small>Track changes and understand versioning</small>
+						</a>
+					</li>
+					<li>
+						<a href="licensing-credits.html">
+							<span class="icon">⚖️</span>
+							<strong>Licensing & Credits</strong>
+							<small>License details and acknowledgments</small>
+						</a>
+					</li>
+				</ol>				  
+			</nav>
+		</header>
+
+		<main>
+
+			<section class="hero">
+				<h1>❓ Troubleshooting & FAQ</h1>
+				<p class="lead">
+				Find answers to common issues and misconceptions when working with UIElement. From lifecycle callbacks to context usage, this section provides solutions and best practices to help you build robust and reactive Web Components.
+				</p>
+			</section>
+			
+			<!-- Understanding UIElement's Philosophy -->
+			<section>
+				<h2>Understanding UIElement's Philosophy</h2>
+			
+				<details>
+				<summary><strong>Prefer Light DOM Over Shadow DOM</strong>: What's the best way to handle event delegation, styling, and accessibility?</summary>
+				<p>
+					Use Light DOM as much as possible. It simplifies event handling, allows sharing global styles, and ensures better form handling, accessibility, and SEO. Use Shadow DOM only when necessary, for example, when including external content that needs strict style isolation or preventing style/script conflicts.
+				</p>
+				</details>
+			
+				<details>
+				<summary><strong>Server-Side Rendering & Client-Side Enhancement</strong>: How should I render HTML and manage client-side updates?</summary>
+				<p>
+					UIElement is designed to work with server-rendered HTML. Use any backend technology to produce the HTML, and rely on UIElement's client-side reactivity to update the DOM. To dynamically add elements, use techniques like cloning <code>&lt;template&gt;</code> tags and inserting them into the DOM.
+				</p>
+				</details>
+			</section>
+			
+			<!-- Component Lifecycle & State Management -->
+			<section>
+				<h2>Component Lifecycle & State Management</h2>
+			
+				<details>
+				<summary><strong>Lifecycle Callbacks</strong>: When should I use <code>connectedCallback()</code> vs. <code>constructor()</code>?</summary>
+				<p>
+					Always use <code>connectedCallback()</code> for initializing the component, as this is when it is connected to the DOM. Only use the constructor for simple initializations, since it runs before the element is attached to the DOM, so DOM and attributes are not yet available.
+				</p>
+				</details>
+			
+				<details>
+				<summary><strong>Signals vs. Direct DOM Manipulation</strong>: Should I manipulate the DOM directly or use signals?</summary>
+				<p>
+					Use signals to manage state changes. Signals automatically synchronize with the DOM through auto-effects, making your component reactive. Direct DOM manipulation bypasses this system and can lead to inconsistencies between state and the UI.
+				</p>
+				</details>
+			
+				<details>
+				<summary><strong>Attribute & Signal Pitfalls</strong>: How do I handle attributes and signals correctly?</summary>
+				<p>
+					Use <code>attributeMap</code> to parse attributes into appropriate types, such as numbers, booleans, or strings. This helps ensure that changes to the DOM and internal state are consistent. Remember that changes to signals are reactive, but attributes need to be mapped properly for reactivity.
+				</p>
+				</details>
+			
+				<details>
+				<summary><strong>Binding Events Correctly</strong>: How do I correctly bind event listeners in my component?</summary>
+				<p>
+					Bind all event listeners within <code>connectedCallback()</code> using methods like <code>.map(on(event, callback))</code>. This ensures that the event listeners are bound after the component is attached to the DOM, providing reliable event handling.
+				</p>
+				</details>
+			</section>
+			
+			<!-- Reactivity & Effects -->
+			<section>
+				<h2>Reactivity & Effects</h2>
+			
+				<details>
+				<summary><strong>Auto-Effects vs. Custom Effects</strong>: When should I use auto-effects and when custom effects?</summary>
+				<p>
+					Use auto-effects like <code>setText()</code> or <code>toggleClass()</code> for simple DOM updates based on signals. Use custom effects with <code>effect()</code> for more complex or multi-step operations. Avoid nesting auto-effects in custom effects to prevent double encapsulation.
+				</p>
+				</details>
+			
+				<details>
+				<summary><strong>Handling Asynchronous Operations</strong>: How do I handle async data fetching within effects?</summary>
+				<p>
+					Use <code>effect(async () =&gt; { ... })</code> to handle async operations safely. Make sure that state changes within the effect do not cause infinite loops by adding appropriate conditions and guards.
+				</p>
+				</details>
+			
+				<details>
+				<summary><strong>Conditional State & Derived Signals</strong>: How do I manage derived signals and conditional state properly?</summary>
+				<p>
+					Initialize derived signals in <code>connectedCallback()</code> and use conditions to update their values based on changes to other signals. This ensures they are properly tracked in the reactivity system.
+				</p>
+				</details>
+			
+				<details>
+				<summary><strong>Debugging Complex State Interactions</strong>: How can I debug and manage complex state interactions?</summary>
+				<p>
+					Use console logs to track state changes and transitions. Break down complex effects into smaller auto-effects or simpler custom effects to improve readability and easier debugging.
+				</p>
+				</details>
+			</section>
+			
+			<!-- Context & Inter-Component Communication -->
+			<section>
+				<h2>Context & Inter-Component Communication</h2>
+			
+				<details>
+				<summary><strong>Using Context Correctly</strong>: How do I share state using context between components?</summary>
+				<p>
+					Use context providers and consumers to share state across components. Ensure that <code>super.connectedCallback()</code> and <code>super.disconnectedCallback()</code> are called in both context providers and consumers to correctly manage context requests and updates.
+				</p>
+				</details>
+			
+				<details>
+				<summary><strong>Passing & Sharing State</strong>: How do I pass state between components effectively?</summary>
+				<p>
+					Use the <code>pass()</code> function to transfer signals from parent to child components. This approach maintains loose coupling between components while enabling efficient state sharing and updates.
+				</p>
+				</details>
+			</section>
+			
+			<!-- Styling & Accessibility -->
+			<section>
+				<h2>Styling & Accessibility</h2>
+			
+				<details>
+				<summary><strong>Style Scoping & Preventing Leaks</strong>: How do I avoid global style leaks and scope styles properly?</summary>
+				<p>
+					Scope styles within the custom element using CSS nesting or Shadow DOM where necessary. Avoid styling sub-component elements directly from parent components to ensure proper encapsulation and prevent global style leakage.
+				</p>
+				</details>
+			
+				<details>
+				<summary><strong>Accessibility Tips</strong>: How can I ensure my UI components are accessible?</summary>
+				<p>
+					Use ARIA attributes like <code>aria-invalid</code> and <code>aria-errormessage</code> to make forms accessible. Provide feedback through appropriate descriptions and error messages, making sure screen readers can announce the state of form elements and their validity.
+				</p>
+				</details>
+			</section>
+			
+			<!-- Next Steps -->
+			<section>
+				<h2>Next Steps</h2>
+				<p>
+				We've covered the most common questions and issues when using UIElement. To explore the full capabilities of the library, head over to the <a href="/api-reference.html"><strong>API Reference</strong></a> for a complete overview of all methods, properties, signals, and lifecycle hooks.
+				</p>
+			</section>
+		  
+        </main>	  
+
+	</body>
+</html>

@@ -1,0 +1,197 @@
+<!doctype html>
+<html>
+	<head>
+		<title>UIElement Docs</title>
+		<link rel="stylesheet" href="assets/css/global.css">
+		<link rel="stylesheet" href="assets/css/components.css">
+		<script type="module" src="assets/js/main.js"></script>
+	</head>
+	<body>
+		<header class="content-grid">
+			<h1 class="content">UIElement Docs <small>Version 0.8.5</small></h1>
+			<nav class="breakout">
+				<ol>
+					<li>
+						<a href="index.html">
+							<span class="icon">📘</span>
+							<strong>Introduction</strong>
+							<small>Overview and key benefits of UIElement</small>
+						</a>
+					</li>
+					<li class="active">
+						<a href="installation-setup.html">
+							<span class="icon">⚙️</span>
+							<strong>Installation & Setup</strong>
+							<small>How to install and set up the library</small>
+						</a>
+					</li>
+					<li>
+						<a href="core-concepts.html">
+							<span class="icon">🧩</span>
+							<strong>Core Concepts</strong>
+							<small>Learn about signals, state, and reactivity</small>
+						</a>
+					</li>
+					<li>
+						<a href="detailed-walkthrough.html">
+							<span class="icon">📋</span>
+							<strong>Detailed Walkthrough</strong>
+							<small>Step-by-step guide to creating components</small>
+						</a>
+					</li>
+					<li>
+						<a href="best-practices-patterns.html">
+							<span class="icon">💡</span>
+							<strong>Best Practices & Patterns</strong>
+							<small>Tips for effective and scalable usage</small>
+						</a>
+					</li>
+					<li>
+						<a href="advanced-topics.html">
+							<span class="icon">🚀</span>
+							<strong>Advanced Topics</strong>
+							<small>Diving deeper into contexts and performance</small>
+						</a>
+					</li>
+					<li>
+						<a href="examples-recipes.html">
+							<span class="icon">🧪</span>
+							<strong>Examples & Recipes</strong>
+							<small>Sample components and practical use cases</small>
+						</a>
+					</li>
+					<li>
+						<a href="troubleshooting-faqs.html">
+							<span class="icon">❓</span>
+							<strong>Troubleshooting & FAQs</strong>
+							<small>Common issues and frequently asked questions</small>
+						</a>
+					</li>
+					<li>
+						<a href="api-reference.html">
+							<span class="icon">📚</span>
+							<strong>API Reference</strong>
+							<small>Detailed documentation of classes and methods</small>
+						</a>
+					</li>
+					<li>
+						<a href="contributing-development.html">
+							<span class="icon">🤝</span>
+							<strong>Contributing & Development</strong>
+							<small>How to contribute and set up the dev environment</small>
+						</a>
+					</li>
+					<li>
+						<a href="changelog-versioning.html">
+							<span class="icon">📝</span>
+							<strong>Changelog & Versioning</strong>
+							<small>Track changes and understand versioning</small>
+						</a>
+					</li>
+					<li>
+						<a href="licensing-credits.html">
+							<span class="icon">⚖️</span>
+							<strong>Licensing & Credits</strong>
+							<small>License details and acknowledgments</small>
+						</a>
+					</li>
+				</ol>				  
+			</nav>
+		</header>
+
+		<main>
+			<section class="hero">
+			  <h1>⚙️ Installation & Setup</h1>
+			  <p class="lead">
+				Get started with <strong>UIElement</strong> by including it directly in your HTML or installing it via npm. Follow the steps below to set up your environment and start building reactive Web Components.
+			  </p>
+			</section>
+		  
+			<section>
+			  <h2>Using a CDN</h2>
+			  <p>
+				For the easiest setup, include <strong>UIElement</strong> directly in your HTML via a CDN. This is ideal for quick projects or testing.
+			  </p>
+			  <pre><code>&lt;script src="https://cdn.jsdelivr.net/npm/@efflore/ui-element@latest/dist/ui-element.js"&gt;&lt;/script&gt;</code></pre>
+			  <p>
+				Or use <code>&lt;script type="module"&gt;</code> to import UIElement in your HTML:
+			  </p>
+			  <pre><code>&lt;script type="module"&gt;
+		  import { UIElement } from 'https://cdn.jsdelivr.net/npm/@efflore/ui-element@latest/dist/ui-element.js';
+		  
+		  // Your code here
+		  &lt;/script&gt;</code></pre>
+			</section>
+		  
+			<section>
+			  <h2>Using a Self-Hosted Copy</h2>
+			  <p>
+				You can include the built <code>ui-element.js</code> from a local or hosted path if you prefer to self-host the script.
+			  </p>
+			  <pre><code>&lt;script src="https://github.com/efflore/ui-element/blob/main/index.min.js"&gt;&lt;/script&gt;</code></pre>
+			  <p>
+				Remember to keep the hosted file updated to use the latest features and bug fixes.
+			  </p>
+			</section>
+		  
+			<section>
+			  <h2>Installing with NPM</h2>
+			  <p>
+				If you are using a bundler like Rollup, Webpack, or another module system, npm is the best way to install and manage <strong>UIElement</strong>.
+			  </p>
+			  <pre><code>npm install @efflore/ui-element</code></pre>
+			  <p>
+				Then import <code>UIElement</code> in your JavaScript:
+			  </p>
+			  <pre><code>import { UIElement } from '@efflore/ui-element';</code></pre>
+			  <p>
+				Use build tools to bundle the library into your project as necessary.
+			  </p>
+			</section>
+		  
+			<section>
+			  <h2>Creating Your First Component</h2>
+			  <p>
+				Let's verify your setup by creating an interactive <code>HelloWorld</code> component that updates based on user input.
+			  </p>
+			  <pre><code>class HelloWorld extends UIElement {
+			connectedCallback() {
+			  // Update content dynamically based on the 'name' signal
+			  this.first('.greeting').map(setText('name'));
+		  
+			  // Handle user input to change the 'name'
+			  this.first('input').map(on('input', event =&gt; this.set('name', event.target.value)));
+			}
+		  }
+		  HelloWorld.define('hello-world');</code></pre>
+			  <p>
+				Include it in your HTML (server-rendered):
+			  </p>
+			  <pre><code>&lt;hello-world&gt;
+			&lt;label for="name-input"&gt;Your name&lt;/label&gt;
+			&lt;input type="text" id="name-input" /&gt;
+			&lt;p&gt;Hello, &lt;span class="greeting"&gt;World&lt;/span&gt;!&lt;/p&gt;
+		  &lt;/hello-world&gt;</code></pre>
+			</section>
+		  
+			<section>
+			  <h2>Verifying Installation</h2>
+			  <p>
+				To verify your setup:
+			  </p>
+			  <ul>
+				<li><strong>CDN & Self-Hosted Users</strong>: Check the browser console for any script loading errors and ensure typing in the input field updates the greeting.</li>
+				<li><strong>NPM Users</strong>: Ensure <code>node_modules</code> contains <code>@efflore/ui-element</code> and your bundler correctly bundles the library.</li>
+			  </ul>
+			</section>
+		  
+			<section>
+			  <h2>Next Steps</h2>
+			  <p>
+				Now that you've set up <strong>UIElement</strong>, you're ready to dive deeper into building reactive Web Components. Check out the <a href="core-concepts.html">Core Concepts</a> page to learn more about signals and reactivity, or proceed to the <a href="detailed-walkthrough.html">Detailed Walkthrough</a> for building more advanced components.
+			  </p>
+			</section>
+		  </main>
+
+	</body>
+</html>
