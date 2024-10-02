@@ -373,7 +373,6 @@ header {
 
 		&:hover,
 		&:focus {
-			color: var(--color-white);
 			background-color: var(--color-secondary-hover);
 		}
 

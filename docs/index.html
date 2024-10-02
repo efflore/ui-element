@@ -1,7 +1,7 @@
 <!doctype html>
 <html>
 	<head>
-		<title>UIElement Docs</title>
+		<title>UIElement Docs – Introduction</title>
 		<link rel="stylesheet" href="assets/css/global.css">
 		<link rel="stylesheet" href="assets/css/okaidia.css">
 		<link rel="stylesheet" href="assets/css/components.css">
@@ -193,18 +193,17 @@ this.first('.count').map(setText('count')); // Automatically update content when
 									<li><button type="button">CSS</button></li>
 									<li><button type="button">JavaScript</button></li>
 								</ul>
-							</tab-list>
-							<accordion-panel open>
-								<details open aria-disabled="true">
-									<summary class="visually-hidden">
-										<div class="summary">HTML</div>
-									</summary>
-									<code-block language="html" copy-success="Copied!" copy-error="Error trying to copy to clipboard!">
-										<p class="meta">
-											<span class="file">my-counter.html</span>
-											<span class="language">html</span>
-										</p>
-										<pre><code class="language-html">&lt;my-counter count="42"&gt;
+								<accordion-panel open>
+									<details open aria-disabled="true">
+										<summary class="visually-hidden">
+											<div class="summary">HTML</div>
+										</summary>
+										<code-block language="html" copy-success="Copied!" copy-error="Error trying to copy to clipboard!">
+											<p class="meta">
+												<span class="file">my-counter.html</span>
+												<span class="language">html</span>
+											</p>
+											<pre><code class="language-html">&lt;my-counter count="42"&gt;
 	&lt;p&gt;
 		Count: &lt;span class="count"&gt;&lt;/span&gt;
 		Parity: &lt;span class="parity"&gt;&lt;/span&gt;
@@ -212,23 +211,23 @@ this.first('.count').map(setText('count')); // Automatically update content when
 	&lt;button id="increment"&gt;+&lt;/button&gt;
 	&lt;button id="decrement"&gt;-&lt;/button&gt;
 &lt;/my-counter&gt;</code></pre>
-										<input-button>
-										    <button type="button" class="secondary small">Copy</button>
-										</input-button>
-									</code-block>
-								</details>
-							</accordion-panel>
-							<accordion-panel>
-								<details aria-disabled="true">
-									<summary class="visually-hidden">
-										<div class="summary">CSS</div>
-									</summary>
-									<code-block language="css" copy-success="Copied!" copy-error="Error trying to copy to clipboard!">
-										<p class="meta">
-											<span class="file">my-counter.css</span>
-											<span class="language">css</span>
-										</p>
-										<pre><code class="language-css">my-counter {
+											<input-button class="copy">
+												<button type="button" class="secondary small">Copy</button>
+											</input-button>
+										</code-block>
+									</details>
+								</accordion-panel>
+								<accordion-panel>
+									<details aria-disabled="true">
+										<summary class="visually-hidden">
+											<div class="summary">CSS</div>
+										</summary>
+										<code-block language="css" copy-success="Copied!" copy-error="Error trying to copy to clipboard!">
+											<p class="meta">
+												<span class="file">my-counter.css</span>
+												<span class="language">css</span>
+											</p>
+											<pre><code class="language-css">my-counter {
 	display: flex;
 	gap: 0.5rem;
 	margin-block: 1rem;
@@ -242,23 +241,23 @@ this.first('.count').map(setText('count')); // Automatically update content when
 		margin-right: 0.5rem;
 	}
 }</code></pre>
-										<input-button>
-										    <button type="button" class="secondary small">Copy</button>
-										</input-button>
-									</code-block>
-								</details>
-							</accordion-panel>
-							<accordion-panel>
-								<details aria-disabled="true">
-									<summary class="visually-hidden">
-										<div class="summary">JavaScript</div>
-									</summary>
-									<code-block language="js" copy-success="Copied!" copy-error="Error trying to copy to clipboard!">
-										<p class="meta">
-											<span class="file">my-counter.js</span>
-											<span class="language">js</span>
-										</p>
-										<pre><code class="language-js">import { UIElement, asInteger, on, setText } from '@efflore/ui-element'
+											<input-button class="copy">
+												<button type="button" class="secondary small">Copy</button>
+											</input-button>
+										</code-block>
+									</details>
+								</accordion-panel>
+								<accordion-panel>
+									<details aria-disabled="true">
+										<summary class="visually-hidden">
+											<div class="summary">JavaScript</div>
+										</summary>
+										<code-block language="js" copy-success="Copied!" copy-error="Error trying to copy to clipboard!">
+											<p class="meta">
+												<span class="file">my-counter.js</span>
+												<span class="language">js</span>
+											</p>
+											<pre><code class="language-js">import { UIElement, asInteger, on, setText } from '@efflore/ui-element'
 
 class MyCounter extends UIElement {
 	static observedAttributes = ['count']
@@ -275,12 +274,13 @@ class MyCounter extends UIElement {
 	}
 }
 MyCounter.define('my-counter')</code></pre>
-										<input-button>
-										    <button type="button" class="secondary small">Copy</button>
-										</input-button>
-									</code-block>
-								</details>
-							</accordion-panel>
+											<input-button class="copy">
+												<button type="button" class="secondary small">Copy</button>
+											</input-button>
+										</code-block>
+									</details>
+								</accordion-panel>
+							</tab-list>
 						</details>
 					</accordion-panel>
 				</component-demo>			
