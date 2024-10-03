@@ -156,7 +156,7 @@ const setStyle = <E extends (HTMLElement | SVGElement | MathMLElement)>(prop: st
 			`s-${prop}`,
 			ui.target.style[prop],
 			(element: E) => () => element.style.removeProperty(prop),
-			(value: string) => (element: E) => () => element.style[prop] = value
+			(value: string) => (element: E) => () => element.style.setProperty(prop, value)
 		)
 
 /* === Exported Types === */
