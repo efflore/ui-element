@@ -492,7 +492,7 @@ const toggleClass = (token, state = token) => (ui) => autoEffect(ui, state, `c-$
  * @param {string} prop - name of style property to be set
  * @param {StateLike} state - state bounded to the style property value
  */
-const setStyle = (prop, state = prop) => (ui) => autoEffect(ui, state, `s-${prop}`, ui.target.style[prop], (element) => () => element.style.removeProperty(prop), (value) => (element) => () => element.style.setProperty(prop, value));
+const setStyle = (prop, state = prop) => (ui) => autoEffect(ui, state, `s-${prop}`, ui.target.style.getPropertyValue(prop), (element) => () => element.style.removeProperty(prop), (value) => (element) => () => element.style.setProperty(prop, value));
 
 /* === Exported Class and Functions === */
 /**
