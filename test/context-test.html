@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Context Tests</title>
+</head>
+<body>
+	<motion-context>
+		<my-animation>
+			<h1>Reduced Motion: <span>Unknown to Server</span></h1>
+		</my-animation>
+	</motion-context>
+
+	<user-context display-name="Jane Doe">
+		<hello-world>
+			<h1>Hello, <span>World</span>!</h1>
+		</hello-world>
+	</user-context>
+
+	<script type="module">
+		import { runTests } from '@web/test-runner-mocha';
+		import { assert } from '@esm-bundle/chai';
+		import { UIElement, setText } from '../index.js';
+
+		const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+		const paint = () => new Promise(resolve => requestAnimationFrame(resolve));
+		const normalizeText = text => text.replace(/\s+/g, ' ').trim();
+
+		class MotionContext extends UIElement {
+			static providedContexts = ['reduced-motion'];
+
+			connectedCallback() {
+				const mql = matchMedia('(prefers-reduced-motion)');
+				this.set('reduced-motion', mql.matches);
+				super.connectedCallback();
+				mql.onchange = e => this.set('reduced-motion', e.matches);
+			}
+		}
+		MotionContext.define('motion-context')
+
+		class MyAnimation extends UIElement {
+			static consumedContexts = ['reduced-motion']
+
+			connectedCallback() {
+				super.connectedCallback()
+				this.first('span').forEach(setText('reduced-motion'))
+			}
+		}
+		MyAnimation.define('my-animation')
+
+		class UserContext extends UIElement {
+			static observedAttributes = ['display-name']
+			static providedContexts = ['display-name']
+		}
+		UserContext.define('user-context')
+
+		class HelloWorld extends UIElement {
+			static consumedContexts = ['display-name']
+
+			connectedCallback() {
+				super.connectedCallback();
+				this.first('span').forEach(setText('display-name'))
+			}
+		}
+		HelloWorld.define('hello-world')
+
+		runTests(() => {
+
+			describe('Context provider', function () {
+
+				it('should have static providedContexts', async function () {
+					assert.deepEqual(MotionContext.providedContexts, ['reduced-motion'])
+				})
+
+				it('should have display-name signal from attribute', async function () {
+					assert.equal(document.querySelector('user-context').get('display-name'), 'Jane Doe')
+				})
+
+			})
+
+			describe('Context consumer', function () {
+
+				it('should have static consumedContexts', async function () {
+					assert.deepEqual(MyAnimation.consumedContexts, ['reduced-motion'])
+				})
+
+				it('should update according to consumed context', async function () {
+					const contextConsumer = document.querySelector('my-animation')
+					await paint()
+					const textContent = normalizeText(contextConsumer.querySelector('h1').textContent)
+					assert.equal(textContent, `Reduced Motion: ${matchMedia('(prefers-reduced-motion)').matches}`, 'Should have updated heading from context')
+				})
+
+				it('should update when context is set', async function () {
+					const contextProvider = document.querySelector('user-context')
+					const contextConsumer = document.querySelector('hello-world')
+                    await paint()
+                    let textContent = normalizeText(contextConsumer.querySelector('span').textContent)
+                    assert.equal(textContent, 'Jane Doe', 'Should update heading from initial display-name context')
+					contextProvider.set('display-name', 'Esther Brunner')
+					await paint()
+                    textContent = normalizeText(contextConsumer.querySelector('span').textContent)
+                    assert.equal(textContent, 'Esther Brunner', 'Should update heading from setting display-name context')
+				})
+
+				it('should revert when context is removed', async function () {
+					const contextProvider = document.querySelector('user-context')
+                    const contextConsumer = document.querySelector('hello-world')
+                    contextProvider.removeAttribute('display-name')
+                    await paint()
+                    const textContent = normalizeText(contextConsumer.querySelector('span').textContent)
+                    assert.equal(textContent, 'World', 'Should revert heading from context')
+				})
+
+			})
+
+		})
+	</script>
+</body>
+</html>
