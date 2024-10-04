@@ -13,7 +13,7 @@ type UI<T> = {
 };
 type AttributeParser = (value: string[], element: UIElement, old: string | undefined) => unknown[];
 type AttributeMap = Record<string, AttributeParser>;
-type StateLike<T> = PropertyKey | Signal<T>;
+type StateLike<T> = PropertyKey | Signal<T> | ((old: T | undefined) => T);
 /**
  * Base class for reactive custom elements
  *
