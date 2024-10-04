@@ -6,10 +6,16 @@ my-counter {
 	p {
 		display: inline-block;
 		margin: 0;
+		flex: 1;
 	}
 
 	span {
 		margin-right: 0.5rem;
+	}
+
+	button {
+		padding: 0.25rem 0.5rem;
+		flex: 0;
 	}
 }
 

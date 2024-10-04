@@ -108,9 +108,7 @@
 		  
 			<section>
 				<h2>What is UIElement?</h2>
-				<p>
-					<strong>UIElement</strong> is a lightweight JavaScript library that extends the native <code>HTMLElement</code> class to bring efficient state management and reactivity to your Web Components without client-side rendering or the overhead of a larger framework.
-				</p>
+				<p><strong>UIElement</strong> is a lightweight JavaScript library that extends the native <code>HTMLElement</code> class to bring efficient state management and reactivity to your Web Components without client-side rendering or the overhead of a larger framework.</p>
 				<ul>
 					<li><strong>Minimalist & Lightweight</strong>: Only what you need to manage state and reactivity.</li>
 					<li><strong>Signals-Based Reactivity</strong>: Fine-grained updates based on state changes.</li>
@@ -147,15 +145,11 @@
 		  
 			<section>
 				<h2>How UIElement Works</h2>
-				<p>
-					UIElement relies on signals—small pieces of reactive state that notify your components when changes occur. This allows for efficient updates to HTML content, handling reactivity only when necessary.
-				</p>
-				<p>
-					<strong>Signals & Auto-Effects:</strong> Signals automatically trigger updates to the DOM when they change.
-				</p>
+				<p>UIElement relies on signals—small pieces of reactive state that notify your components when changes occur. This allows for efficient updates to HTML content, handling reactivity only when necessary.</p>
+				<p><strong>Signals & Auto-Effects:</strong> Signals automatically trigger updates to the DOM when they change.</p>
 				<code-block language="js">
 					<pre><code class="language-js">this.set('count', 0); // Define a signal for 'count'
-this.first('.count').map(setText('count')); // Automatically update content when 'count' changes</code></pre>
+this.first('.count').forEach(setText('count')); // Automatically update content when 'count' changes</code></pre>
 				</code-block>
 			</section>
 		  
@@ -178,7 +172,7 @@ this.first('.count').map(setText('count')); // Automatically update content when
 								Count: <span class="count"></span>
 								Parity: <span class="parity"></span>
 							</p>
-							<button class="decrement">-</button>
+							<button class="decrement">−</button>
 							<button class="increment">+</button>
 						</my-counter>
 					</div>
@@ -209,7 +203,7 @@ this.first('.count').map(setText('count')); // Automatically update content when
 		Parity: &lt;span class="parity"&gt;&lt;/span&gt;
 	&lt;/p&gt;
 	&lt;button id="increment"&gt;+&lt;/button&gt;
-	&lt;button id="decrement"&gt;-&lt;/button&gt;
+	&lt;button id="decrement"&gt;−&lt;/button&gt;
 &lt;/my-counter&gt;</code></pre>
 											<input-button class="copy">
 												<button type="button" class="secondary small">Copy</button>
@@ -235,10 +229,16 @@ this.first('.count').map(setText('count')); // Automatically update content when
 	p {
 		display: inline-block;
 		margin: 0;
+		flex: 1;
 	}
 
 	span {
 		margin-right: 0.5rem;
+	}
+
+	button {
+		padding: 0.25rem 0.5rem;
+		flex: 0;
 	}
 }</code></pre>
 											<input-button class="copy">
@@ -284,16 +284,12 @@ MyCounter.define('my-counter')</code></pre>
 						</details>
 					</accordion-panel>
 				</component-demo>			
-				<p>
-					For a full setup, see the <a href="installation-setup.html">Installation & Setup</a> page, or jump into the <a href="detailed-walkthrough.html">Detailed Walkthrough</a> to learn how to build your first component.
-				</p>
+				<p>For a full setup, see the <a href="installation-setup.html">Installation & Setup</a> page, or jump into the <a href="detailed-walkthrough.html">Detailed Walkthrough</a> to learn how to build your first component.</p>
 			</section>
 		  
 			<section>
 				<h2>Next Steps</h2>
-				<p>
-					Continue to the <a href="installation-setup.html">Installation & Setup</a> to get started, or dive into <a href="core-concepts.html">Core Concepts</a> to learn more about signals and reactivity.
-				</p>
+				<p>Continue to the <a href="installation-setup.html">Installation & Setup</a> to get started, or dive into <a href="core-concepts.html">Core Concepts</a> to learn more about signals and reactivity.</p>
 			</section>
 		</main>
 	</body>

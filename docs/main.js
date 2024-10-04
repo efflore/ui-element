@@ -13,13 +13,21 @@ class MyCounter extends UIElement {
 
 	connectedCallback() {
 		this.set('parity', () => this.get('count') % 2 ? 'odd' : 'even')
-        this.first('.increment').map(on('click', () => this.set('count', v => ++v)))
-        this.first('.decrement').map(on('click', () => this.set('count', v => --v)))
-		this.first('.count').map(setText('count'))
-		this.first('.parity').map(setText('parity'))
+        this.first('.increment').forEach(on('click', () => this.set('count', v => ++v)))
+        this.first('.decrement').foEach(on('click', () => this.set('count', v => --v)))
+		this.first('.count').forEach(setText('count'))
+		this.first('.parity').forEach(setText('parity'))
     }
 }
 MyCounter.define('my-counter')
+
+class HelloWorld extends UIElement {
+	connectedCallback() {
+        this.first('span').forEach(setText('name'))
+		this.first('input').forEach(on('input', e => this.set('name', e.target.value)))
+	}
+}
+HelloWorld.define('hello-world')
 
 class CodeBlock extends UIElement {
 	static observedAttributes = ['collapsed']
@@ -434,6 +442,7 @@ const MEDIA_MOTION = 'media-motion'
 const MEDIA_THEME = 'media-theme'
 const MEDIA_VIEWPORT = 'media-viewport'
 const MEDIA_ORIENTATION = 'media-orientation'
+
 class MediaContext extends UIElement {
 	static providedContexts = [MEDIA_MOTION, MEDIA_THEME, MEDIA_VIEWPORT, MEDIA_ORIENTATION]
 
