@@ -2,7 +2,7 @@
 
 UIElement - the "look ma, no JS framework!" library bringing signals-based reactivity to vanilla Web Components
 
-Version 0.8.4
+Version 0.8.5
 
 ## What is UIElement?
 
