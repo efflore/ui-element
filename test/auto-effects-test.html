@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Auto-Effects Tests</title>
+</head>
+<body>
+	<update-text text="Text from Attribute">
+		<p>Text from Server</p>
+	</update-text>
+	<update-property value="Value from Attribute">
+		<input type="text" value="Value from Server">
+	</update-property>
+	<update-attribute required>
+		<input type="text" value="" required>
+		<p id="update-attribute-error">Please fill this required field</p>
+	</update-attribute>
+	<update-class active="0">
+		<ul>
+			<li>Item 1</li>
+            <li>Item 2</li>
+            <li class="selected">Item 3</li>
+		</ul>
+	</update-class>
+	<update-style color="red">
+        <p style="color: blue">Text from Server</p>
+    </update-style>
+
+	<script type="module">
+		import { runTests } from '@web/test-runner-mocha'
+		import { assert } from '@esm-bundle/chai'
+		import {
+			UIElement, derive, effect, maybe, pass, on,
+			asBoolean, asInteger, asNumber,
+			setText, setProperty, setAttribute, toggleAttribute, toggleClass, setStyle
+		} from '../index.js'
+
+		const wait = ms => new Promise(resolve => setTimeout(resolve, ms))
+		const paint = () => new Promise(requestAnimationFrame)
+		const normalizeText = text => text.replace(/\s+/g, ' ').trim()
+
+		class UpdateText extends UIElement {
+			static observedAttributes = ['text']
+
+			connectedCallback() {
+				this.first('p').forEach(setText('text'))
+			}
+		}
+		UpdateText.define('update-text')
+
+		class UpdateProperty extends UIElement {
+			static observedAttributes = ['value']
+
+			connectedCallback() {
+                this.first('input').forEach(setProperty('value'))
+            }
+		}
+		UpdateProperty.define('update-property')
+
+		class UpdateAttribute extends UIElement {
+			static observedAttributes = ['required']
+			static attributeMap = {
+                required: asBoolean
+            }
+
+			connectedCallback() {
+				const errorId = this.querySelector('p').id
+				this.set('ariaInvalid', 'false') // should not be true before the user interacted
+				this.set('aria-errormessage', () => this.get('required') && this.get('ariaInvalid') === 'true' ? errorId : null)
+                this.first('input')
+				    .map(setProperty('ariaInvalid'))
+					.map(setAttribute('aria-errormessage'))
+					.map(toggleAttribute('required'))
+					.forEach(on('change', e => this.set('ariaInvalid', String(!e.target.checkValidity()))))
+            }
+		}
+		UpdateAttribute.define('update-attribute')
+
+		class UpdateClass extends UIElement {
+			static observedAttributes = ['active']
+			static attributeMap = {
+                active: asInteger
+            }
+
+			connectedCallback() {
+                this.all('li').forEach((ui, idx) => toggleClass('selected', () => this.get('active') === idx)(ui))
+            }
+		}
+		UpdateClass.define('update-class')
+
+		class UpdateStyle extends UIElement {
+			static observedAttributes = ['color']
+
+			connectedCallback() {
+                this.first('p').forEach(setStyle('color'))
+            }
+		}
+		UpdateStyle.define('update-style')
+
+		runTests(() => {
+
+			describe('UpdateText component', function () {
+
+				it('should prove setText() working correctly', async function () {
+					const component = document.querySelector('update-text')
+					const paragraph = component.querySelector('p')
+					await paint()
+					let textContent = normalizeText(paragraph.textContent)
+					assert.equal(textContent, 'Text from Attribute', 'Should display text content from attribute')
+					component.set('text', 'New Text')
+					await paint()
+					textContent = normalizeText(paragraph.textContent)
+					assert.equal(textContent, 'New Text', 'Should update text content from text signal')
+					component.set('text', undefined)
+					await paint()
+					textContent = normalizeText(paragraph.textContent)
+					assert.equal(textContent, 'Text from Server', 'Should revert text content to server-rendered version')
+				})
+
+			})
+
+			describe('UpdateProperty component', function () {
+
+				it('should prove setProperty() working correctly', async function () {
+					const component = document.querySelector('update-property')
+					const input = component.querySelector('input')
+					await paint()
+					assert.equal(input.value, 'Value from Attribute', 'Should display value from attribute')
+					component.set('value', 'New Value')
+					await paint()
+					assert.equal(input.value, 'New Value', 'Should update value from text signal')
+					component.set('value', undefined)
+					await paint()
+					assert.equal(input.value, 'Value from Server', 'Should revert value to server-rendered version')
+				})
+
+			})
+
+			describe('UpdateAttribute component', function () {
+
+				it('should prove setAttribute() and toggleAttribute() working correctly', async function () {
+					const component = document.querySelector('update-attribute')
+					const input = component.querySelector('input')
+					await paint()
+					assert.equal(input.required, true, 'Should set required property from attribute')
+					assert.equal(input.hasAttribute('aria-errormessage'), false, 'Should not have aria-errormessage before interaction')
+					input.value = 'New Value'
+					input.dispatchEvent(new Event('change'))
+					await paint()
+					assert.equal(input.hasAttribute('aria-errormessage'), false, 'Should not have aria-errormessage if field is not empty')
+					input.value = ''
+					input.dispatchEvent(new Event('change'))
+					await paint()
+					assert.equal(input.hasAttribute('aria-errormessage'), true, 'Should have aria-errormessage if field is empty')
+					component.toggleAttribute('required')
+					await paint()
+					assert.equal(input.hasAttribute('aria-errormessage'), false, 'Should not have aria-errormessage if field is not required')
+					component.set('required', undefined)
+					await paint()
+					assert.equal(input.required, true, 'Should revert required attribute to server-rendered version')
+				})
+
+			})
+
+			describe('UpdateClass component', function () {
+
+				it('should prove toggleClass() working correctly', async function () {
+					const component = document.querySelector('update-class')
+					const items = Array.from(component.querySelectorAll('li'))
+                    await paint()
+                    assert.equal(items[0].classList.contains('selected'), true, 'First item should have selected class from active attribute')
+                    assert.equal(items[2].classList.contains('selected'), false, 'Third item should not have selected class removed')
+                    component.set('active', 1)
+                    await paint()
+                    assert.equal(items[1].classList.contains('selected'), true, 'Second item should have selected class from active signal')
+                    assert.equal(items[0].classList.contains('selected'), false, 'First item should not have selected class removed')
+                    component.set('active', undefined)
+                    await paint()
+                    assert.equal(items[1].classList.contains('selected'), false, 'Second item should have selected class removed')
+					// restore can't work because the selected class for each item is derived on the fly and not stored in a signal
+                    // assert.equal(items[2].classList.contains('selected'), true, 'Third item should not have selected class restored to server-rendered version')
+				})
+
+			})
+
+			describe('UpdateStyle component', function () {
+
+				it('should prove setStyle() working correctly', async function () {
+					const component = document.querySelector('update-style')
+                    const paragraph = component.querySelector('p')
+                    await paint()
+                    assert.equal(paragraph.style.color, 'red', 'Should set color from attribute')
+                    component.set('color', 'green')
+                    await paint()
+                    assert.equal(paragraph.style.color,'green', 'Should update color from color signal')
+                    component.set('color', undefined)
+                    await paint()
+                    assert.equal(paragraph.style.color, 'blue', 'Should revert color to server-rendered version')
+				})
+
+			})
+
+		})
+	</script>
+</body>
+</html>

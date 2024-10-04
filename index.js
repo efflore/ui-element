@@ -4,6 +4,7 @@ const isString = isOfType('string');
 const isObject = isOfType('object');
 // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
 const isFunction = isOfType('function');
+const isNull = (value) => value === null;
 const isNullish = (value) => value == null;
 const isDefined = (value) => value != null;
 const isDefinedObject = (value) => isDefined(value) && (isObject(value) || isFunction(value));
@@ -266,7 +267,7 @@ const initContext = (host) => {
         if (!provided.includes(context) || !isFunction(callback))
             return;
         e.stopPropagation();
-        callback(host.get(String(context)));
+        callback(host.signal(String(context)));
     });
 };
 
@@ -338,7 +339,7 @@ const off = (event, handler) =>
  *
  * @since 0.8.3
  * @param {string} event - event name to dispatch
- * @param {StateLike} state - state key
+ * @param {StateLike<unknown>} state - state key
  */
 const emit = (event, state = event) => 
 /**
@@ -414,19 +415,25 @@ const asJSON = (value) => {
  *
  * @since 0.8.0
  * @param {UI} ui - UI object of host UIElement and target element to update properties
- * @param {StateLike} state - state to be set to the host element
+ * @param {StateLike<T>} state - state to be set to the host element
  * @param {string} prop - property name to be updated
- * @param {T} fallback - fallback value to be used if state is not defined
- * @param {(element: E) => () => void} onNothing - callback to be executed when state is not defined
- * @param {(value: T) => (element: E) => () => void} onSomething - callback to be executed when state is defined
+ * @param {() => T} getter - getter function to retrieve current value in the DOM
+ * @param {(value: T) => (element: E) => () => void} setter - callback to be executed when state is changed
  * @returns {UI} object with host and target
  */
-const autoEffect = (ui, state, prop, fallback, onNothing, onSomething) => {
+const autoEffect = (ui, state, prop, getter, setter, remover) => {
+    const fallback = getter();
     if (!isFunction(state))
         ui.host.set(state, isString(state) && isString(fallback) ? parse(ui.host, state, fallback) : fallback, false);
     effect((enqueue) => {
-        const value = isFunction(state) ? state() : ui.host.get(state);
-        enqueue(ui.target, prop, isNullish(value) ? onNothing : onSomething(value));
+        const current = getter();
+        const value = isFunction(state) ? state(current) : ui.host.get(state);
+        if (!Object.is(value, current))
+            enqueue(ui.target, prop, remover && isNull(value)
+                ? remover
+                : isNullish(value)
+                    ? setter(fallback)
+                    : setter(value));
     });
     return ui;
 };
@@ -435,64 +442,54 @@ const autoEffect = (ui, state, prop, fallback, onNothing, onSomething) => {
  * Set text content of an element
  *
  * @since 0.8.0
- * @param {StateLike} state - state bounded to the text content
+ * @param {StateLike<string>} state - state bounded to the text content
  */
-const setText = (state) => (ui) => {
-    const fallback = ui.target.textContent || '';
-    const setter = (value) => (element) => () => {
-        Array.from(element.childNodes)
-            .filter(isComment)
-            .forEach(match => match.remove());
-        element.append(document.createTextNode(value));
-    };
-    return autoEffect(ui, state, 't', fallback, setter(fallback), setter);
-};
+const setText = (state) => (ui) => autoEffect(ui, state, 't', () => ui.target.textContent || '', (value) => (element) => () => {
+    Array.from(element.childNodes)
+        .filter(isComment)
+        .forEach(match => match.remove());
+    element.append(document.createTextNode(value));
+});
 /**
  * Set property of an element
  *
  * @since 0.8.0
  * @param {PropertyKey} key - name of property to be set
- * @param {StateLike} state - state bounded to the property value
+ * @param {StateLike<unknown>} state - state bounded to the property value
  */
-const setProperty = (key, state = key) => (ui) => {
-    const setter = (value) => (element) => () => element[key] = value;
-    return autoEffect(ui, state, `p-${String(key)}`, ui.target[key], setter(null), setter);
-};
+const setProperty = (key, state = key) => (ui) => autoEffect(ui, state, `p-${String(key)}`, () => ui.target[key], (value) => (element) => () => element[key] = value);
 /**
  * Set attribute of an element
  *
  * @since 0.8.0
  * @param {string} name - name of attribute to be set
- * @param {StateLike} state - state bounded to the attribute value
+ * @param {StateLike<string>} state - state bounded to the attribute value
  */
-const setAttribute = (name, state = name) => (ui) => autoEffect(ui, state, `a-${name}`, ui.target.getAttribute(name), (element) => () => element.removeAttribute(name), (value) => (element) => () => element.setAttribute(name, value));
+const setAttribute = (name, state = name) => (ui) => autoEffect(ui, state, `a-${name}`, () => ui.target.getAttribute(name), (value) => (element) => () => element.setAttribute(name, value), (element) => () => element.removeAttribute(name));
 /**
  * Toggle a boolan attribute of an element
  *
  * @since 0.8.0
  * @param {string} name - name of attribute to be toggled
- * @param {StateLike} state - state bounded to the attribute existence
+ * @param {StateLike<boolean>} state - state bounded to the attribute existence
  */
-const toggleAttribute = (name, state = name) => (ui) => {
-    const setter = (value) => (element) => () => element.toggleAttribute(name, value);
-    return autoEffect(ui, state, `a-${name}`, ui.target.hasAttribute(name), setter(false), setter);
-};
+const toggleAttribute = (name, state = name) => (ui) => autoEffect(ui, state, `a-${name}`, () => ui.target.hasAttribute(name), (value) => (element) => () => element.toggleAttribute(name, value));
 /**
  * Toggle a classList token of an element
  *
  * @since 0.8.0
  * @param {string} token - class token to be toggled
- * @param {StateLike} state - state bounded to the class existence
+ * @param {StateLike<boolean>} state - state bounded to the class existence
  */
-const toggleClass = (token, state = token) => (ui) => autoEffect(ui, state, `c-${token}`, ui.target.classList.contains(token), (element) => () => element.classList.remove(token), (value) => (element) => () => element.classList.toggle(token, value));
+const toggleClass = (token, state = token) => (ui) => autoEffect(ui, state, `c-${token}`, () => ui.target.classList.contains(token), (value) => (element) => () => element.classList.toggle(token, value));
 /**
  * Set a style property of an element
  *
  * @since 0.8.0
  * @param {string} prop - name of style property to be set
- * @param {StateLike} state - state bounded to the style property value
+ * @param {StateLike<string>} state - state bounded to the style property value
  */
-const setStyle = (prop, state = prop) => (ui) => autoEffect(ui, state, `s-${prop}`, ui.target.style[prop], (element) => () => element.style.removeProperty(prop), (value) => (element) => () => element.style[prop] = value);
+const setStyle = (prop, state = prop) => (ui) => autoEffect(ui, state, `s-${prop}`, () => ui.target.style.getPropertyValue(prop), (value) => (element) => () => element.style.setProperty(prop, value), (element) => () => element.style.removeProperty(prop));
 
 /* === Exported Class and Functions === */
 /**

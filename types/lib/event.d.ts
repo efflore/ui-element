@@ -20,7 +20,7 @@ declare const off: <E extends Element>(event: string, handler: EventListener) =>
  *
  * @since 0.8.3
  * @param {string} event - event name to dispatch
- * @param {StateLike} state - state key
+ * @param {StateLike<unknown>} state - state key
  */
 declare const emit: <E extends Element>(event: string, state?: StateLike<unknown>) => (ui: UI<E>) => UI<E>;
 export { on, off, emit };
