@@ -201,7 +201,7 @@ dd,
 pre,
 input {
 	font-size: var(--font-size-m);
-	line-height: var(--line-height-m);
+	line-height: var(--line-height-l);
 }
 small {
 	font-size: var(--font-size-s);
@@ -261,12 +261,11 @@ section {
 		.lead {
 			grid-column: content;
 			font-size: var(--font-size-l);
-			line-height: var(--line-height-m);
 		}
 	}
   
 	h3 {
-	  margin-top: var(--space-xl);
+		margin: var(--space-xl) 0 var(--space-l);
 	}
 }
   
@@ -281,8 +280,7 @@ ol,
 ul,
 dl,
 table,
-section pre[class*="language-"],
-  show-appreciation {
+pre {
 	margin: 0 0 var(--space-l);
 }
 
@@ -327,6 +325,10 @@ a {
 	&:active {
 	  color: var(--color-primary-active);
 	}
+}
+
+[aria-hidden="true"] {
+	display: none;
 }
 
 /* Helper classes */

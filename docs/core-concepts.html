@@ -102,135 +102,174 @@
 
 		<main>
 			<section class="hero">
-			  <h1>🧩 Core Concepts</h1>
-			  <p class="lead">
-				UIElement is a minimalist library that builds on the power of Web Components, extending them with lightweight, reactive state management.
-			  </p>
+				<h1>🧩 Core Concepts</h1>
+				<p class="lead">UIElement is a minimalist library that builds on the power of Web Components, extending them with lightweight, reactive state management.</p>
 			</section>
 		  
 			<section>
-			  <h2>Anatomy of a UIElement Web Component</h2>
-			  <h3>Extending Web Components</h3>
-			  <p>
-				UIElement extends the native <code>HTMLElement</code> class to add state management and reactivity to Web Components. You can create your own custom elements by extending <code>UIElement</code>.
-			  </p>
-			  <pre><code>class MyComponent extends UIElement {
-			/* component definition */
-		  }</code></pre>
-			  <h3>Defining Custom Elements</h3>
-			  <p>
-				You must define the custom element's tag name in kebab-case using the <code>define()</code> method to make it available for use in HTML.
-			  </p>
-			  <pre><code>MyComponent.define('my-component');</code></pre>
-			  <p>Make sure to use valid custom element names and avoid defining the same element more than once.</p>
-			  <h3>Using the Custom Element</h3>
-			  <p>
-				Once defined, you can use the custom element in HTML just like any other tag.
-			  </p>
-			  <pre><code>&lt;my-component&gt;Content goes here&lt;/my-component&gt;</code></pre>
+				<h2>Anatomy of a Web Component</h2>
+
+				<h3>Extending Web Components</h3>
+				<p>UIElement extends the native <code>HTMLElement</code> class to add state management and reactivity to Web Components. You can create your own custom elements by extending <code>UIElement</code>.</p>
+				<code-block language="js" copy-success="Copied!" copy-error="Error trying to copy to clipboard!">
+					<p class="meta">
+						<span class="language">js</span>
+					</p>
+					<pre><code class="language-js">class MyComponent extends UIElement {
+	/* component definition */
+}</code></pre>
+					<input-button class="copy">
+						<button type="button" class="secondary small">Copy</button>
+					</input-button>
+				</code-block>
+
+				<h3>Defining Custom Elements</h3>
+				<p>You must define the custom element's tag name in kebab-case using the <code>define()</code> method to make it available for use in HTML.</p>
+				<code-block language="js" copy-success="Copied!" copy-error="Error trying to copy to clipboard!">
+					<p class="meta">
+						<span class="language">js</span>
+					</p>
+					<pre><code class="language-js">MyComponent.define('my-component');</code></pre>
+					<input-button class="copy">
+						<button type="button" class="secondary small">Copy</button>
+					</input-button>
+				</code-block>
+				<p>Make sure to use valid custom element names and avoid defining the same element more than once.</p>
+
+				<h3>Using the Custom Element</h3>
+				<p>Once defined, you can use the custom element in HTML just like any other tag.</p>
+				<code-block language="html" copy-success="Copied!" copy-error="Error trying to copy to clipboard!">
+					<p class="meta">
+						<span class="language">html</span>
+					</p>
+					<pre><code class="language-html">&lt;my-component&gt;Content goes here&lt;/my-component&gt;</code></pre>
+					<input-button class="copy">
+						<button type="button" class="secondary small">Copy</button>
+					</input-button>
+				</code-block>
 			</section>
 		  
 			<section>
-			  <h2>Web Components Lifecycle</h2>
-			  <p>
-				Each UIElement component goes through a lifecycle. Here’s how the core lifecycle callbacks work:
-			  </p>
-			  <h3>constructor()</h3>
-			  <p>
-				Called when the element is created. Avoid accessing attributes or DOM elements here; use <code>connectedCallback()</code> instead.
-			  </p>
-			  <h3>connectedCallback()</h3>
-			  <p>
-				Called when the component is attached to the DOM. This is where you can initialize state, add event listeners, and set up reactive effects.
-			  </p>
-			  <h3>disconnectedCallback()</h3>
-			  <p>
-				Called when the component is removed from the DOM. Clean up any external event listeners here.
-			  </p>
-			  <h3>adoptedCallback()</h3>
-			  <p>
-				Called when the component is moved to a new document. Rarely needed unless you're dealing with advanced scenarios like drag-and-drop.
-			  </p>
-			  <h3>attributeChangedCallback()</h3>
-			  <p>
-				Called when an observed attribute is changed. <code>UIElement</code> handles this automatically, so usually, there's no need to override it.
-			  </p>
+				<h2>Web Components Lifecycle</h2>
+				<p>Each UIElement component goes through a lifecycle. Here's how the core lifecycle callbacks work:</p>
+
+				<h3>constructor()</h3>
+				<p>Called when the element is created. You can't access attributes or DOM elements here yet; use <code>connectedCallback()</code> instead.</p>
+
+				<h3>connectedCallback()</h3>
+				<p>Called when the component is attached to the DOM. This is where you can initialize state, add event listeners, and set up reactive effects.</p>
+
+				<h3>disconnectedCallback()</h3>
+				<p>Called when the component is removed from the DOM. Clean up any external event listeners here.</p>
+
+				<h3>adoptedCallback()</h3>
+				<p>Called when the component is moved to a new document. Rarely needed unless you're dealing with advanced scenarios like drag-and-drop.</p>
+
+				<h3>attributeChangedCallback()</h3>
+				<p>Called when an observed attribute is changed. <code>UIElement</code> handles this automatically, so usually, there's no need to override it.</p>
 			</section>
 		  
 			<section>
-			  <h2>Signals & State Management in UIElement</h2>
-			  <p>
-				Signals are the fundamental units of reactive state in UIElement. You can create and update signals using <code>this.set()</code>.
-			  </p>
-			  <pre><code>this.set('count', 0); // Create a signal
-		  this.set('isEven', () => this.get('count') % 2 === 0); // Create a derived signal</code></pre>
-			  <p>
-				Signals automatically trigger updates to elements in the DOM that are bound to them.
-			  </p>
+				<h2>Signals & State Management</h2>
+				<p>Signals are the fundamental units of reactive state in UIElement. You can create and update signals using <code>this.set()</code>.</p>
+				<code-block language="js" copy-success="Copied!" copy-error="Error trying to copy to clipboard!">
+					<p class="meta">
+						<span class="language">js</span>
+					</p>
+					<pre><code class="janguage-js">this.set('count', 0); // Create a signal
+this.set('isEven', () => this.get('count') % 2 === 0); // Create a derived signal</code></pre>
+					<input-button class="copy">
+						<button type="button" class="secondary small">Copy</button>
+					</input-button>
+			    </code-block>
+				<p>Signals automatically notify derived signals and effects that use them with <code>this.get()</code> whenever they change.</p>
+				<p>You can check whether a signal has been defined using <code>this.has()</code>.</p>
+				<p>Use <code>this.delete()</code> to remove a signal and its bound derived signals and effects.</p>
+				<p>The <code>Map</code> interface for signals on UIElement Web Components constitutes the public interface for parent components to pass client state to. Prefer setting signals on components to setting attributes, as attributes are converted to strings and back.</p>
+			</section>
+
+			<section>
+				<h2>Attributes & State Initialization</h2>
+				<p>Observed attributes in UIElement are automatically converted into reactive signals. You can declare them using the <code>observedAttributes</code> static property.</p>
+				<code-block language="js" copy-success="Copied!" copy-error="Error trying to copy to clipboard!">
+					<p class="meta">
+						<span class="language">js</span>
+					</p>
+					<pre><code class="language-js">static observedAttributes = ['count'];</code></pre>
+					<input-button class="copy">
+						<button type="button" class="secondary small">Copy</button>
+					</input-button>
+                </code-block>
+				<p>To parse and map attributes to specific state types, use the <code>attributeMap</code> static property.</p>
+				<code-block language="js" copy-success="Copied!" copy-error="Error trying to copy to clipboard!">
+					<p class="meta">
+						<span class="language">js</span>
+					</p>
+					<pre><code class="language-js">static attributeMap = {
+	count: asInteger,
+}</code></pre>
+					<input-button class="copy">
+						<button type="button" class="secondary small">Copy</button>
+					</input-button>
+				</code-block>
+				<p>You can also use custom parsing functions for more complex attribute handling.</p>
+				<code-block language="js" copy-success="Copied!" copy-error="Error trying to copy to clipboard!">
+					<p class="meta">
+						<span class="language">js</span>
+					</p>
+				<pre><code class="language-js">static attributeMap = {
+	date: value => value.map(v => new Date(v)),
+}</code></pre>
+					<input-button class="copy">
+						<button type="button" class="secondary small">Copy</button>
+					</input-button>
+				</code-block>
+				<p>Attributes are the preferred way to pass pieces of state from the server to the client component. Server-rendered HTML populates attributes directly on the custom elements that need this specific piece of state. This is how we avoid props drilling, an anti-pattern common in JS frameworks, in UIElement. Only state that may change on the client should be declared as observed attributes.</p>
+			</section>
+
+			<section>
+				<h2>Events & State Changes</h2>
+				<p>Use <code>.map()</code> and <code>on()</code> to attach event listeners to elements. These event handlers can trigger state changes and update the DOM.</p>
+				<code-block language="js" copy-success="Copied!" copy-error="Error trying to copy to clipboard!">
+					<p class="meta">
+						<span class="language">js</span>
+					</p>
+                    <pre><code class="language-js">this.first('.increment').map(on('click', () => this.set('count', v => ++v)));</code></pre>
+					<input-button class="copy">
+						<button type="button" class="secondary small">Copy</button>
+					</input-button>
+                </code-block>
+				<p>User interactions like clicks or form inputs can trigger signal updates, which will be reflected in the DOM everywhere the signal is being used on the next screen refresh.</p>
 			</section>
 		  
 			<section>
-			  <h2>Auto-Effects & Reactive Bindings</h2>
-			  <p>
-				Auto-effects like <code>setText()</code> automatically update the DOM when signals change. Use the <code>.map()</code> method to bind signals to HTML elements.
-			  </p>
-			  <pre><code>this.first('.count').map(setText('count'));</code></pre>
-			  <p>
-				The content of the <code>.count</code> element will update whenever the <code>count</code> signal changes.
-			  </p>
+				<h2>Effects & Reactive Bindings</h2>
+				<p>UIElement uses effects to manage side-effects to the DOM, external APIs and the server.</p>
+				<p>For the most common DOM manipulations UIElement provides auto-effects like <code>setText()</code> to automatically update the text content when signals change. Use the chainable <code>.map()</code> method to bind auto-effects for signals to HTML elements.</p>
+				<code-block language="js" copy-success="Copied!" copy-error="Error trying to copy to clipboard!">
+					<p class="meta">
+						<span class="language">js</span>
+					</p>
+                    <pre><code class="language-js">this.first('.count').map(setText('count'));</code></pre>
+					<input-button class="copy">
+						<button type="button" class="secondary small">Copy</button>
+					</input-button>
+                </code-block>
+				<p>The content of the <code>.count</code> element will update whenever the <code>count</code> signal changes.</p>
+
+				<h3>Efficient & Fine-Grained Updates</h3>
+				<p>UIElement efficiently updates only the parts of the DOM affected by signal changes, avoiding full re-renders. This ensures optimal performance and precise updates.</p>
+				<p>Unlike virtual DOM approaches, UIElement never diffs or re-renders the static parts in a component.</p>
 			</section>
 		  
 			<section>
-			  <h2>Attributes & State Synchronization</h2>
-			  <p>
-				Observed attributes in UIElement are automatically converted into reactive signals. You can declare them using the <code>observedAttributes</code> static property.
-			  </p>
-			  <pre><code>static observedAttributes = ['count'];</code></pre>
-			  <p>
-				To parse and map attributes to specific state types, use the <code>attributeMapping</code> property.
-			  </p>
-			  <pre><code>static attributeMapping = {
-			count: 'integer',
-		  };</code></pre>
-			  <p>
-				You can also use custom parsing functions for more complex attribute handling.
-			  </p>
-			  <pre><code>attributeMapping = {
-			date: (value) => new Date(value),
-		  };</code></pre>
+				<h2>Outlook: State Sharing & Context</h2>
+				<p>While most components manage their own state, sometimes you need to share state between components. UIElement allows this through <code>pass()</code> for parent-child state sharing and context providers for more advanced scenarios.</p>
+				<p>These advanced features will be covered in detail in later sections on <a href="best-practices-patterns.html">Best Practices & Patterns</a> and <a href="advanced-topics.html">Advanced Topics</a>.</p>
+				<p>To learn more about the data flow within a component, pre-defined attribute parsers and auto-effects to update the DOM continue with our <a href="detailed-walkthrough.html">Detailed Walkthrough</a>.</p>
 			</section>
-		  
-			<section>
-			  <h2>Handling Events & State Changes</h2>
-			  <p>
-				Use <code>.map()</code> and <code>on()</code> to attach event listeners to elements. These event handlers can trigger state changes and update the DOM.
-			  </p>
-			  <pre><code>this.first('#increment').map(on('click', () => this.set('count', (prev) => prev + 1)));</code></pre>
-			  <p>
-				User interactions like clicks or form inputs can trigger signal updates, which are reflected immediately in the DOM.
-			  </p>
-			</section>
-		  
-			<section>
-			  <h2>Efficient & Fine-Grained Updates</h2>
-			  <p>
-				UIElement efficiently updates only the parts of the DOM affected by signal changes, avoiding full re-renders. This ensures optimal performance and precise updates.
-			  </p>
-			  <p>
-				Unlike virtual DOM approaches, updates are fine-grained, affecting only the relevant elements in the view.
-			  </p>
-			</section>
-		  
-			<section>
-			  <h2>Outlook: State Sharing & Context</h2>
-			  <p>
-				While most components manage their own state, sometimes you need to share state between components. UIElement allows this through <code>pass()</code> for parent-child state sharing and context providers for more advanced scenarios.
-			  </p>
-			  <p>
-				These advanced features will be covered in detail in later sections on Best Practices & Patterns and Advanced Topics.
-			  </p>
-			</section>
-		  </main>
+
+		</main>
 		  
 	</body>
 </html>

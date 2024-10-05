@@ -29,6 +29,10 @@ code-block {
 		margin-bottom: var(--space-xs);
 		font-size: var(--font-size-s);
 		color: var(--color-text-soft);
+
+		&:not(:has(.file)) .language {
+			margin-block-start: calc(-1 * var(--space-m));
+		}
 	}
 
 	.language {
