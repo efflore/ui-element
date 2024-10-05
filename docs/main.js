@@ -14,7 +14,7 @@ class MyCounter extends UIElement {
 	connectedCallback() {
 		this.set('parity', () => this.get('count') % 2 ? 'odd' : 'even')
         this.first('.increment').forEach(on('click', () => this.set('count', v => ++v)))
-        this.first('.decrement').foEach(on('click', () => this.set('count', v => --v)))
+        this.first('.decrement').forEach(on('click', () => this.set('count', v => --v)))
 		this.first('.count').forEach(setText('count'))
 		this.first('.parity').forEach(setText('parity'))
     }
