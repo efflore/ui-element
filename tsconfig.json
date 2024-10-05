@@ -1,17 +1,17 @@
 {
-  "compileOnSave": false,
-  "compilerOptions": {
-    "noEmit": true,
-    "allowJs": true,
-    "checkJs": false,
-    "target": "esnext",
-    "resolveJsonModule": true,
-    "outDir": "./",
-    "noUncheckedIndexedAccess": true,
-    "moduleDetection": "force",
-    "module": "Preserve",
-    "verbatimModuleSyntax": true
-  },
-  "include": ["./"],
-  "exclude": ["node_modules", "test"],
+	"compileOnSave": false,
+	"compilerOptions": {
+		"noEmit": true,
+		"allowJs": true,
+		"checkJs": false,
+		"target": "esnext",
+		"resolveJsonModule": true,
+		"outDir": "./",
+		"noUncheckedIndexedAccess": true,
+		"moduleDetection": "force",
+		"module": "Preserve",
+		"verbatimModuleSyntax": true
+	},
+	"include": ["./"],
+	"exclude": ["node_modules", "test"],
 }
