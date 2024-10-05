@@ -148,8 +148,8 @@
 				<p>UIElement relies on signals—small pieces of reactive state that notify your components when changes occur. This allows for efficient updates to HTML content, handling reactivity only when necessary.</p>
 				<p><strong>Signals & Auto-Effects:</strong> Signals automatically trigger updates to the DOM when they change.</p>
 				<code-block language="js">
-					<pre><code class="language-js">this.set('count', 0); // Define a signal for 'count'
-this.first('.count').forEach(setText('count')); // Automatically update content when 'count' changes</code></pre>
+					<pre><code class="language-js">this.set('count', 0) // Define a signal for 'count'
+this.first('.count').forEach(setText('count')) // Automatically update content when 'count' changes</code></pre>
 				</code-block>
 			</section>
 		  
@@ -181,7 +181,7 @@ this.first('.count').forEach(setText('count')); // Automatically update content 
 							<summary>
 								<div class="summary">Source Code</div>
 							</summary>
-							<lazy-load src="/examples/my-counter.html">
+							<lazy-load src="./examples/my-counter.html">
 								<p class="loading">Loading...</p>
 							</lazy-load>
 						</details>

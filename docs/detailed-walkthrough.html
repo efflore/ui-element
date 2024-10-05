@@ -105,83 +105,23 @@
 				<h1>📋 Detailed Walkthrough</h1>
 				<p class="lead">This guide provides an in-depth look at how state flows through your components, from initialization to mutation, and how to build efficient, reactive Web Components.</p>
 			</section>
-		  
-			<section>
-				<h2>Accessing Sub-Elements</h2>
-				<p>Accessing sub-elements within your `UIElement` component is essential for setting up event listeners, auto-effects, or custom effects.</p>
-		  
-				<h3>this.self</h3>
-				<p>A reference to the custom element itself, which acts as the component wrapper. Useful for reflecting attributes or managing the component as a whole.</p>
-		  
-				<h3>this.first(selector)</h3>
-				<p>Finds the first matching sub-element within the component using <code>querySelector()</code>. This is best for targeting unique elements that are expected to exist once within the component.</p>
-				<code-block language="js" copy-success="Copied!" copy-error="Error trying to copy to clipboard!">
-					<p class="meta">
-						<span class="language">js</span>
-					</p>
-					<pre><code class="language-js">this.first('.count').map(setText('count'))</code></pre>
-					<input-button class="copy">
-						<button type="button" class="secondary small">Copy</button>
-					</input-button>
-				</code-block>
-		  
-				<h3>this.all(selector)</h3>
-				<p>Finds all matching sub-elements within the component using <code>querySelectorAll()</code>. Use this for targeting groups of elements that require batch processing or to allow multiple instances of a given element within the component.</p>
-				<code-block language="js" copy-success="Copied!" copy-error="Error trying to copy to clipboard!">
-					<p class="meta">
-						<span class="language">js</span>
-					</p>
-					<pre><code class="language-js">this.all('.item').map(toggleClass('active', 'isActive'))</code></pre>
-					<input-button class="copy">
-						<button type="button" class="secondary small">Copy</button>
-					</input-button>
-				</code-block>
 
-				<h3>UI Interface</h3>
-				<p>The <code>this.self</code> property and <code>this.first()</code> and <code>this.all()</code> methods are or return an array of objects referencing the matching DOM elements. This may seem odd for exactly one or maybe zero or one element, but it gives us a unified interface to savely iterate over, never having to fear an expected element is <code>null</code> or <code>undefined</code>.</p>
-				<p>Namely, the object for each matching element contains a <code>host</code> and a <code>target</code> field:</p>
-				<ul>
-					<li>Host is the UIElement instance, needed to access signals using the <code>Map</code> interface.</li>
-					<li>Target is the matching DOM element, needed to bind events or to get or set text content, properties, attributes, class tokens or style properties.</li>
-				</ul>
-				<p>The pre-defined functions in UIElement for event listeners (<code>on()</code> and <code>off()</code>), to pass state (<code>pass()</code>), and the auto-effects are partially applied functions connecting to this UI interface.</p>
-				
-				<h3>The Power of Array Methods</h3>
-				<p>As we are using native arrays, it's possible to chain multiple effects and event handlers on the same accessed element(s) using the <code>map()</code> method. If you don't need chaining use <code>forEach()</code> instead, as it tends to be slightly faster.</p>
-				<p>Additionally, array methods like <code>.filter()</code>, <code>.find()</code>, and <code>.every()</code> can be used to further refine or manipulate the list of elements returned by <code>this.all()</code>.</p>
-				<code-block language="js" copy-success="Copied!" copy-error="Error trying to copy to clipboard!">
-					<p class="meta">
-						<span class="language">js</span>
-					</p>
-					<pre><code class="language-js">// Example chaining event handler and effect
-this.first('button')
-	.map(on('click', () => this.set('clicked', true)))
-	.map(toggleClass('clicked'))
-
-// Example filtering elements
-this.all('.item')
-	.filter(item => item.target.textContent.includes('Important'))
-	.map(toggleClass('highlight'))</code></pre>
-					<input-button class="copy">
-						<button type="button" class="secondary small">Copy</button>
-					</input-button>
-				</code-block>
-			</section>
-		  
 			<section>
 				<h2>Ways State Enters a Component</h2>
 				<p>State in a component can come from several sources, each with its own way of being initialized and managed.</p>
 			
 				<h3>Observed Attributes</h3>
-				<p>Attributes declared in <code>static observedAttributes</code> are automatically parsed and converted into reactive signals using <code>attributeMap</code>.</p>
+				<p>Attributes declared in <code>static observedAttributes</code> are automatically parsed and converted into reactive signals using <code>static attributeMap</code>.</p>
 				<code-block language="js" copy-success="Copied!" copy-error="Error trying to copy to clipboard!">
 					<p class="meta">
 						<span class="language">js</span>
 					</p>
-					<pre><code class="language-js">import { asInteger } from '@efflore/ui-element'
+					<pre><code class="language-js">import { UIElement, asInteger } from '@efflore/ui-element'
 
-static observedAttributes = ['count']
-static attributeMap = { count: asInteger }</code></pre>
+class CounterComponent extends UIElement {
+	static observedAttributes = ['count']
+	static attributeMap = { count: asInteger }
+}</code></pre>
 					<input-button class="copy">
 						<button type="button" class="secondary small">Copy</button>
 					</input-button>
@@ -196,6 +136,16 @@ static attributeMap = { count: asInteger }</code></pre>
 						<button type="button" class="secondary small">Copy</button>
 					</input-button>
 				</code-block>
+				<p>Available attribute parsers are:</p>
+				<ul>
+					<li><code>asBoolean</code>: Convert boolean attributes like <code>disabled</code> to actual booleans.</li>
+					<li><code>asInteger</code>: Try to parse numeric attributes as integer numbers.</li>
+					<li><code>asNumber</code>: Try to parse numeric attributes as floating point numbers.</li>
+					<li><code>asString</code>: Does nothing as all attributes are strings; may be omitted in <code>attributeMap</code>.</li>
+					<li><code>asJSON</code>: Try to parse structured data in an attribute as JSON.</li>
+				</ul>
+				<p>If the parser fails, for example because numeric attribute evaluate to <code>NaN</code> or the supplied JSON is invalid, the signal will silently default to <code>undefined</code>, just as if the attribute wasn't there. Undefined signals won't trigger any effects.</p>
+				<p>The pre-defined attribute parser functions connect to the <code>Maybe</code> interface used in the <code>attributeChangedCallback</code> of the <code>UIElement</code> base class. Attribute parser functions are pure functions that <code>.map()</code> an array of zero or one strings to the desired type and <code>.filter()</code> invalid values out. This allows you to define your own attribute parser functions and reuse them across components.</p>
 		  
 				<h3>Defaults from DOM in Auto-Effects</h3>
 				<p>When an auto-effect like <code>setText()</code> is used, the content of the target DOM element is taken as the default value of the signal if it hasn't been set manually.</p>
@@ -203,7 +153,7 @@ static attributeMap = { count: asInteger }</code></pre>
 					<p class="meta">
 						<span class="language">html</span>
 					</p>
-					<pre><code class="languge-html">&lt;hello-world&gt;
+					<pre><code class="language-html">&lt;hello-world&gt;
 	&lt;p&gt;Hello, &lt;span class="name"&gt;World&lt;/span&gt;!&lt;/p&gt;
 &lt;/hello-world&gt;</code></pre>
 					<input-button class="copy">
@@ -247,6 +197,68 @@ this.set('even', () => this.get('count') % 2 === 0)</code></pre>
 			
 				<h3>Context Consumers</h3>
 				<p>State can also be provided to a component through context. This allows sharing state across components and will be covered in the <a href="advanced-topics.html">Advanced Topics</a> section.</p>
+			</section>
+		  
+			<section>
+				<h2>Accessing Sub-Elements</h2>
+				<p>Accessing sub-elements within your `UIElement` component is essential for setting up event listeners, auto-effects, or custom effects.</p>
+		  
+				<h3>this.self</h3>
+				<p>A reference to the custom element itself, which acts as the component wrapper. Useful for reflecting attributes or managing the component as a whole.</p>
+		  
+				<h3>this.first(selector)</h3>
+				<p>Finds the first matching sub-element within the component using <code>querySelector()</code>. This is best for targeting unique elements that are expected to exist once within the component.</p>
+				<code-block language="js" copy-success="Copied!" copy-error="Error trying to copy to clipboard!">
+					<p class="meta">
+						<span class="language">js</span>
+					</p>
+					<pre><code class="language-js">this.first('.count').map(setText('count'))</code></pre>
+					<input-button class="copy">
+						<button type="button" class="secondary small">Copy</button>
+					</input-button>
+				</code-block>
+		  
+				<h3>this.all(selector)</h3>
+				<p>Finds all matching sub-elements within the component using <code>querySelectorAll()</code>. Use this for targeting groups of elements that require batch processing or to allow multiple instances of a given element within the component.</p>
+				<code-block language="js" copy-success="Copied!" copy-error="Error trying to copy to clipboard!">
+					<p class="meta">
+						<span class="language">js</span>
+					</p>
+					<pre><code class="language-js">this.all('.item').map(toggleClass('active', 'isActive'))</code></pre>
+					<input-button class="copy">
+						<button type="button" class="secondary small">Copy</button>
+					</input-button>
+				</code-block>
+
+				<h3>UI Interface</h3>
+				<p>The <code>this.self</code> property and <code>this.first()</code> and <code>this.all()</code> methods are or return an array of objects referencing the matching DOM elements. This may seem odd for exactly one or maybe zero or one element, but it gives us a unified interface to savely iterate over, never having to fear an expected element is <code>null</code> or <code>undefined</code>.</p>
+				<p>Namely, the object for each matching element contains a <code>host</code> and a <code>target</code> field:</p>
+				<ul>
+					<li>Host is the UIElement instance, needed to access signals using the <code>Map</code> interface.</li>
+					<li>Target is the matching DOM element, needed to bind events or to get or set text content, properties, attributes, class tokens or style properties.</li>
+				</ul>
+				<p>The pre-defined functions in UIElement for event listeners (<code>on()</code> and <code>off()</code>), to pass state (<code>pass()</code>), and the auto-effects are partially applied functions connecting to this <code>UI</code> interface. You may define custom functions connecting to the <code>UI</code> interface and reuse them across components.</p>
+				
+				<h3>The Power of Array Methods</h3>
+				<p>As we are using native arrays, it's possible to chain multiple effects and event handlers on the same accessed element(s) using the <code>map()</code> method. If you don't need chaining use <code>forEach()</code> instead, as it tends to be slightly faster.</p>
+				<p>Additionally, array methods like <code>.filter()</code>, <code>.find()</code>, and <code>.every()</code> can be used to further refine or manipulate the list of elements returned by <code>this.all()</code>.</p>
+				<code-block language="js" copy-success="Copied!" copy-error="Error trying to copy to clipboard!">
+					<p class="meta">
+						<span class="language">js</span>
+					</p>
+					<pre><code class="language-js">// Example chaining event handler and effect
+this.first('button')
+	.map(on('click', () => this.set('clicked', true)))
+	.map(toggleClass('clicked'))
+
+// Example filtering elements
+this.all('.item')
+	.filter(item => item.target.textContent.includes('Important'))
+	.map(toggleClass('highlight'))</code></pre>
+					<input-button class="copy">
+						<button type="button" class="secondary small">Copy</button>
+					</input-button>
+				</code-block>
 			</section>
 		  
 			<section>
