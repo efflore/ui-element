@@ -109,15 +109,15 @@
 			<section>
 				<h2>Using a CDN</h2>
 				<p>For the easiest setup, include <strong>UIElement</strong> directly in your HTML via a CDN. This is ideal for quick projects or testing.</p>
-				<code-block>
-					<pre><code>&lt;script src="https://cdn.jsdelivr.net/npm/@efflore/ui-element@latest/index.min.js"&gt;&lt;/script&gt;</code></pre>
+				<code-block language="html">
+					<pre><code class="language-html">&lt;script src="https://cdn.jsdelivr.net/npm/@efflore/ui-element@latest/index.min.js"&gt;&lt;/script&gt;</code></pre>
 				</code-block>
 				<p>Or use <code>&lt;script type="module"&gt;</code> to import UIElement in your HTML:</p>
 				<code-block language="js">
 					<pre><code class="language-js">&lt;script type="module"&gt;
-import { UIElement } from 'https://cdn.jsdelivr.net/npm/@efflore/ui-element@latest/index.min.js'
+	import { UIElement } from 'https://cdn.jsdelivr.net/npm/@efflore/ui-element@latest/index.min.js'
 
-// Your code here
+	// Your code here
 &lt;/script&gt;</code></pre>
 				</code-block>
 			</section>
@@ -131,8 +131,8 @@ import { UIElement } from 'https://cdn.jsdelivr.net/npm/@efflore/ui-element@late
 			<section>
 				<h2>Installing with NPM</h2>
 				<p>If you are using a bundler like Vite, Rollup, Webpack, or another module system, npm is the best way to install and manage <strong>UIElement</strong>.</p>
-				<code-block>
-					<pre><code>npm install @efflore/ui-element</code></pre>
+				<code-block language="bash">
+					<pre><code class="language-bash">npm install @efflore/ui-element</code></pre>
 				</code-block>
 				<p>Then import <code>UIElement</code> in your JavaScript:</p>
 				<code-block language="js">
@@ -172,8 +172,8 @@ import { UIElement } from 'https://cdn.jsdelivr.net/npm/@efflore/ui-element@late
 					<p class="meta">
 						<span class="language">html</span>
 					</p>
-					<pre><code>&lt;hello-world&gt;
-	&lt;label&gt;Your name
+					<pre><code class="language-html">&lt;hello-world&gt;
+	&lt;label&gt;Your name&lt;br&gt;
 		&lt;input type="text"&gt;
 	&lt;/label&gt;
 	&lt;p&gt;Hello, &lt;span&gt;World&lt;/span&gt;!&lt;/p&gt;
@@ -190,10 +190,12 @@ import { UIElement } from 'https://cdn.jsdelivr.net/npm/@efflore/ui-element@late
 				<component-demo>
 					<div class="preview">
 					    <hello-world>
-                            <label>Your name
-								<input type="text">
-							</label>
-                            <p>Hello, <span>World</span>!</p>
+							<template shadowrootmode="open">
+								<label>Your name<br>
+									<input type="text">
+								</label>
+								<p>Hello, <span>World</span>!</p>
+							</template>
                         </hello-world>
 					</div>
 				</component-demo>
