@@ -3,7 +3,7 @@ import {
 	asBoolean, asInteger,
 	setText, setProperty, setAttribute, toggleAttribute, toggleClass
 } from '@efflore/ui-element'
-import Prism from './assets/js/prism.min.js'
+import Prism from './prism.min.js'
 
 class MyCounter extends UIElement {
 	static observedAttributes = ['count']
@@ -24,7 +24,7 @@ MyCounter.define('my-counter')
 class HelloWorld extends UIElement {
 	connectedCallback() {
         this.first('span').forEach(setText('name'))
-		this.first('input').forEach(on('input', e => this.set('name', e.target.value)))
+		this.first('input').forEach(on('input', e => this.set('name', e.target.value || undefined)))
 	}
 }
 HelloWorld.define('hello-world')
@@ -396,45 +396,60 @@ export class InputRadiogroup extends UIElement {
 InputRadiogroup.define('input-radiogroup')
 
 class LazyLoad extends UIElement {
-	connectedCallback() {
-		this.set('error', '')
-		this.set('content', () => {
-			fetch(this.getAttribute('src')) // TODO ensure 'src' attribute is a valid URL from a trusted source
-				.then(async response => response.ok
-					? this.set('content', await response.text())
-					: this.set('error', response.statusText)
-				)
-				.catch(error => this.set('error', error))
-			return // we don't return a fallback value
-		})
-
-		const loadingEl = this.querySelector('.loading')
-		const errorEl = this.querySelector('.error')
-
-		effect(enqueue => {
-			const error = this.get('error')
-			if (!error || !errorEl) return
-			if (loadingEl) enqueue(loadingEl, 'r', el => () => el.remove()) // remove placeholder for pending state
-			enqueue(errorEl, 't', el => () => el.textContent = error) // fill error message
-		})
-
-		effect(enqueue => {
-			const content = this.get('content')
-			if (!content) return
-			this.root = this.shadowRoot || this.attachShadow({ mode: 'open' }) // we use shadow DOM to encapsulate styles
-			enqueue(this.root, 'h', el => () => { // UNSAFE!, use only trusted sources in 'src' attribute
-				el.innerHTML = content
-				el.querySelectorAll('script').forEach(script => {
-					const newScript = document.createElement('script')
-					newScript.appendChild(document.createTextNode(script.textContent))
-					el.appendChild(newScript)
-					script.remove()
-				})
+	static observedAttributes = ['src']
+	static attributeMap = {
+        src: v => v.map(src => {
+				let url = ''
+				try {
+					url = new URL(src, location.href) // ensure 'src' attribute is a valid URL
+					if (url.origin !== location.origin) { // sanity check for cross-origin URLs
+						throw new TypeError('Invalid URL origin')
+					}
+				} catch (error) {
+					console.error(error, url)
+					url = ''
+				}
+				return url.toString()
 			})
-			if (loadingEl) enqueue(loadingEl, 'r', el => () => el.remove()) // remove placeholder for pending state
-			if (errorEl) enqueue(errorEl, 'r', el => () => el.remove()) // won't be needed anymore as request was successful
+    }
+
+	connectedCallback() {
+
+		// show / hide loading message
+		this.first('.loading')
+			.forEach(setProperty('ariaHidden', () => !!this.get('error')))
+
+		// set and show / hide error message
+		this.first('.error')
+			.map(setText('error'))
+			.forEach(setProperty('ariaHidden', () => !this.get('error')))
+
+		// load content from provided URL
+		effect(enqueue => {
+			const src = this.get('src')
+			if (!src) return // silently fail if no valid URL is provided
+			fetch(src)
+				.then(async response => {
+					if (response.ok) {
+						const content = await response.text()
+						enqueue(this.root, 'h', el => () => {
+							// UNSAFE!, use only trusted sources in 'src' attribute
+							el.innerHTML = content
+							el.querySelectorAll('script').forEach(script => {
+								const newScript = document.createElement('script')
+								newScript.appendChild(document.createTextNode(script.textContent))
+								el.appendChild(newScript)
+								script.remove()
+							})
+						})
+						this.set('error', '')
+                    } else {
+						this.set('error', response.status + ':'+ response.statusText)
+					}
+				})
+				.catch(error => this.set('error', error))
 		})
-	 }
+	}
 }
 LazyLoad.define('lazy-load')
 

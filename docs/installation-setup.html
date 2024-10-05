@@ -109,16 +109,28 @@
 			<section>
 				<h2>Using a CDN</h2>
 				<p>For the easiest setup, include <strong>UIElement</strong> directly in your HTML via a CDN. This is ideal for quick projects or testing.</p>
-				<code-block language="html">
+				<code-block language="html" copy-success="Copied!" copy-error="Error trying to copy to clipboard!">
+					<p class="meta">
+						<span class="language">html</span>
+					</p>
 					<pre><code class="language-html">&lt;script src="https://cdn.jsdelivr.net/npm/@efflore/ui-element@latest/index.min.js"&gt;&lt;/script&gt;</code></pre>
+					<input-button class="copy">
+						<button type="button" class="secondary small">Copy</button>
+					</input-button>
 				</code-block>
 				<p>Or use <code>&lt;script type="module"&gt;</code> to import UIElement in your HTML:</p>
-				<code-block language="js">
-					<pre><code class="language-js">&lt;script type="module"&gt;
+				<code-block language="html" copy-success="Copied!" copy-error="Error trying to copy to clipboard!">
+					<p class="meta">
+						<span class="language">html</span>
+					</p>
+					<pre><code class="language-html">&lt;script type="module"&gt;
 	import { UIElement } from 'https://cdn.jsdelivr.net/npm/@efflore/ui-element@latest/index.min.js'
 
 	// Your code here
 &lt;/script&gt;</code></pre>
+					<input-button class="copy">
+						<button type="button" class="secondary small">Copy</button>
+					</input-button>
 				</code-block>
 			</section>
 		  
@@ -131,12 +143,24 @@
 			<section>
 				<h2>Installing with NPM</h2>
 				<p>If you are using a bundler like Vite, Rollup, Webpack, or another module system, npm is the best way to install and manage <strong>UIElement</strong>.</p>
-				<code-block language="bash">
+				<code-block language="bash" copy-success="Copied!" copy-error="Error trying to copy to clipboard!">
+					<p class="meta">
+						<span class="language">bash</span>
+					</p>
 					<pre><code class="language-bash">npm install @efflore/ui-element</code></pre>
+					<input-button class="copy">
+						<button type="button" class="secondary small">Copy</button>
+					</input-button>
 				</code-block>
 				<p>Then import <code>UIElement</code> in your JavaScript:</p>
-				<code-block language="js">
+				<code-block language="js" copy-success="Copied!" copy-error="Error trying to copy to clipboard!">
+					<p class="meta">
+						<span class="language">js</span>
+					</p>
 					<pre><code class="language-js">import { UIElement } from '@efflore/ui-element';</code></pre>
+					<input-button class="copy">
+						<button type="button" class="secondary small">Copy</button>
+					</input-button>
 				</code-block>
 				<p>Use build tools to bundle the library into your project as necessary.</p>
 			</section>
@@ -158,7 +182,7 @@
 			this.first('span').forEach(setText('name'))
 
 			// Handle user input to change the 'name'
-			this.first('input').forEach(on('input', e =&gt; this.set('name', e.target.value)))
+			this.first('input').forEach(on('input', e =&gt; this.set('name', e.target.value || undefined)))
 		}
 	}
 	HelloWorld.define('hello-world')
