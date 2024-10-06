@@ -141,11 +141,11 @@ class CounterComponent extends UIElement {
 					<li><code>asBoolean</code>: Convert boolean attributes like <code>disabled</code> to actual booleans.</li>
 					<li><code>asInteger</code>: Try to parse numeric attributes as integer numbers.</li>
 					<li><code>asNumber</code>: Try to parse numeric attributes as floating point numbers.</li>
-					<li><code>asString</code>: Does nothing as all attributes are strings; may be omitted in <code>attributeMap</code>.</li>
+					<li><code>asString</code>: Does nothing as all attributes are strings; string attributes may be omitted in <code>attributeMap</code>.</li>
 					<li><code>asJSON</code>: Try to parse structured data in an attribute as JSON.</li>
 				</ul>
 				<p>If the parser fails, for example because numeric attribute evaluate to <code>NaN</code> or the supplied JSON is invalid, the signal will silently default to <code>undefined</code>, just as if the attribute wasn't there. Undefined signals won't trigger any effects.</p>
-				<p>The pre-defined attribute parser functions connect to the <code>Maybe</code> interface used in the <code>attributeChangedCallback</code> of the <code>UIElement</code> base class. Attribute parser functions are pure functions that <code>.map()</code> an array of zero or one strings to the desired type and <code>.filter()</code> invalid values out. This allows you to define your own attribute parser functions and reuse them across components.</p>
+				<p>The pre-defined attribute parser functions connect to the <code>Maybe</code> interface used in the <code>attributeChangedCallback()</code> of the <code>UIElement</code> base class. Attribute parser functions are pure functions that <code>.map()</code> an array of zero or one strings to the desired type and <code>.filter()</code> invalid values out. This allows you to define your own attribute parser functions and reuse them across components.</p>
 		  
 				<h3>Defaults from DOM in Auto-Effects</h3>
 				<p>When an auto-effect like <code>setText()</code> is used, the content of the target DOM element is taken as the default value of the signal if it hasn't been set manually.</p>
@@ -271,12 +271,18 @@ this.all('.item')
 					<p class="meta">
 						<span class="language">js</span>
 					</p>
-					<pre><code class="language-js">this.first('input').map(on('input', (event) => this.set('name', event.target.value)));</code></pre>
+					<pre><code class="language-js">this.first('input').map(on('input', e => this.set('name', e.target.value)))</code></pre>
 					<input-button class="copy">
 						<button type="button" class="secondary small">Copy</button>
 					</input-button>
 				</code-block>
 				<p>When an event occurs, the signal <code>name</code> is updated, triggering any bound effects.</p>
+				<p>The pre-defined event listener functions are:</p>
+				<ul>
+					<li><code>on(event, handler)</code>: Attaches an event listener to the element.</li>
+                    <li><code>off(event, handler)</code>: Removes an event listener from the element.</li>
+				</ul>
+				<p>Usually it's not necessary to remove an event listener from elements. Event handlers get garbage collected if the component or inner element is removed. However, if you bind events to <code>window</code> or any outer element, be sure to remove the event listener in <code>disconnectedCallback()</code>.</p>
 			
 				<h3>Resolved Promises</h3>
 				<p>Asynchronous data sources, such as <code>fetch</code> requests or other Promises, can be used to mutate signals once resolved.</p>

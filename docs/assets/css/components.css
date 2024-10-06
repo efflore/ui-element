@@ -19,6 +19,78 @@ my-counter {
 	}
 }
 
+my-slider {
+	display: flex;
+	overflow: hidden;
+	aspect-ratio: 16 / 9;
+	position: relative;
+	
+	.slides {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 100%;
+	}
+	
+	.slide {
+		min-width: 100%;
+		text-align: center;
+
+		&:not(.active) {
+			display: none;
+		}
+	}
+	
+	.dots {
+		position: absolute;
+		bottom: 0;
+		left: 0;
+		width: 100%;
+		display: flex;
+		justify-content: center;
+		gap: var(--space-xs);
+		padding-block: var(--space-s);
+
+		span {
+            width: var(--space-s);
+            height: var(--space-s);
+            border-radius: 50%;
+            background-color: var(--color-text);
+			opacity: var(--opacity-translucent);
+
+            &.active {
+                opacity: var(--opacity-solid);
+            }
+		}
+	}
+	
+	> button {
+		position: absolute;
+		top: 0;
+		height: 100%;
+		border: 0;
+		background: transparent;
+		padding: var(--space-m);
+		font-size: var(--font-size-xxl);
+		color: var(--color-text);
+		opacity: var(--opacity-dimmed);
+
+		&:hover,
+		&:active,
+		&:focus {
+            opacity: var(--opacity-solid);
+        }
+
+		&.prev {
+			left: 0;
+		}
+
+		&.next {
+            right: 0;
+        }
+	}
+}
+
 code-block {
 	position: relative;
 	display: block;

@@ -1,0 +1,160 @@
+<tab-list>
+	<ul class="tab-nav">
+		<li><button type="button">HTML</button></li>
+		<li><button type="button">CSS</button></li>
+		<li><button type="button">JavaScript</button></li>
+	</ul>
+	<accordion-panel open>
+		<details open aria-disabled="true">
+			<summary class="visually-hidden">
+				<div class="summary">HTML</div>
+			</summary>
+			<code-block language="html" copy-success="Copied!" copy-error="Error trying to copy to clipboard!">
+				<p class="meta">
+					<span class="file">my-slider.html</span>
+					<span class="language">html</span>
+				</p>
+				<pre><code class="language-html">&lt;my-slider&gt;
+	&lt;button type="button" class="prev" aria-label="Previous"&gt;‹&lt;/button&gt;
+	&lt;div class="slides"&gt;
+		&lt;div class="slide active"&gt;Slide 1&lt;/div&gt;
+		&lt;div class="slide"&gt;Slide 2&lt;/div&gt;
+		&lt;div class="slide"&gt;Slide 3&lt;/div&gt;
+	&lt;/div&gt;
+	&lt;button type="button" class="next" aria-label="Next"&gt;›&lt;/button&gt;
+	&lt;div class="dots"&gt;
+		&lt;span class="active"&gt;&lt;/span&gt;
+		&lt;span&gt;&lt;/span&gt;
+		&lt;span&gt;&lt;/span&gt;
+	&lt;/div&gt;
+&lt;/my-slider&gt;</code></pre>
+				<input-button class="copy">
+					<button type="button" class="secondary small">Copy</button>
+				</input-button>
+			</code-block>
+		</details>
+	</accordion-panel>
+	<accordion-panel>
+		<details aria-disabled="true">
+			<summary class="visually-hidden">
+				<div class="summary">CSS</div>
+			</summary>
+			<code-block language="css" copy-success="Copied!" copy-error="Error trying to copy to clipboard!">
+				<p class="meta">
+					<span class="file">my-slider.css</span>
+					<span class="language">css</span>
+				</p>
+				<pre><code class="language-css">my-slider {
+	display: flex;
+	overflow: hidden;
+	aspect-ratio: 16 / 9;
+	position: relative;
+	
+	.slides {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 100%;
+	}
+	
+	.slide {
+		min-width: 100%;
+		text-align: center;
+
+		&:not(.active) {
+			display: none;
+		}
+	}
+	
+	.dots {
+		position: absolute;
+		bottom: 0;
+		left: 0;
+		width: 100%;
+		display: flex;
+		justify-content: center;
+		gap: var(--space-xs);
+		padding-block: var(--space-s);
+
+		span {
+			width: var(--space-s);
+			height: var(--space-s);
+			border-radius: 50%;
+			background-color: var(--color-text);
+			opacity: var(--opacity-translucent);
+
+			&.active {
+				opacity: var(--opacity-solid);
+			}
+		}
+	}
+	
+	> button {
+		position: absolute;
+		top: 0;
+		height: 100%;
+		border: 0;
+		background: transparent;
+		padding: var(--space-m);
+		font-size: var(--font-size-xxl);
+		color: var(--color-text);
+		opacity: var(--opacity-dimmed);
+
+		&:hover,
+		&:active,
+		&:focus {
+			opacity: var(--opacity-solid);
+		}
+
+		&.prev {
+			left: 0;
+		}
+
+		&.next {
+			right: 0;
+		}
+	}
+}</code></pre>
+				<input-button class="copy">
+					<button type="button" class="secondary small">Copy</button>
+				</input-button>
+			</code-block>
+		</details>
+	</accordion-panel>
+	<accordion-panel>
+		<details aria-disabled="true">
+			<summary class="visually-hidden">
+				<div class="summary">JavaScript</div>
+			</summary>
+			<code-block language="js" copy-success="Copied!" copy-error="Error trying to copy to clipboard!">
+				<p class="meta">
+					<span class="file">my-slider.js</span>
+					<span class="language">js</span>
+				</p>
+				<pre><code class="language-js">import { UIElement, on, toggleClass } from '@efflore/ui-element'
+
+class MySlider extends UIElement {
+	connectedCallback() {
+	
+		// Initialize state for the active slide index
+		this.set('active', 0)
+	
+		// Event listeners for navigation
+		const total = this.querySelectorAll('.slide').length
+		const getNewIndex = (prev, direction) => (prev + direction + total) % total
+		this.first('.prev').map(on('click', () => this.set('active', v => getNewIndex(v, -1))))
+		this.first('.next').map(on('click', () => this.set('active', v => getNewIndex(v, 1))))
+	
+		// Auto-effects for updating slides and dots
+		this.all('.slide').map((ui, idx) => toggleClass('active', () => idx === this.get('active'))(ui))
+		this.all('.dots span').map((ui, idx) => toggleClass('active', () => idx === this.get('active'))(ui))
+	}
+}
+MySlider.define('my-slider')</code></pre>
+				<input-button class="copy">
+					<button type="button" class="secondary small">Copy</button>
+				</input-button>
+			</code-block>
+		</details>
+	</accordion-panel>
+</tab-list>
