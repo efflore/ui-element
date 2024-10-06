@@ -102,178 +102,176 @@
 
 		<main>
 			<section class="hero">
-			  <h1>💡 Best Practices & Patterns</h1>
-			  <p class="lead">
-				Learn the best practices for building loosely coupled <code>UIElement</code> components, focusing on managing styles, states, and inter-component communication in a controlled and predictable way.
-			  </p>
+				<h1>💡 Best Practices & Patterns</h1>
+				<p class="lead">Learn the best practices for building loosely coupled UIElement components, focusing on managing styles, states, and inter-component communication in a controlled and predictable way.</p>
 			</section>
 		  
 			<section>
-			  <h2>Composability Principles</h2>
-			  <p>
-				Each component should be self-contained, managing its own state and styles, without relying directly on other components for its internal logic or presentation.
-			  </p>
+				<h2>Composability Principle</h2>
+				<p>Each component should be self-contained, managing its own state and styles, without relying directly on other components for its internal logic or presentation.</p>
 		  
-			  <h3>Self-Managed State & Styles</h3>
-			  <p>
-				Components are responsible for their internal state and appearance, making them reusable and predictable. Parent components should not modify the internal states or DOM of their child components directly.
-			  </p>
-		  
-			  <pre><code>class ChildComponent extends UIElement {
-			connectedCallback() {
-			  this.set('color', 'blue');
-			  this.first('.box').map(setStyle('background-color', 'color'));
-			}
-		  }
-		  ChildComponent.define('child-component');</code></pre>
-		  
-			  <pre><code>&lt;child-component&gt;
-			&lt;div class="box"&gt;I am styled internally!&lt;/div&gt;
-		  &lt;/child-component&gt;</code></pre>
+				<h3>Self-Managed State & Styles</h3>
+				<p>Components are responsible for their internal state and appearance, making them reusable and predictable. Parent components should not modify or style the internal DOM of their child components directly.</p>
+				<p>Components should not access elements higher up in the DOM tree or in a different branch thereof.</p>
 			</section>
 		  
 			<section>
-			  <h2>Styling Components</h2>
-			  <p>
-				Each component should have scoped styles, ensuring no unintended global styles affect it. Use CSS nesting and avoid styling inner elements of sub-components directly from parent components.
-			  </p>
-		  
-			  <h3>Scoped Styles Using CSS Nesting</h3>
-			  <p>
-				Style your components using their tag names, and use CSS nesting to target sub-elements. Avoid using classes and IDs unless they add clarity or specificity.
-			  </p>
-			  <pre><code>&lt;style&gt;
-			child-component {
-			  padding: 10px;
-			}
-		  
-			child-component div {
-			  background-color: lightgray;
-			}
-		  &lt;/style&gt;
-		  
-		  &lt;child-component&gt;&lt;/child-component&gt;</code></pre>
+				<h2>Styling Components</h2>
+				<p>Avoid styling inner elements of sub-components directly from parent components, as this would make the appearance of the inner component dependent on the styles of the outer component. Parent components may style only the wrapper of child components for layout purposes (margins, gap, flex and grid properties).</p>
+			
+				<h3>Scope Styles via Custom Element Name</h3>
+				<p>Each component should have scoped styles via their custom element name, ensuring its styles don't leak out. Custom element names are unique within the document, making them ideal for scoping purposes. Aim for low specificity selectors like tag names, so it's easy to override with a single class when you need to differentiate.</p>
+				<code-block language="css" copy-success="Copied!" copy-error="Error trying to copy to clipboard!">
+					<p class="meta">
+						<span class="language">css</span>
+					</p>
+					<pre><code class="language-css">my-component {
+	padding: 1rem;
+
+	/* Only divs that are immediate children of my-component will be styled */
+	> div {
+		background-color: lightgray;
+	}
+}</code></pre>
+					<input-button class="copy">
+						<button type="button" class="secondary small">Copy</button>
+					</input-button>
+				</code-block>
+
+				<h3>Customize via Class or CSS Custom Properties</h3>
+				<p>Components should allow reasonable variants via defined classes on the wrapper element or customizations via CSS custom properties.</p>
+				<p>Classes allow parent components to choose between certain given variants.</p>
+				<p>CSS custom properties allow parent components to influence the appearance of sub-components without directly styling their DOM internals.</p>
+				<code-block language="css" copy-success="Copied!" copy-error="Error trying to copy to clipboard!">
+					<p class="meta">
+						<span class="language">css</span>
+					</p>
+					<pre><code class="language-css">parent-component {
+	--box-bg-color: red;
+	--box-text-color: white;
+}
+
+/* Base message box appearance can be influenced using CSS custom properties */
+message-box {
+	background-color: var(--box-bg-color, lightgray);
+	color: var(--box-text-color, black);
+
+	/* While pre-defined variant with class "success" always comes with a fixed color scheme */
+	&.success {
+		background-color: green;
+		color: white;
+	}
+}</code></pre>
+					<input-button class="copy">
+						<button type="button" class="secondary small">Copy</button>
+					</input-button>
+				</code-block>
 			</section>
 		  
 			<section>
-			  <h2>Passing State Between Components</h2>
-			  <p>
-				Parent components can control sub-components by setting publicly accessible signals or using CSS custom properties to influence their appearance. Use the <code>pass()</code> function to pass state directly and synchronize signals.
-			  </p>
-		  
-			  <h3>Using CSS Custom Properties</h3>
-			  <p>
-				CSS custom properties allow parent components to influence the appearance of sub-components without affecting their internal DOM.
-			  </p>
-			  <pre><code>&lt;style&gt;
-			parent-component {
-			  --box-color: red;
-			}
-		  &lt;/style&gt;
-		  
-		  &lt;parent-component&gt;
-			&lt;child-component&gt;&lt;/child-component&gt;
-		  &lt;/parent-component&gt;</code></pre>
-			  <pre><code>class ChildComponent extends UIElement {
-			connectedCallback() {
-			  this.first('.box').map(setStyle('background-color', 'var(--box-color)'));
-			}
-		  }</code></pre>
-		  
-			  <h3>Updating Publicly Exposed Signals</h3>
-			  <p>
-				A parent component can update a child component’s exposed signals using <code>.set()</code>.
-			  </p>
-			  <pre><code>// In parent component
-		  this.first('child-component').target.set('color', 'green');</code></pre>
-		  
-			  <h3>Passing State with <code>pass()</code></h3>
-			  <p>
-				Use the <code>pass()</code> function to pass a state from a parent component to a child component, keeping the state synchronized.
-			  </p>
-			  <pre><code>class ParentComponent extends UIElement {
-			connectedCallback() {
-			  this.set('parentColor', 'blue');
-			  this.pass('parentColor', 'child-component', 'color');
-			}
-		  }
-		  ParentComponent.define('parent-component');</code></pre>
-		  
-			  <pre><code>class ChildComponent extends UIElement {
-			connectedCallback() {
-			  this.first('.box').map(setStyle('background-color', 'color'));
-			}
-		  }
-		  ChildComponent.define('child-component');</code></pre>
-		  
-			  <pre><code>&lt;parent-component&gt;
-			&lt;child-component&gt;&lt;/child-component&gt;
-		  &lt;/parent-component&gt;</code></pre>
+				<h2>Passing State Down</h2>
+				<p>Parent components can control sub-components by setting their publicly accessible signals. Use the <code>pass()</code> function to pass state directly and share signals.</p>
+			
+				<h3>Passing State with pass()</h3>
+				<p>Use the <code>pass()</code> function to pass a state from a parent component to a child component, keeping the state synchronized.</p>
+				<code-block language="js" copy-success="Copied!" copy-error="Error trying to copy to clipboard!">
+					<p class="meta">
+						<span class="language">js</span>
+					</p>
+					<pre><code class="language-js">class ParentComponent extends UIElement {
+	connectedCallback() {
+	this.set('parentColor', 'blue');
+	this.pass('parentColor', 'child-component', 'color');
+	}
+}
+ParentComponent.define('parent-component');</code></pre>
+					<input-button class="copy">
+						<button type="button" class="secondary small">Copy</button>
+					</input-button>
+				</code-block>
+
+				<code-block language="js" copy-success="Copied!" copy-error="Error trying to copy to clipboard!">
+					<p class="meta">
+						<span class="language">js</span>
+					</p>
+					<pre><code class="language-js">class ChildComponent extends UIElement {
+	connectedCallback() {
+	this.first('.box').map(setStyle('background-color', 'color'));
+	}
+}
+ChildComponent.define('child-component');</code></pre>
+				</code-block>
 			</section>
 		  
 			<section>
-			  <h2>Bubbling Up State with Custom Events</h2>
-			  <p>
-				When a child component doesn't have full context for handling state changes, it can dispatch custom events that bubble up to parent components using <code>emit()</code>.
-			  </p>
+				<h2>Bubbling Up State with Custom Events</h2>
+				<p>When a child component doesn't have full context for handling state changes, it can dispatch custom events that bubble up to parent components using <code>emit()</code>.</p>
+			
+				<h3>Dispatching Custom Events with <code>emit()</code></h3>
+				<p>Use the <code>emit()</code> method to dispatch custom events to notify parent components of changes.</p>
+				<code-block language="js" copy-success="Copied!" copy-error="Error trying to copy to clipboard!">
+					<p class="meta">
+						<span class="language">js</span>
+					</p>
+					<pre><code class="language-js">// In child component
+this.emit('change', { detail: { value: this.get('value') } });</code></pre>
+				</code-block>
 		  
-			  <h3>Dispatching Custom Events with <code>emit()</code></h3>
-			  <p>
-				Use the <code>emit()</code> method to dispatch custom events to notify parent components of changes.
-			  </p>
-			  <pre><code>// In child component
-		  this.emit('change', { detail: { value: this.get('value') } });</code></pre>
+				<h3>Handling Custom Events in Parent Components</h3>
+				<p>Parent components can listen for custom events from child components and respond accordingly.</p>
+				<code-block language="js" copy-success="Copied!" copy-error="Error trying to copy to clipboard!">
+					<p class="meta">
+						<span class="language">js</span>
+					</p>
+					<pre><code class="language-js">// In parent component
+this.first('child-component').map(on('change', (event) => {
+	console.log('Received change event:', event.detail.value);
+	// Handle state changes
+}));</code></pre>
+			    </code-block>
 		  
-			  <h3>Handling Custom Events in Parent Components</h3>
-			  <p>
-				Parent components can listen for custom events from child components and respond accordingly.
-			  </p>
-			  <pre><code>// In parent component
-		  this.first('child-component').map(on('change', (event) => {
-			console.log('Received change event:', event.detail.value);
-			// Handle state changes
-		  }));</code></pre>
+				<h3>Practical Example</h3>
+				<p>The child component emits a <code>change</code> event whenever an internal signal changes, and the parent listens and handles it.</p>
+				<code-block>
+					<pre><code>class ChildComponent extends UIElement {
+	connectedCallback() {
+		this.first('input').map(on('input', (event) => {
+			this.set('value', event.target.value);
+			this.emit('change', { detail: { value: event.target.value } });
+		}));
+	}
+}</code></pre>
+				</code-block>
 		  
-			  <h3>Practical Example</h3>
-			  <p>
-				The child component emits a <code>change</code> event whenever an internal signal changes, and the parent listens and handles it.
-			  </p>
-			  <pre><code>class ChildComponent extends UIElement {
-			connectedCallback() {
-			  this.first('input').map(on('input', (event) => {
-				this.set('value', event.target.value);
-				this.emit('change', { detail: { value: event.target.value } });
-			  }));
-			}
-		  }</code></pre>
+				<code-block>
+					<pre><code>class ParentComponent extends UIElement {
+	connectedCallback() {
+		this.first('child-component').map(on('change', (event) => {
+			console.log('Child value changed:', event.detail.value);
+			// Update parent state or perform an action
+		}));
+	}
+}</code></pre>
+				</code-block>
 		  
-			  <pre><code>class ParentComponent extends UIElement {
-			connectedCallback() {
-			  this.first('child-component').map(on('change', (event) => {
-				console.log('Child value changed:', event.detail.value);
-				// Update parent state or perform an action
-			  }));
-			}
-		  }</code></pre>
+				<code-block>
+					<pre><code>&lt;parent-component&gt;
+	&lt;child-component&gt;&lt;/child-component&gt;
+&lt;/parent-component&gt;</code></pre>
+				</code-block>
 		  
-			  <pre><code>&lt;parent-component&gt;
-			&lt;child-component&gt;&lt;/child-component&gt;
-		  &lt;/parent-component&gt;</code></pre>
-		  
-			  <h3>Best Practices for Custom Events</h3>
-			  <ul>
-				<li><strong>Emit only when necessary</strong>: Emit events to notify parents of significant state changes.</li>
-				<li><strong>Consistent event names</strong>: Use clear, meaningful names for custom events.</li>
-				<li><strong>Use bubbling carefully</strong>: Understand the scope of event bubbling and which ancestor components may handle the event.</li>
-			  </ul>
+				<h3>Best Practices for Custom Events</h3>
+				<ul>
+					<li><strong>Emit only when necessary</strong>: Emit events to notify parents of significant state changes.</li>
+					<li><strong>Consistent event names</strong>: Use clear, meaningful names for custom events.</li>
+					<li><strong>Use bubbling carefully</strong>: Understand the scope of event bubbling and which ancestor components may handle the event.</li>
+				</ul>
 			</section>
 		  
 			<section>
-			  <h2>Conclusion & Next Steps</h2>
-			  <p>
-				By adhering to best practices for composability, styling, and state management, you can build efficient and loosely coupled <code>UIElement</code> components. Explore "Advanced Topics" to delve deeper into context and more complex patterns.
-			  </p>
-			</section>
+				<h2>Conclusion & Next Steps</h2>
+				<p>By adhering to best practices for composability, styling, and state management, you can build efficient and loosely coupled <code>UIElement</code> components. Explore "Advanced Topics" to delve deeper into context and more complex patterns.</p>
+				</section>
 		  </main>		  
 
 	</body>

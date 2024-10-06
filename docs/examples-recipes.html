@@ -102,274 +102,78 @@
 
 		<main>
 			<section class="hero">
-			  <h1>🧪 Examples & Recipes</h1>
-			  <p class="lead">
-				Discover practical examples and patterns for building reactive, modular components with <code>UIElement</code>. Each example focuses on showcasing a specific feature or best practice, guiding you through real-world use cases.
-			  </p>
+				<h1>🧪 Examples & Recipes</h1>
+				<p class="lead">Discover practical examples and patterns for building reactive, modular components with UIElement. Each example focuses on showcasing a specific feature or best practice, guiding you through real-world use cases.</p>
 			</section>
 		  
 			<section>
-			  <h2>What You'll Learn</h2>
-			  <p>
-				This collection of examples demonstrates a range of scenarios, from simple state updates in a single component to managing complex interactions across multiple components. Here's an overview of what you'll find:
-			  </p>
-			  
-			  <ul>
-				<li>
-				  <strong>Basic Example: <code>MySlider</code></strong> - Learn how to create a slider component with prev/next buttons and a dot indicator, demonstrating single-component reactivity.
-				</li>
-				<li>
-				  <strong>Basic Composition: <code>TabList</code> and <code>TabPanel</code></strong> - See how a parent component can control the visibility of multiple child components, showcasing state sharing and communication between components.
-				</li>
-				<li>
-				  <strong>Simple Application: TodoMVC-like Example</strong> - Build an interactive to-do list app that uses multiple coordinated components, covering signals, event handling, and state management in a more complex structure.
-				</li>
-				<li>
-				  <strong>Context Example: <code>MediaProvider</code></strong> - Discover how to share state globally across components using context, with practical use cases like adapting to media queries and responsive design.
-				</li>
-				<li>
-				  <strong>Syntax Highlighting</strong> - See how wrapping content in a `<syntax-highlight>` component enables syntax highlighting on the client, demonstrating integration with third-party libraries.
-				</li>
-				<li>
-				  <strong>Fetching Data Example: <code>LazyLoad</code> Component</strong> - Learn how to fetch content only when needed, handling asynchronous operations and updating state reactively as data is loaded.
-				</li>
-				<li>
-				  <strong>Form Validation Example: <code>InputField</code> with Client-Side & Server-Side Validation</strong> - Validate input fields based on requirements passed from the server and dynamically check the validity of entries, such as checking the availability of usernames via server requests.
-				</li>
-			  </ul>
-		  
-			  <p>
-				Whether you're getting started with a basic component or building a full-featured application, these examples will help you understand how to use <code>UIElement</code> effectively to build reactive Web Components.
-			  </p>
+				<h2>What You'll Learn</h2>
+				<p>This collection of examples demonstrates a range of scenarios, from simple state updates in a single component to managing complex interactions across multiple components. Here's an overview of what you'll find:</p>
+				<ul>
+					<li><strong>Basic Example: <code>MySlider</code></strong> - Learn how to create a slider component with prev/next buttons and a dot indicator, demonstrating single-component reactivity.</li>
+					<li><strong>Basic Composition: <code>TabList</code> and <code>AccordionPanel</code></strong> - See how a parent component can control the visibility of multiple child components, showcasing state sharing and communication between components.</li>
+					<li><strong>Simple Application: TodoMVC-like Example</strong> - Build an interactive to-do list app that uses multiple coordinated components, covering signals, event handling, and state management in a more complex structure.</li>
+					<li><strong>Context Example: <code>MediaProvider</code></strong> - Discover how to share state globally across components using context, with practical use cases like adapting to media queries and responsive design.</li>
+					<li><strong>Syntax Highlighting</strong> - See how wrapping content in a <code>CodeBlock</code> component enables syntax highlighting on the client, demonstrating integration with third-party libraries.</li>
+					<li><strong>Fetching Data Example: <code>LazyLoad</code> Component</strong> - Learn how to fetch content only when needed, handling asynchronous operations and updating state reactively as data is loaded.</li>
+					<li><strong>Form Validation Example: <code>InputField</code> with Client-Side & Server-Side Validation</strong> - Validate input fields based on requirements passed from the server and dynamically check the validity of entries, such as checking the availability of usernames via server requests.</li>
+				</ul>
+				<p>Whether you're getting started with a basic component or building a full-featured application, these examples will help you understand how to use <code>UIElement</code> effectively to build reactive Web Components.</p>
 			</section>
 
 			<section>
 				<h2>MySlider Example</h2>
-				<!-- Live component preview -->
-				<my-slider>
-				<button class="prev">Previous</button>
-				<div class="slides">
-					<div class="slide">Slide 1</div>
-					<div class="slide">Slide 2</div>
-					<div class="slide">Slide 3</div>
-				</div>
-				<button class="next">Next</button>
-				<div class="dots"></div>
-				</my-slider>
-			
-				<!-- Source code with progressive disclosure -->
-				<details>
-				<summary>Source Code</summary>
-			
-				<!-- Tabs for HTML, CSS, and JavaScript -->
-				<tab-list>
-					<!-- HTML Tab Panel -->
-					<tab-panel label="HTML">
-					<h3>HTML</h3>
-					<pre><code class="language-html">
-			&lt;my-slider&gt;
-			&lt;button class="prev"&gt;Previous&lt;/button&gt;
-			&lt;div class="slides"&gt;
-				&lt;div class="slide"&gt;Slide 1&lt;/div&gt;
-				&lt;div class="slide"&gt;Slide 2&lt;/div&gt;
-				&lt;div class="slide"&gt;Slide 3&lt;/div&gt;
-			&lt;/div&gt;
-			&lt;button class="next"&gt;Next&lt;/button&gt;
-			&lt;div class="dots"&gt;&lt;/div&gt;
-			&lt;/my-slider&gt;
-					</code></pre>
-					</tab-panel>
-			
-					<!-- CSS Tab Panel -->
-					<tab-panel label="CSS">
-					<h3>CSS</h3>
-					<pre><code class="language-css">
-			my-slider {
-			display: flex;
-			align-items: center;
-			
-			.slides {
-				display: flex;
-				overflow: hidden;
-			}
-			
-			.slide {
-				min-width: 100%;
-				transition: transform 0.3s ease;
-			}
-			
-			.slide:not(.active) {
-				display: none;
-			}
-			
-			.dots {
-				display: flex;
-				gap: 5px;
-				margin-top: 10px;
-			}
-			
-			.dot {
-				width: 10px;
-				height: 10px;
-				border-radius: 50%;
-				background-color: gray;
-			}
-			
-			.dot.active {
-				background-color: black;
-			}
-			
-			button {
-				margin: 0 10px;
-			}
-			}
-					</code></pre>
-					</tab-panel>
-			
-					<!-- JavaScript Tab Panel -->
-					<tab-panel label="JavaScript">
-					<h3>JavaScript</h3>
-					<pre><code class="language-js">
-			import { UIElement, on, toggleClass } from '@efflore/ui-element';
-			
-			class MySlider extends UIElement {
-			connectedCallback() {
-				super.connectedCallback();
-			
-				// Initialize state for the active slide index
-				this.set('activeIndex', 0);
-				const slides = this.querySelectorAll('.slide');
-				this.set('totalSlides', slides.length);
-			
-				// Generate dots based on totalSlides
-				const dotsContainer = this.first('.dots').target;
-				slides.forEach(() => {
-				const dot = document.createElement('span');
-				dot.className = 'dot';
-				dotsContainer.appendChild(dot);
-				});
-			
-				// Event listeners for navigation
-				const getNewIndex = (prev, direction) => (prev + direction + slides.length) % slides.length;
-				this.first('.prev').map(on('click', () => this.set('activeIndex', (prev) => getNewIndex(prev, -1))));
-				this.first('.next').map(on('click', () => this.set('activeIndex', (prev) => getNewIndex(prev, 1))));
-			
-				// Auto-effects for updating slides and dots
-				this.all('.slide').map((el, idx) => toggleClass('active', () => idx === this.get('activeIndex')));
-				this.all('.dot').map((el, idx) => toggleClass('active', () => idx === this.get('activeIndex')));
-			}
-			}
-			
-			MySlider.define('my-slider');
-					</code></pre>
-					</tab-panel>
-				</tab-list>
-				</details>
+				<component-demo>
+					<div class="preview">
+						<my-slider>
+							<button type="button" class="prev" aria-label="Previous">‹</button>
+							<div class="slides">
+								<div class="slide active">Slide 1</div>
+								<div class="slide">Slide 2</div>
+								<div class="slide">Slide 3</div>
+							</div>
+							<button type="button" class="next" aria-label="Next">›</button>
+							<div class="dots">
+								<span class="active"></span>
+								<span></span>
+								<span></span>
+							</div>
+						</my-slider>
+					</div>
+					<accordion-panel collapsible>
+						<details>
+							<summary>Source Code</summary>
+							<lazy-load src="./examples/my-slider.html">
+								<p class="loading">Loading...</p>
+							</lazy-load>
+						</details>
+					</accordion-panel>
+				</component-demo>
 			</section>
 
 			<section>
-				<h2>TabList and TabPanel Example</h2>
-				
-				<!-- Live component preview -->
-				<tab-list>
-				  <button class="tab-button">Tab 1</button>
-				  <button class="tab-button">Tab 2</button>
-				  <button class="tab-button">Tab 3</button>
-			  
-				  <tab-panel>Content for Tab 1</tab-panel>
-				  <tab-panel>Content for Tab 2</tab-panel>
-				  <tab-panel>Content for Tab 3</tab-panel>
-				</tab-list>
-			  
-				<!-- Source code with progressive disclosure -->
-				<details>
-				  <summary>Source Code</summary>
-			  
-				  <!-- Tabs for HTML, CSS, and JavaScript -->
-				  <tab-list>
-					<!-- HTML Tab Panel -->
-					<tab-panel label="HTML">
-					  <h3>HTML</h3>
-					  <pre><code class="language-html">
-			  &lt;tab-list&gt;
-				&lt;button class="tab-button"&gt;Tab 1&lt;/button&gt;
-				&lt;button class="tab-button"&gt;Tab 2&lt;/button&gt;
-				&lt;button class="tab-button"&gt;Tab 3&lt;/button&gt;
-			  
-				&lt;tab-panel&gt;Content for Tab 1&lt;/tab-panel&gt;
-				&lt;tab-panel&gt;Content for Tab 2&lt;/tab-panel&gt;
-				&lt;tab-panel&gt;Content for Tab 3&lt;/tab-panel&gt;
-			  &lt;/tab-list&gt;
-					  </code></pre>
-					</tab-panel>
-			  
-					<!-- CSS Tab Panel -->
-					<tab-panel label="CSS">
-					  <h3>CSS</h3>
-					  <pre><code class="language-css">
-			  tab-list {
-				display: flex;
-				flex-direction: column;
-			  
-				.tab-button {
-				  cursor: pointer;
-				  padding: 10px;
-				  border: none;
-				  background: lightgray;
-				  transition: background-color 0.2s ease;
-				}
-			  
-				.tab-button:hover {
-				  background-color: darkgray;
-				}
-			  }
-			  
-			  tab-panel {
-				display: none;
-			  
-				&.active {
-				  display: block;
-				}
-			  }
-					  </code></pre>
-					</tab-panel>
-			  
-					<!-- JavaScript Tab Panel -->
-					<tab-panel label="JavaScript">
-					  <h3>JavaScript</h3>
-					  <pre><code class="language-js">
-			  import { UIElement, on, pass, toggleClass } from '@efflore/ui-element';
-			  
-			  class TabList extends UIElement {
-				connectedCallback() {
-				  // Initialize state for active tab index
-				  this.set('activeIndex', 0);
-			  
-				  // Event listeners for tab buttons
-				  this.all('.tab-button').map((el, idx) =>
-					on('click', () => this.set('activeIndex', idx))(el)
-				  );
-			  
-				  // Pass active state to TabPanels
-				  this.all('tab-panel').forEach((el, idx) =>
-					pass({ active: () => idx === this.get('activeIndex') })(el)
-				  );
-				}
-			  }
-			  
-			  class TabPanel extends UIElement {
-				connectedCallback() {
-				  // Toggle visibility based on 'active' state
-				  this.self.map(toggleClass('active'));
-				}
-			  }
-			  
-			  TabList.define('tab-list');
-			  TabPanel.define('tab-panel');
-					  </code></pre>
-					</tab-panel>
-				  </tab-list>
-				</details>
+				<h2>TabList and AccordionPanel Example</h2>
+				<component-demo>
+					<div class="preview">
+						<tab-list>
+							<button class="tab-button">Tab 1</button>
+							<button class="tab-button">Tab 2</button>
+							<button class="tab-button">Tab 3</button>
+						
+							<accordion-panel>Content for Tab 1</accordion-panel>
+							<accordion-panel>Content for Tab 2</accordion-panel>
+							<accordion-panel>Content for Tab 3</accordion-panel>
+						</tab-list>
+					</div>
+					<accordion-panel collapsible>
+						<details>
+							<summary>Source Code</summary>
+							<lazy-load src="./examples/tab-list.html">
+								<p class="loading">Loading...</p>
+							</lazy-load>
+						</details>
+					</accordion-panel>
+				</component-demo>
 			</section>
 			
 			<section>
