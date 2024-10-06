@@ -1,0 +1,144 @@
+<tab-list>
+	<menu>
+		<li><button type="button" aria-pressed="true">HTML</button></li>
+		<li><button type="button">CSS</button></li>
+		<li><button type="button">JavaScript</button></li>
+	</menu>
+	<accordion-panel open>
+		<details open aria-disabled="true">
+			<summary class="visually-hidden">
+				<div class="summary">HTML</div>
+			</summary>
+			<code-block language="html" copy-success="Copied!" copy-error="Error trying to copy to clipboard!">
+				<p class="meta">
+					<span class="file">input-checkbox.html</span>
+					<span class="language">html</span>
+				</p>
+				<pre><code class="language-html">&lt;input-checkbox&gt;
+	&lt;label&gt;
+		&lt;input type="checkbox"&gt;
+		&lt;span &gt;Checkbox&lt;/span&gt;
+	&lt;/label&gt;
+&lt;/input-checkbox&gt;
+
+&lt;input-checkbox class="todo"&gt;
+	&lt;label&gt;
+		&lt;input type="checkbox" class="visually-hidden"&gt;
+		&lt;span &gt;Task&lt;/span&gt;
+	&lt;/label&gt;
+&lt;/input-checkbox&gt;</code></pre>
+				<input-button class="copy">
+					<button type="button" class="secondary small">Copy</button>
+				</input-button>
+			</code-block>
+		</details>
+	</accordion-panel>
+	<accordion-panel>
+		<details aria-disabled="true">
+			<summary class="visually-hidden">
+				<div class="summary">CSS</div>
+			</summary>
+			<code-block language="css" copy-success="Copied!" copy-error="Error trying to copy to clipboard!">
+				<p class="meta">
+					<span class="file">input-checkbox.css</span>
+					<span class="language">css</span>
+				</p>
+				<pre><code class="language-css">input-checkbox {
+	flex-grow: 1;
+
+	& label {
+		font-size: var(--font-size-s);
+	}
+
+	&.todo label {
+		display: flex;
+		gap: var(--space-s);
+		line-height: var(--input-height);
+		cursor: pointer;
+
+		&::before {
+			display: inline-block;
+			box-sizing: border-box;
+			content: '';
+			font-size: var(--font-size-l);
+			text-align: center;
+			width: var(--input-height);
+			height: var(--input-height);
+			border: 1px solid var(--color-border);
+			border-radius: 100%;
+			background-color: var(--color-secondary);
+		}
+
+		&:hover::before {
+			background-color: var(--color-secondary-hover);
+			opacity: var(--opacity-solid);
+		}
+
+		&:active::before {
+			background-color: var(--color-secondary-active);
+		}
+	}
+
+	&.todo[checked] label {
+		opacity: var(--opacity-translucent);
+
+		& span {
+			text-decoration: line-through;
+		}
+
+		&::before {
+			color: var(--color-text-inverted);
+			background-color: var(--color-success);
+			border-color: var(--color-success-active);
+			text-shadow: 0 0 var(--space-xs) var(--color-success-active);
+			content: '✓';
+		}
+
+		&:hover::before {
+			background-color: var(--color-success-hover);
+		}
+
+		&:active::before {
+			background-color: var(--color-success-active);
+		}
+	}
+}</code></pre>
+				<input-button class="copy">
+					<button type="button" class="secondary small">Copy</button>
+				</input-button>
+			</code-block>
+		</details>
+	</accordion-panel>
+	<accordion-panel>
+		<details aria-disabled="true">
+			<summary class="visually-hidden">
+				<div class="summary">JavaScript</div>
+			</summary>
+			<code-block language="js" copy-success="Copied!" copy-error="Error trying to copy to clipboard!">
+				<p class="meta">
+					<span class="file">input-checkbox.js</span>
+					<span class="language">js</span>
+				</p>
+				<pre><code class="language-js">import { UIElement, asBoolean, on, setProperty, toggleAttribute } from '@efflore/ui-element'
+
+class InputCheckbox extends UIElement {
+	static observedAttributes = ['checked']
+	static attributeMap = {
+		checked: asBoolean,
+	}
+
+	connectedCallback() {
+		this.first('input')
+			.map(on('change', e => this.set('checked', Boolean(e.target.checked))))
+			.forEach(setProperty('checked'))
+		this.self.forEach(toggleAttribute('checked'))
+	}
+}
+InputCheckbox.define('input-checkbox')</code></pre>
+				<input-button class="copy">
+					<button type="button" class="secondary small">Copy</button>
+				</input-button>
+			</code-block>
+		</details>
+	</accordion-panel>
+</tab-list>

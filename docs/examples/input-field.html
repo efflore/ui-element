@@ -1,0 +1,472 @@
+<tab-list>
+	<menu>
+		<li><button type="button" aria-pressed="true">HTML</button></li>
+		<li><button type="button">CSS</button></li>
+		<li><button type="button">JavaScript</button></li>
+	</menu>
+	<accordion-panel open>
+		<details open aria-disabled="true">
+			<summary class="visually-hidden">
+				<div class="summary">HTML</div>
+			</summary>
+			<code-block language="html" copy-success="Copied!" copy-error="Error trying to copy to clipboard!">
+				<p class="meta">
+					<span class="file">input-field.html</span>
+					<span class="language">html</span>
+				</p>
+				<pre><code class="language-html">&lt;input-field&gt;
+	&lt;label for="name-input"&gt;Name&lt;/label&gt;
+	&lt;div class="row"&gt;
+		&lt;div class="group auto"&gt;
+			&lt;input type="text" id="name-input" name="name" autocomplete="name" required&gt;
+		&lt;/div&gt;
+	&lt;/div&gt;
+	&lt;p class="error" aria-live="assertive" id="name-error"&gt;&lt;/p&gt;
+&lt;/input-field&gt;
+
+&lt;input-field integer&gt;
+	&lt;label for="bday-year-input"&gt;Birthday Year&lt;/label&gt;
+	&lt;div class="row"&gt;
+		&lt;div class="group short"&gt;
+			&lt;input type="number" id="bday-year-input" name="bday-year" autocomplete="bday-year" required minlength="4" maxlength="4" min="1900" max="2024" step="1"&gt;
+		&lt;/div&gt;
+		&lt;div class="spinbutton" data-step="1"&gt;
+			&lt;button type="button" class="decrement" aria-label="Decrement"&gt;−&lt;/button&gt;
+			&lt;button type="button" class="increment" aria-label="Increment"&gt;+&lt;/button&gt;
+		&lt;/div&gt;
+	&lt;/div&gt;
+	&lt;p class="error" aria-live="assertive" id="bday-year-error"&gt;&lt;/p&gt;
+	&lt;p class="description" aria-live="polite" id="bday-year-description"&gt;&lt;/p&gt;
+&lt;/input-field&gt;
+
+&lt;input-field validate="./examples/snippets/validate.html"&gt;
+	&lt;label for="username-input"&gt;Username&lt;/label&gt;
+	&lt;div class="row"&gt;
+		&lt;div class="group auto"&gt;
+			&lt;input type="text" id="username-input" name="username" autocomplete="username" aria-describedby="username-description" required minlength="4" maxlength="20"&gt;
+		&lt;/div&gt;
+	&lt;/div&gt;
+	&lt;p class="error" aria-live="assertive" id="username-error"&gt;&lt;/p&gt;
+	&lt;p class="description" aria-live="polite" id="username-description" data-remaining="${x} characters remaining"&gt;Max. 20 characters&lt;/p&gt;
+&lt;/input-field&gt;</code></pre>
+				<input-button class="copy">
+					<button type="button" class="secondary small">Copy</button>
+				</input-button>
+			</code-block>
+		</details>
+	</accordion-panel>
+	<accordion-panel>
+		<details aria-disabled="true">
+			<summary class="visually-hidden">
+				<div class="summary">CSS</div>
+			</summary>
+			<code-block language="css" copy-success="Copied!" copy-error="Error trying to copy to clipboard!">
+				<p class="meta">
+					<span class="file">input-field.css</span>
+					<span class="language">css</span>
+				</p>
+				<pre><code class="language-css">input-field {
+	width: 100%;
+
+	&[value="0"] input {
+		color: color-mix(in srgb, var(--color-text) 50%, transparent);
+	}
+
+	&:hover button {
+		opacity: var(--opacity-translucent);
+
+		&:not(:disabled) {
+			opacity: var(--opacity-solid);
+			cursor: pointer;
+		}
+	}
+
+	&:focus-within {
+
+		& label,
+		& p,
+		& span {
+			opacity: var(--opacity-solid);
+		}
+
+		& button {
+			opacity: var(--opacity-translucent);
+
+			&:not(:disabled) {
+				opacity: var(--opacity-solid);
+				cursor: pointer;
+			}
+		}
+
+		& input {
+			color: var(--color-text);
+		}
+	}
+
+	& label,
+	& p,
+	& span {
+		opacity: var(--opacity-dimmed);
+		transition: opacity var(--transition-short) var(--easing-inout);
+	}
+
+	& label {
+		display: block;
+		font-size: var(--font-size-s);
+		color: var(--color-text);
+		margin-bottom: var(--space-xxs);
+	}
+
+	.row {
+		display: flex;
+		gap: var(--space-s);
+	}
+
+	.group {
+		display: flex;
+		align-items: baseline;
+		background: var(--color-input);
+		border-bottom: 1px solid var(--color-border);
+		width: 100%;
+
+		&.short {
+			width: 6rem;
+		}
+
+		.clear {
+			border: 0;
+			border-radius: 50%;
+			color: var(--color-input);
+			width: var(--space-m);
+			height: var(--space-m);
+			line-height: 1.1;
+			align-self: center;
+			text-align: center;
+			padding: 0;
+			margin: 0 var(--space-xxs);
+		}
+
+		.hidden {
+			display: none;
+		}
+
+		& span:first-child {
+			padding-left: var(--space-xs);
+		}
+
+		& span:last-child {
+			padding-right: var(--space-xs);
+		}
+	}
+
+	& input {
+		flex-grow: 1;
+		display: inline-block;
+		box-sizing: border-box;
+		background: var(--color-input);
+		color: var(--color-text);
+		border: 0;
+		padding: var(--space-xs) var(--space-xxs);
+		font-size: var(--font-size-m);
+		height: 2rem;
+		width: 100%;
+		transition: color var(--transition-short) var(--easing-inout);
+
+		&::placeholder {
+			color: var(--color-text);
+			opacity: var(--opacity-translucent);
+		}
+	}
+
+	& input[type="number"] {
+		text-align: right;
+	}
+
+	& input[aria-invalid="true"] {
+		box-shadow: 0 0 var(--space-xxs) 2px var(--color-error);
+	}
+
+	& span {
+		flex-grow: 0;
+	}
+
+	::-webkit-textfield-decoration-container {
+		height: 100%;
+	}
+
+	::-webkit-inner-spin-button {
+		appearance: none;
+	}
+
+	.spinbutton {
+		display: flex;
+	}
+
+	& button {
+		border: 1px solid var(--color-border);
+		background-color: var(--color-secondary);
+		color: var(--color-text);
+		padding: var(--space-xs) var(--space-s);
+		font-size: var(--font-size-s);
+		line-height: var(--line-height-s);
+		width: 2rem;
+		height: 2rem;
+		opacity: var(--opacity-transparent);
+		transition: opacity var(--transition-short) var(--easing-inout);
+		user-select: none;
+
+		&:disabled {
+			cursor: revert;
+			background-color: var(--color-background);
+		}
+
+		&:not(:disabled) {
+
+			&:hover {
+				background-color: var(--color-secondary-hover);
+			}
+
+			&:active {
+				background-color: var(--color-secondary-active);
+			}
+		}
+	}
+
+	.decrement {
+		border-radius: var(--space-xs) 0 0 var(--space-xs); 
+	}
+
+	.increment {
+		border-radius: 0 var(--space-xs) var(--space-xs) 0;
+		border-left: 0;
+	}
+
+	.error,
+	.description {
+		margin: var(--space-xs) 0 0;
+		font-size: var(--font-size-xs);
+		line-height: var(--line-height-s);
+
+		&:empty {
+			display: none;
+		}
+	}
+
+	.error {
+		color: color-mix(in srgb, var(--color-text) 50%, var(--color-error));
+	}
+
+	.description {
+		color: var(--color-text-soft);
+	}
+}</code></pre>
+				<input-button class="copy">
+					<button type="button" class="secondary small">Copy</button>
+				</input-button>
+			</code-block>
+		</details>
+	</accordion-panel>
+	<accordion-panel>
+		<details aria-disabled="true">
+			<summary class="visually-hidden">
+				<div class="summary">JavaScript</div>
+			</summary>
+			<code-block language="js" copy-success="Copied!" copy-error="Error trying to copy to clipboard!">
+				<p class="meta">
+					<span class="file">input-field.js</span>
+					<span class="language">js</span>
+				</p>
+				<pre><code class="language-js">import { UIElement, effect, maybe, on, setText, setProperty, setAttribute, toggleClass } from '@efflore/ui-element'
+
+const isNumber = num => typeof num === 'number'
+const parseNumber = (v, int = false) => int ? parseInt(v, 10) : parseFloat(v)
+
+class InputField extends UIElement {
+	static observedAttributes = ['value', 'description']
+	static attributeMap = {
+		value: value => this.isNumber
+			? value.map(v => parseNumber(v, this.isInteger)).filter(Number.isFinite)
+			: value
+	}
+
+	connectedCallback() {
+		this.input = this.querySelector('input')
+		this.isNumber = this.input && this.input.type === 'number'
+		this.isInteger = this.hasAttribute('integer')
+
+		// Set default states
+		this.set('value', this.isNumber ? this.input.valueAsNumber : this.input.value, false)
+		this.set('length', this.input.value.length)
+		
+		// Derived states
+		this.set('empty', () => !this.get('length'))
+
+		// Setup sub elements
+		this.#setupErrorMessage()
+		this.#setupDescription()
+		this.#setupSpinButton()
+		this.#setupClearButton()
+
+		// Handle input changes
+		this.input.onchange = () => this.#triggerChange(this.isNumber ? this.input.valueAsNumber : this.input.value)
+		this.input.oninput = () => this.set('length', this.input.value.length)
+
+		// Update value
+		effect(async () => {
+			const value = this.get('value')
+			const validate = this.getAttribute('validate')
+			if (value && validate) {
+
+				// Validate input value against a server-side endpoint
+				await fetch(`${validate}?name=${this.input.name}value=${this.input.value}`)
+				.then(async response => {
+					const text = await response.text()
+					this.input.setCustomValidity(text)
+					this.set('error', text)
+				})
+				.catch(err => this.set('error', err.message))
+			}
+			if (this.isNumber && !isNumber(value)) // ensure value is a number if it is not already a number
+				return this.set('value', parseNumber(value, this.isInteger)) // effect will be called again with numeric value
+			if (this.isNumber && !Number.isNaN(value)) // change value only if it is a valid number
+				this.input.value = value
+		})
+		}
+
+	// Clear the input field
+	clear() {
+		this.input.value = ''
+		this.set('value', '')
+		this.set('length', 0)
+		this.input.focus()
+	}
+
+	// Trigger value-change event to commit the value change
+	#triggerChange = value => {
+		this.set('value', value)
+		this.set('error', this.input.validationMessage)
+		if (typeof value === 'function')
+			value = this.get('value')
+		if (this.input.value !== String(value))
+			this.dispatchEvent(new CustomEvent('value-change', {
+				detail: value,
+				bubbles: true
+			}))
+	}
+
+	// Setup error message
+	#setupErrorMessage() {
+		const error = this.first('.error')
+
+		// Derived states
+		this.set('ariaInvalid', () => String(Boolean(this.get('error'))))
+		this.set('aria-errormessage', () => this.get('error') ? error[0]?.target.id : undefined)
+
+		// Effects
+		error.forEach(setText('error'))
+		this.first('input')
+			.map(setProperty('ariaInvalid'))
+			.forEach(setAttribute('aria-errormessage'))
+	}
+
+	// Setup description
+	#setupDescription() {
+		const description = this.first('.description')
+		if (!description[0])
+			return // no description, so skip
+		
+		// derived states
+		const input = this.first('input')
+		const maxLength = this.input.maxLength
+		const remainingMessage = maxLength && description[0].target.dataset.remaining
+		const defaultDescription = description[0].target.textContent
+		this.set('description', remainingMessage
+			? () => {
+				const length = this.get('length')
+				return length > 0
+					? remainingMessage.replace('${x}', maxLength - length)
+					: defaultDescription
+			}
+			: defaultDescription
+		)
+		this.set('aria-describedby', () => this.get('description')
+			? description[0].target.id
+			: undefined
+		)
+
+		// Effects
+		description.forEach(setText('description'))
+		input.forEach(setAttribute('aria-describedby'))
+	}
+
+	// Setup spin button
+	#setupSpinButton() {
+		const spinButton = this.querySelector('.spinbutton')
+		if (!this.isNumber || !spinButton)
+			return // no spin button, so skip
+
+		const getNumber = attr => maybe(parseNumber(this.input[attr], this.isInteger)).filter(Number.isFinite)[0]
+		const tempStep = parseNumber(spinButton.dataset.step, this.isInteger)
+		const [step, min, max] = Number.isFinite(tempStep)
+			? [tempStep, getNumber('min'), getNumber('max')]
+			: []
+
+		// Bring value to nearest step
+		const nearestStep = v => {
+			const steps = Math.round((max - min) / step)
+			let zerone = Math.round((v - min) * steps / (max - min)) / steps // bring to 0-1 range
+			zerone = Math.min(Math.max(zerone, 0), 1) // keep in range in case value is off limits
+			const value = zerone * (max - min) + min
+			return this.isInteger ? Math.round(value) : value
+		}
+
+		// Step down
+		this.stepDown = (stepDecrement = step) => this.#triggerChange(v => nearestStep(v - stepDecrement))
+
+		// Step up
+		this.stepUp = (stepIncrement = step) => this.#triggerChange(v => nearestStep(v + stepIncrement))
+
+		// derived states
+		this.set('decrement-disabled', () => isNumber(min) && (this.get('value') - step < min))
+		this.set('increment-disabled', () => isNumber(max) && (this.get('value') + step > max))
+
+		// Handle spin button clicks and update their disabled state
+		this.first('.decrement')
+			.map(setProperty('disabled', 'decrement-disabled'))
+			.forEach(on('click', e => this.stepDown(e.shiftKey ? step * 10 : step)))
+		this.first('.increment')
+			.map(setProperty('disabled', 'increment-disabled'))
+			.forEach(on('click', e => this.stepUp(e.shiftKey ? step * 10 : step)))
+
+		// Handle arrow key events
+		this.input.onkeydown = e => {
+			if (['ArrowUp', 'ArrowDown'].includes(e.key)) {
+				e.stopPropagation()
+				e.preventDefault()
+				if (e.key === 'ArrowDown')
+					this.stepDown(e.shiftKey ? step * 10 : step)
+				if (e.key === 'ArrowUp')
+					this.stepUp(e.shiftKey ? step * 10 : step)
+			}
+		}
+	}
+
+	// Setup clear button
+	#setupClearButton() {
+		this.first('.clear')
+			.map(toggleClass('hidden', 'empty'))
+			.forEach(on('click', () => {
+				this.clear()
+				this.input.focus()
+			}))
+	}
+
+}
+InputField.define('input-field')</code></pre>
+				<input-button class="copy">
+					<button type="button" class="secondary small">Copy</button>
+				</input-button>
+			</code-block>
+		</details>
+	</accordion-panel>
+</tab-list>

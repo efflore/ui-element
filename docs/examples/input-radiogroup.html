@@ -1,0 +1,177 @@
+<tab-list>
+	<menu>
+		<li><button type="button" aria-pressed="true">HTML</button></li>
+		<li><button type="button">CSS</button></li>
+		<li><button type="button">JavaScript</button></li>
+	</menu>
+	<accordion-panel open>
+		<details open aria-disabled="true">
+			<summary class="visually-hidden">
+				<div class="summary">HTML</div>
+			</summary>
+			<code-block language="html" copy-success="Copied!" copy-error="Error trying to copy to clipboard!">
+				<p class="meta">
+					<span class="file">input-radiogroup.html</span>
+					<span class="language">html</span>
+				</p>
+				<pre><code class="language-html">&lt;input-radiogroup value="other"&gt;
+	&lt;fieldset&gt;
+		&lt;legend&gt;Gender&lt;/legend&gt;
+			&lt;label&gt;
+				&lt;input type="radio" name="gender" value="female"&gt;
+				&lt;span&gt;Female&lt;/span&gt;
+			&lt;/label&gt;
+			&lt;label&gt;
+				&lt;input type="radio" name="gender" value="male"&gt;
+				&lt;span&gt;Male&lt;/span&gt;
+			&lt;/label&gt;
+			&lt;label class="selected"&gt;
+				&lt;input type="radio" name="gender" value="other" checked&gt;
+				&lt;span&gt;Other&lt;/span&gt;
+			&lt;/label&gt;
+	&lt;/fieldset&gt;
+&lt;/input-radiogroup&gt;
+
+&lt;input-radiogroup value="all" class="split-button"&gt;
+	&lt;fieldset&gt;
+		&lt;legend class="visually-hidden"&gt;Filter&lt;/legend&gt;
+			&lt;label class="selected"&gt;
+				&lt;input type="radio" class="visually-hidden" name="filter" value="all" checked&gt;
+				&lt;span&gt;All&lt;/span&gt;
+			&lt;/label&gt;
+			&lt;label&gt;
+				&lt;input type="radio" class="visually-hidden" name="filter" value="active"&gt;
+				&lt;span&gt;Active&lt;/span&gt;
+			&lt;/label&gt;
+			&lt;label&gt;
+				&lt;input type="radio" class="visually-hidden" name="filter" value="completed"&gt;
+				&lt;span&gt;Completed&lt;/span&gt;
+			&lt;/label&gt;
+	&lt;/fieldset&gt;
+&lt;/input-radiogroup&gt;</code></pre>
+				<input-button class="copy">
+					<button type="button" class="secondary small">Copy</button>
+				</input-button>
+			</code-block>
+		</details>
+	</accordion-panel>
+	<accordion-panel>
+		<details aria-disabled="true">
+			<summary class="visually-hidden">
+				<div class="summary">CSS</div>
+			</summary>
+			<code-block language="css" copy-success="Copied!" copy-error="Error trying to copy to clipboard!">
+				<p class="meta">
+					<span class="file">input-radiogroup.css</span>
+					<span class="language">css</span>
+				</p>
+				<pre><code class="language-css">input-radiogroup {
+	display: inline-block;
+
+	> fieldset {
+		display: flex;
+		gap: var(--space-m);
+		border: none;
+		margin: 0;
+		padding: var(--space-xs) 0 var(--space-s);
+	}
+
+	& legend,
+	& label {
+		font-size: var(--font-size-s);
+	}
+
+	&.split-button {
+
+		& fieldset {
+			gap: 0;
+			padding: 0;
+		}
+
+		& label {
+			display: inline-block;
+			box-sizing: border-box;
+			height: var(--input-height);
+			min-width: var(--input-height);
+			border: 1px solid var(--color-border);
+			border-left-width: 0;
+			background-color: var(--color-secondary);
+			color: var(--color-text);
+			padding: var(--space-xs) var(--space-s);
+			cursor: pointer;
+			line-height: var(--line-height-s);
+			opacity: var(--opacity-dimmed);
+			transition: opacity var(--transition-short) var(--easing-inout);
+
+			&:hover {
+				background-color: var(--color-secondary-hover);
+				opacity: var(--opacity-solid);
+			}
+		
+			&:active {
+				background-color: var(--color-secondary-active);
+			}
+		
+			&.selected {
+				color: var(--color-text-inverted);
+				background-color: var(--color-primary);
+				border-color: var(--color-primary-active);
+
+				&:hover {
+					background-color: var(--color-primary-hover);
+				}
+		
+				&:active {
+					background-color: var(--color-primary-active);
+				}
+			}
+		}
+		
+		& legend + label {
+			border-radius: var(--space-xs) 0 0 var(--space-xs);
+			border-left-width: 1px;
+		}
+		
+		& label:last-child {
+			border-radius: 0 var(--space-xs) var(--space-xs) 0;
+		}
+	}
+}</code></pre>
+				<input-button class="copy">
+					<button type="button" class="secondary small">Copy</button>
+				</input-button>
+			</code-block>
+		</details>
+	</accordion-panel>
+	<accordion-panel>
+		<details aria-disabled="true">
+			<summary class="visually-hidden">
+				<div class="summary">JavaScript</div>
+			</summary>
+			<code-block language="js" copy-success="Copied!" copy-error="Error trying to copy to clipboard!">
+				<p class="meta">
+					<span class="file">input-radiogroup.js</span>
+					<span class="language">js</span>
+				</p>
+				<pre><code class="language-js">import { UIElement, on, setAttribute, toggleClass } from '@efflore/ui-element'
+
+export class InputRadiogroup extends UIElement {
+	static observedAttributes = ['value']
+
+	connectedCallback() {
+		this.self.forEach(setAttribute('value'))
+		this.all('input').forEach(on('change', e => this.set('value', e.target.value)))
+		this.all('label').forEach(ui => toggleClass(
+			'selected',
+			() => ui.host.get('value') === ui.target.querySelector('input').value
+		)(ui))
+	}
+}
+InputRadiogroup.define('input-radiogroup')</code></pre>
+				<input-button class="copy">
+					<button type="button" class="secondary small">Copy</button>
+				</input-button>
+			</code-block>
+		</details>
+	</accordion-panel>
+</tab-list>
