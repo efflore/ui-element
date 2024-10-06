@@ -171,12 +171,8 @@ class InputButton extends UIElement {
 }
 InputButton.define('input-button')
 
-/* === Pure Functions === */
-
 const isNumber = num => typeof num === 'number'
 const parseNumber = (v, int = false) => int ? parseInt(v, 10) : parseFloat(v)
-
-/* === Class Definition === */
 
 class InputField extends UIElement {
 	static observedAttributes = ['value', 'description']
@@ -191,29 +187,30 @@ class InputField extends UIElement {
 		this.isNumber = this.input && this.input.type === 'number'
 		this.isInteger = this.hasAttribute('integer')
 
-		// set default states
+		// Set default states
 		this.set('value', this.isNumber ? this.input.valueAsNumber : this.input.value, false)
 		this.set('length', this.input.value.length)
 		
-		// derived states
+		// Derived states
 		this.set('empty', () => !this.get('length'))
 
-		// setup sub elements
+		// Setup sub elements
 		this.#setupErrorMessage()
 		this.#setupDescription()
 		this.#setupSpinButton()
 		this.#setupClearButton()
 
-		// handle input changes
+		// Handle input changes
 		this.input.onchange = () => this.#triggerChange(this.isNumber ? this.input.valueAsNumber : this.input.value)
 		this.input.oninput = () => this.set('length', this.input.value.length)
 
-		// update value
+		// Update value
 		effect(async () => {
 			const value = this.get('value')
 			const validate = this.getAttribute('validate')
 			if (value && validate) {
-				// validate input value against a server-side endpoint
+
+				// Validate input value against a server-side endpoint
 				await fetch(`${validate}?name=${this.input.name}value=${this.input.value}`)
 				.then(async response => {
 					const text = await response.text()
@@ -226,12 +223,10 @@ class InputField extends UIElement {
 				return this.set('value', parseNumber(value, this.isInteger)) // effect will be called again with numeric value
 			if (this.isNumber && !Number.isNaN(value)) // change value only if it is a valid number
 				this.input.value = value
-		});
+		})
  	}
 
-	/**
-	 * Clear the input field
-	 */
+	// Clear the input field
 	clear() {
 		this.input.value = ''
 		this.set('value', '')
@@ -239,12 +234,7 @@ class InputField extends UIElement {
 		this.input.focus()
 	}
 
-	/**
-	 * Trigger value-change event to commit the value change
-	 * 
-	 * @private
-	 * @param {number|string|function} value - value to set
-	 */
+	// Trigger value-change event to commit the value change
 	#triggerChange = value => {
 		this.set('value', value)
 		this.set('error', this.input.validationMessage)
@@ -257,34 +247,22 @@ class InputField extends UIElement {
 			}))
 	}
 
-	/**
-	 * Setup error message
-	 * 
-	 * @private
-	 */
+	// Setup error message
 	#setupErrorMessage() {
 		const error = this.first('.error')
 
-		// derived states
+		// Derived states
 		this.set('ariaInvalid', () => String(Boolean(this.get('error'))))
-		this.set('aria-errormessage', () => this.get('error')
-			? error[0]?.target.id
-			: undefined
-		)
+		this.set('aria-errormessage', () => this.get('error') ? error[0]?.target.id : undefined)
 
-		// effects
-		error
-			.map(setText('error'))
+		// Effects
+		error.forEach(setText('error'))
 		this.first('input')
 			.map(setProperty('ariaInvalid'))
-			.map(setAttribute('aria-errormessage'))
+			.forEach(setAttribute('aria-errormessage'))
 	}
 
-	/**
-	 * Setup description
-	 * 
-	 * @private
-	 */
+	// Setup description
 	#setupDescription() {
 		const description = this.first('.description')
 		if (!description[0])
@@ -309,16 +287,12 @@ class InputField extends UIElement {
 			: undefined
 		)
 
-		// effects
+		// Effects
 		description.forEach(setText('description'))
 		input.forEach(setAttribute('aria-describedby'))
 	}
 
-	/**
-	 * Setup spin button
-	 * 
-	 * @private
-	 */
+	// Setup spin button
 	#setupSpinButton() {
 		const spinButton = this.querySelector('.spinbutton')
 		if (!this.isNumber || !spinButton)
@@ -330,7 +304,7 @@ class InputField extends UIElement {
 			? [tempStep, getNumber('min'), getNumber('max')]
 			: []
 
-		// bring value to nearest step
+		// Bring value to nearest step
 		const nearestStep = v => {
 			const steps = Math.round((max - min) / step)
 			let zerone = Math.round((v - min) * steps / (max - min)) / steps // bring to 0-1 range
@@ -339,25 +313,17 @@ class InputField extends UIElement {
 			return this.isInteger ? Math.round(value) : value
 		}
 
-		/**
-		 * Step down
-		 * 
-		 * @param {number} [stepDecrement=step] - value to increment by
-		 */
+		// Step down
 		this.stepDown = (stepDecrement = step) => this.#triggerChange(v => nearestStep(v - stepDecrement))
 
-		/**
-		 * Step up
-		 * 
-		 * @param {number} [stepIncrement=step] - value to increment by
-		 */
+		// Step up
 		this.stepUp = (stepIncrement = step) => this.#triggerChange(v => nearestStep(v + stepIncrement))
 
 		// derived states
 		this.set('decrement-disabled', () => isNumber(min) && (this.get('value') - step < min))
 		this.set('increment-disabled', () => isNumber(max) && (this.get('value') + step > max))
 
-		// handle spin button clicks and update their disabled state
+		// Handle spin button clicks and update their disabled state
 		this.first('.decrement')
 			.map(setProperty('disabled', 'decrement-disabled'))
 			.forEach(on('click', e => this.stepDown(e.shiftKey ? step * 10 : step)))
@@ -365,7 +331,7 @@ class InputField extends UIElement {
 			.map(setProperty('disabled', 'increment-disabled'))
 			.forEach(on('click', e => this.stepUp(e.shiftKey ? step * 10 : step)))
 
-		// handle arrow key events
+		// Handle arrow key events
 		this.input.onkeydown = e => {
 			if (['ArrowUp', 'ArrowDown'].includes(e.key)) {
 				e.stopPropagation()
@@ -378,11 +344,7 @@ class InputField extends UIElement {
 		}
 	}
 
-	/**
-	 * Setup clear button
-	 * 
-	 * @private
-	 */
+	// Setup clear button
 	#setupClearButton() {
 		this.first('.clear')
 			.map(toggleClass('hidden', 'empty'))
@@ -404,9 +366,8 @@ class InputCheckbox extends UIElement {
 	connectedCallback() {
 		this.first('input')
 			.map(on('change', e => this.set('checked', Boolean(e.target.checked))))
-			.map(setProperty('checked'))
-		this.self
-			.map(toggleAttribute('checked'))
+			.forEach(setProperty('checked'))
+		this.self.forEach(toggleAttribute('checked'))
 	}
 }
 InputCheckbox.define('input-checkbox')
@@ -415,15 +376,12 @@ export class InputRadiogroup extends UIElement {
 	static observedAttributes = ['value']
 
 	connectedCallback() {
-		this.self
-		    .map(setAttribute('value'))
-        this.all('input')
-			.map(on('change', e => this.set('value', e.target.value)))
-		this.all('label')
-		    .map(ui => toggleClass(
-				'selected',
-				() => ui.host.get('value') === ui.target.querySelector('input').value
-			)(ui))
+		this.self.forEach(setAttribute('value'))
+        this.all('input').forEach(on('change', e => this.set('value', e.target.value)))
+		this.all('label').forEach(ui => toggleClass(
+			'selected',
+			() => ui.host.get('value') === ui.target.querySelector('input').value
+		)(ui))
     }
 }
 InputRadiogroup.define('input-radiogroup')
@@ -566,48 +524,24 @@ class MediaContext extends UIElement {
 }
 MediaContext.define('media-context')
 
-class TodoForm extends UIElement {
-	connectedCallback() {
-		const inputField = this.querySelector('input-field')
-
-        this.first('form')
-			.map(on('submit', e => {
-				e.preventDefault()
-				setTimeout(() => {
-					this.dispatchEvent(new CustomEvent('add-todo', {
-						bubbles: true,
-						detail: inputField.get('value')
-					}))
-					inputField.clear()
-				}, 0)
-			}))
-		
-		this.first('input-button')
-			.map(pass({
-				disabled: () => inputField.get('empty')
-			}))
-    }
-}
-TodoForm.define('todo-form')
-
 class TodoApp extends UIElement {
     connectedCallback() {
 		const [todoList, todoFilter] = ['todo-list', 'input-radiogroup']
 			.map(selector => this.querySelector(selector))
 
-		// event listener on own element
+		// Event listener on own element
         this.self
             .map(on('add-todo', e => todoList?.addItem(e.detail)))
         
-        // coordinate todo-count
+        // Coordinate todo-count
 		this.first('todo-count')
             .map(pass({ active: () => todoList?.get('count').active }))
 
-        // coordinate todo-list
+        // Coordinate todo-list
         this.first('todo-list')
             .map(pass({ filter: () => todoFilter?.get('value') }))
 
-        // coordinate .clear-completed button
+        // Coordinate .clear-completed button
         this.first('.clear-completed')
             .map(on('click', () => todoList?.clearCompleted()))
             .map(pass({ disabled: () => !todoList?.get('count').completed }))
@@ -632,19 +566,43 @@ class TodoCount extends UIElement {
 }
 TodoCount.define('todo-count')
 
+class TodoForm extends UIElement {
+	connectedCallback() {
+		const inputField = this.querySelector('input-field')
+
+        this.first('form')
+			.forEach(on('submit', e => {
+				e.preventDefault()
+				setTimeout(() => {
+					this.dispatchEvent(new CustomEvent('add-todo', {
+						bubbles: true,
+						detail: inputField.get('value')
+					}))
+					inputField.clear()
+				}, 0)
+			}))
+		
+		this.first('input-button')
+			.forEach(pass({
+				disabled: () => inputField.get('empty')
+			}))
+    }
+}
+TodoForm.define('todo-form')
+
 class TodoList extends UIElement {
     connectedCallback() {
         this.set('filter', 'all') // set initial filter
 		this.#updateList()
 
-		// event listener and attribute on own element
+		// Event listener and attribute on own element
         this.self
             .map(on('click', e => {
                 if (e.target.localName === 'button') this.removeItem(e.target)
             }))
             .map(setAttribute('filter'))
 
-        // update count on each change
+        // Update count on each change
         this.set('count', () => {
             const tasks = this.get('tasks').map(el => el.signal('checked'))
             const completed = tasks.filter(fn => fn()).length

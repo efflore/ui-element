@@ -11,17 +11,17 @@
 			</summary>
 			<code-block language="html" copy-success="Copied!" copy-error="Error trying to copy to clipboard!">
 				<p class="meta">
-					<span class="file">my-counter.html</span>
+					<span class="file">media-provider.html.html</span>
 					<span class="language">html</span>
 				</p>
-				<pre><code class="language-html">&lt;my-counter count="42"&gt;
+				<pre><code class="language-html">&lt;media-provider.html count="42"&gt;
 	&lt;p&gt;
 		Count: &lt;span class="count"&gt;&lt;/span&gt;
 		Parity: &lt;span class="parity"&gt;&lt;/span&gt;
 	&lt;/p&gt;
-	&lt;button type="button" class="increment"&gt;+&lt;/button&gt;
-	&lt;button type="button" class="decrement"&gt;−&lt;/button&gt;
-&lt;/my-counter&gt;</code></pre>
+	&lt;button id="increment"&gt;+&lt;/button&gt;
+	&lt;button id="decrement"&gt;−&lt;/button&gt;
+&lt;/media-provider.html&gt;</code></pre>
 				<input-button class="copy">
 					<button type="button" class="secondary small">Copy</button>
 				</input-button>
@@ -35,10 +35,10 @@
 			</summary>
 			<code-block language="css" copy-success="Copied!" copy-error="Error trying to copy to clipboard!">
 				<p class="meta">
-					<span class="file">my-counter.css</span>
+					<span class="file">media-provider.html.css</span>
 					<span class="language">css</span>
 				</p>
-				<pre><code class="language-css">my-counter {
+				<pre><code class="language-css">media-provider.html {
 	display: flex;
 	gap: 0.5rem;
 	margin-block: 1rem;
@@ -71,7 +71,7 @@
 			</summary>
 			<code-block language="js" copy-success="Copied!" copy-error="Error trying to copy to clipboard!">
 				<p class="meta">
-					<span class="file">my-counter.js</span>
+					<span class="file">media-provider.html.js</span>
 					<span class="language">js</span>
 				</p>
 				<pre><code class="language-js">import { UIElement, asInteger, on, setText } from '@efflore/ui-element'
@@ -90,7 +90,7 @@ class MyCounter extends UIElement {
 		this.first('.parity').map(setText('parity'))
 	}
 }
-MyCounter.define('my-counter')</code></pre>
+MyCounter.define('media-provider.html')</code></pre>
 				<input-button class="copy">
 					<button type="button" class="secondary small">Copy</button>
 				</input-button>
