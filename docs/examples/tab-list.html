@@ -1,0 +1,136 @@
+<tab-list>
+	<menu>
+		<li><button type="button" aria-pressed="true">HTML</button></li>
+		<li><button type="button">CSS</button></li>
+		<li><button type="button">JavaScript</button></li>
+	</menu>
+	<accordion-panel open>
+		<details open aria-disabled="true">
+			<summary class="visually-hidden">
+				<div class="summary">HTML</div>
+			</summary>
+			<code-block language="html" copy-success="Copied!" copy-error="Error trying to copy to clipboard!">
+				<p class="meta">
+					<span class="file">tab-list.html</span>
+					<span class="language">html</span>
+				</p>
+				<pre><code class="language-html">&lt;tab-list&gt;
+	&lt;menu&gt;
+		&lt;li&gt;&lt;button type="button" aria-pressed="true"&gt;Tab 1&lt;/button&gt;&lt;/li&gt;
+		&lt;li&gt;&lt;button type="button"&gt;Tab 2&lt;/button&gt;&lt;/li&gt;
+		&lt;li&gt;&lt;button type="button"&gt;Tab 3&lt;/button&gt;&lt;/li&gt;
+	&lt;/menu&gt;
+	&lt;!-- Accordion panels here --&gt;
+&lt;/tab-list&gt;</code></pre>
+				<input-button class="copy">
+					<button type="button" class="secondary small">Copy</button>
+				</input-button>
+			</code-block>
+		</details>
+	</accordion-panel>
+	<accordion-panel>
+		<details aria-disabled="true">
+			<summary class="visually-hidden">
+				<div class="summary">CSS</div>
+			</summary>
+			<code-block language="css" copy-success="Copied!" copy-error="Error trying to copy to clipboard!">
+				<p class="meta">
+					<span class="file">tab-list.css</span>
+					<span class="language">css</span>
+				</p>
+				<pre><code class="language-css">tab-list {
+	display: block;
+	margin-bottom: var(--space-l);
+
+	> menu {
+		display: flex;
+		margin: 0 0 var(--space-s);
+		padding: 0;
+
+		> li {
+			display: inline-block;
+			margin: 0;
+			padding: 0;
+		}
+
+		& button {
+			border: 0;
+			border-top: 2px solid transparent;
+			background: transparent;
+			font-size: var(--font-size-s);
+			padding: var(--space-xs) var(--space-s);
+			color: var(--color-text);
+			background-color: var(--color-secondary);
+
+			&:hover {
+				background-color: var(--color-secondary-hover);
+			}
+
+			&[aria-pressed="true"] {
+				border-top: 2px solid var(--color-primary);
+				background-color: var(--color-secondary-active);
+			}
+		}
+	}
+}</code></pre>
+				<input-button class="copy">
+					<button type="button" class="secondary small">Copy</button>
+				</input-button>
+			</code-block>
+		</details>
+	</accordion-panel>
+	<accordion-panel>
+		<details aria-disabled="true">
+			<summary class="visually-hidden">
+				<div class="summary">JavaScript</div>
+			</summary>
+			<code-block language="js" copy-success="Copied!" copy-error="Error trying to copy to clipboard!">
+				<p class="meta">
+					<span class="file">tab-list.js</span>
+					<span class="language">js</span>
+				</p>
+				<pre><code class="language-js">import { UIElement, on, pass, setProperty, toggleAttribute } from '@efflore/ui-element'
+
+class TabList extends UIElement {
+	static observedAttributes = ['accordion']
+	static attributeMap = {
+		accordion: asBoolean
+	}
+	static consumedContexts = ['media-viewport']
+
+	connectedCallback() {
+		super.connectedCallback()
+		this.set('active', 0, false) // initial active tab
+
+		// Dynamically adjust accordion based on viewport size
+		setTimeout(() => {
+			if (this.get('media-viewport'))
+				this.set('accordion', () => ['xs', 'sm'].includes(this.get('media-viewport')))
+		}, 0)
+
+		// Reflect accordion attribute (may be used for styling)
+		this.self.forEach(toggleAttribute('accordion'))
+
+		// Hide accordion tab navigation when in accordion mode
+		this.first('menu').forEach(setProperty('ariaHidden', 'accordion'))
+
+		// Update active tab state and bind click handlers
+		this.all('menu button')
+			.map((ui, idx) => setProperty('ariaPressed', () => this.get('active') === idx)(ui))
+			.forEach((ui, idx) => on('click', () => this.set('active', idx))(ui))
+
+		// Pass open and collapsible states to accordion panels
+		this.all('accordion-panel').forEach((ui, idx) => pass({
+			open: () => ui.host.get('active') === idx,
+			collapsible: 'accordion'
+		})(ui))
+	}
+}
+TabList.define('tab-list')</code></pre>
+				<input-button class="copy">
+					<button type="button" class="secondary small">Copy</button>
+				</input-button>
+			</code-block>
+		</details>
+	</accordion-panel>
+</tab-list>
