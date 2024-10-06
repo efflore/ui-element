@@ -142,7 +142,7 @@
 					</div>
 					<accordion-panel collapsible>
 						<details>
-							<summary>Source Code</summary>
+							<summary>MySlider Source Code</summary>
 							<lazy-load src="./examples/my-slider.html">
 								<p class="loading">Loading...</p>
 							</lazy-load>
@@ -156,19 +156,49 @@
 				<component-demo>
 					<div class="preview">
 						<tab-list>
-							<button class="tab-button">Tab 1</button>
-							<button class="tab-button">Tab 2</button>
-							<button class="tab-button">Tab 3</button>
-						
-							<accordion-panel>Content for Tab 1</accordion-panel>
-							<accordion-panel>Content for Tab 2</accordion-panel>
-							<accordion-panel>Content for Tab 3</accordion-panel>
+							<menu>
+								<li><button type="button" aria-pressed="true">Tab 1</button></li>
+								<li><button type="button">Tab 2</button></li>
+								<li><button type="button">Tab 3</button></li>
+							</menu>
+							<accordion-panel>
+								<details open aria-disabled="true">
+									<summary class="visually-hidden">
+										<div class="summary">Tab 1</div>
+									</summary>
+									Content for Tab 1
+								</details>
+							</accordion-panel>
+							<accordion-panel>
+								<details aria-disabled="true">
+									<summary class="visually-hidden">
+										<div class="summary">Tab 2</div>
+									</summary>
+									Content for Tab 2
+								</details>
+							</accordion-panel>
+							<accordion-panel>
+								<details aria-disabled="true">
+									<summary class="visually-hidden">
+										<div class="summary">Tab 3</div>
+									</summary>
+									Content for Tab 3
+								</details>
+							</accordion-panel>
 						</tab-list>
 					</div>
 					<accordion-panel collapsible>
 						<details>
-							<summary>Source Code</summary>
+							<summary>TabList Source Code</summary>
 							<lazy-load src="./examples/tab-list.html">
+								<p class="loading">Loading...</p>
+							</lazy-load>
+						</details>
+					</accordion-panel>
+					<accordion-panel collapsible>
+						<details>
+							<summary>AccordionPanel Source Code</summary>
+							<lazy-load src="./examples/accordion-panel.html">
 								<p class="loading">Loading...</p>
 							</lazy-load>
 						</details>

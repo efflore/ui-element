@@ -1,0 +1,146 @@
+<tab-list>
+	<menu>
+		<li><button type="button" aria-pressed="true">HTML</button></li>
+		<li><button type="button">CSS</button></li>
+		<li><button type="button">JavaScript</button></li>
+	</menu>
+	<accordion-panel open>
+		<details open aria-disabled="true">
+			<summary class="visually-hidden">
+				<div class="summary">HTML</div>
+			</summary>
+			<code-block language="html" copy-success="Copied!" copy-error="Error trying to copy to clipboard!">
+				<p class="meta">
+					<span class="file">accordion-panel.html</span>
+					<span class="language">html</span>
+				</p>
+				<pre><code class="language-html">&lt;accordion-panel&gt;
+	&lt;details open aria-disabled="true"&gt;
+		&lt;summary class="visually-hidden"&gt;
+			&lt;div class="summary"&gt;Tab 1&lt;/div&gt;
+		&lt;/summary&gt;
+		Content for Tab 1
+	&lt;/details&gt;
+&lt;/accordion-panel&gt;
+&lt;accordion-panel&gt;
+	&lt;details aria-disabled="true"&gt;
+		&lt;summary class="visually-hidden"&gt;
+			&lt;div class="summary"&gt;Tab 2&lt;/div&gt;
+		&lt;/summary&gt;
+		Content for Tab 2
+	&lt;/details&gt;
+&lt;/accordion-panel&gt;
+&lt;accordion-panel&gt;
+	&lt;details aria-disabled="true"&gt;
+		&lt;summary class="visually-hidden"&gt;
+			&lt;div class="summary"&gt;Tab 3&lt;/div&gt;
+		&lt;/summary&gt;
+		Content for Tab 3
+	&lt;/details&gt;
+&lt;/accordion-panel&gt;</code></pre>
+				<input-button class="copy">
+					<button type="button" class="secondary small">Copy</button>
+				</input-button>
+			</code-block>
+		</details>
+	</accordion-panel>
+	<accordion-panel>
+		<details aria-disabled="true">
+			<summary class="visually-hidden">
+				<div class="summary">CSS</div>
+			</summary>
+			<code-block language="css" copy-success="Copied!" copy-error="Error trying to copy to clipboard!">
+				<p class="meta">
+					<span class="file">accordion-panel.css</span>
+					<span class="language">css</span>
+				</p>
+				<pre><code class="language-css">accordion-panel {
+	display: block;
+
+	> details {
+
+		& summary {
+			cursor: pointer;
+			font-size: var(--font-size-m);
+			font-weight: var(--font-weight-bold);
+			margin: 0 0 var(--space-s);
+		}
+
+		::marker,
+		::-webkit-details-marker {
+			color: var(--color-text-soft);
+		}
+
+		.summary {
+			display: inline-block;
+			margin-left: var(--space-xs);
+		}
+
+		&[open] {
+			margin-bottom: var(--space-m);
+		}
+
+		&[aria-disabled="true"] {
+			
+			& summary {
+				pointer-events: none;
+				display: block;
+				cursor: text;
+			}
+
+			::marker,
+			::-webkit-details-marker {
+				display: none;
+			}
+
+			.summary {
+				margin-left: 0;
+			}
+		}
+	}
+}</code></pre>
+				<input-button class="copy">
+					<button type="button" class="secondary small">Copy</button>
+				</input-button>
+			</code-block>
+		</details>
+	</accordion-panel>
+	<accordion-panel>
+		<details aria-disabled="true">
+			<summary class="visually-hidden">
+				<div class="summary">JavaScript</div>
+			</summary>
+			<code-block language="js" copy-success="Copied!" copy-error="Error trying to copy to clipboard!">
+				<p class="meta">
+					<span class="file">accordion-panel.js</span>
+					<span class="language">js</span>
+				</p>
+				<pre><code class="language-js">import { UIElement, on, setProperty, toggleAttribute } from '@efflore/ui-element'
+
+class AccordionPanel extends UIElement {
+	connectedCallback() {
+
+		// Set defaults from attributes
+		this.set('open', this.hasAttribute('open'), false)
+		this.set('collapsible', this.hasAttribute('collapsible'), false)
+
+		// Handle open and collapsible state changes
+		this.self
+			.map(toggleAttribute('open'))
+			.map(toggleAttribute('collapsible'))
+			.forEach(setProperty('ariaHidden', () => !this.get('open') && !this.get('collapsible')))
+
+		// Control inner details panel
+		this.first('details')
+			.map(setProperty('open'))
+			.forEach(setProperty('ariaDisabled', () => !this.get('collapsible')))
+	}
+}
+AccordionPanel.define('accordion-panel')</code></pre>
+				<input-button class="copy">
+					<button type="button" class="secondary small">Copy</button>
+				</input-button>
+			</code-block>
+		</details>
+	</accordion-panel>
+</tab-list>

@@ -55,12 +55,13 @@ class CodeBlock extends UIElement {
 	}
 
   	connectedCallback() {
-		// enhance code block with Prism.js
+
+		// Enhance code block with Prism.js
 		const language = this.getAttribute('language') || 'html'
 		const content = this.querySelector('code')
 		this.set('code', content.textContent.trim(), false)
 		effect(enqueue => {
-			// apply syntax highlighting while preserving Lit's marker nodes in Storybook
+			// Apply syntax highlighting while preserving Lit's marker nodes in Storybook
 			const code = document.createElement('code')
 			code.innerHTML = Prism.highlight(this.get('code'), Prism.languages[language], language)
 			enqueue(content, 'h', el => () => {
@@ -72,7 +73,7 @@ class CodeBlock extends UIElement {
 			})
 		})
 
-		// copy to clipboard
+		// Copy to clipboard
 		this.first('.copy').map(ui => on('click', async () => {
 			const copyButton = ui.target
 			const label = copyButton.textContent
@@ -91,7 +92,7 @@ class CodeBlock extends UIElement {
 			}, status === 'success' ? 1000 : 3000)
 		})(ui))
 
-		// expand
+		// Expand
 		this.first('.overlay').map(on('click', () => this.set('collapsed', false)))
 		this.self.map(toggleAttribute('collapsed'))
 	}
@@ -107,38 +108,51 @@ class TabList extends UIElement {
 
 	connectedCallback() {
 		super.connectedCallback()
-		this.set('active', 0, false)
+		this.set('active', 0, false) // initial active tab
+
+		// Dynamically adjust accordion based on viewport size
 		setTimeout(() => {
 			if (this.get('media-viewport'))
 				this.set('accordion', () => ['xs', 'sm'].includes(this.get('media-viewport')))
 		}, 0)
-		this.self
-		    .map(toggleAttribute('accordion'))
-		this.first('.tab-nav')
-			.map(setProperty('ariaHidden', 'accordion'))
-		this.all('.tab-nav button')
+
+		// Reflect accordion attribute (may be used for styling)
+		this.self.forEach(toggleAttribute('accordion'))
+
+		// Hide accordion tab navigation when in accordion mode
+		this.first('menu').forEach(setProperty('ariaHidden', 'accordion'))
+
+		// Update active tab state and bind click handlers
+		this.all('menu button')
 			.map((ui, idx) => setProperty('ariaPressed', () => this.get('active') === idx)(ui))
-			.map((ui, idx) => on('click', () => this.set('active', idx))(ui))
-		this.all('accordion-panel')
-			.map((ui, idx) => pass({
-				open: () => ui.host.get('active') === idx,
-				collapsible: 'accordion'
-			})(ui))
+			.forEach((ui, idx) => on('click', () => this.set('active', idx))(ui))
+
+		// Pass open and collapsible states to accordion panels
+		this.all('accordion-panel').forEach((ui, idx) => pass({
+			open: () => ui.host.get('active') === idx,
+			collapsible: 'accordion'
+		})(ui))
 	}
 }
 TabList.define('tab-list')
 
 class AccordionPanel extends UIElement {
 	connectedCallback() {
-		this.set('open', this.hasAttribute('open'))
-		this.set('collapsible', this.hasAttribute('collapsible'))
+
+		// Set defaults from attributes
+		this.set('open', this.hasAttribute('open'), false)
+		this.set('collapsible', this.hasAttribute('collapsible'), false)
+
+		// Handle open and collapsible state changes
 		this.self
 		    .map(toggleAttribute('open'))
 			.map(toggleAttribute('collapsible'))
-			.map(setProperty('ariaHidden', () => !this.get('open') && !this.get('collapsible')))
+			.forEach(setProperty('ariaHidden', () => !this.get('open') && !this.get('collapsible')))
+
+		// Control inner details panel
 		this.first('details')
 			.map(setProperty('open'))
-			.map(setProperty('ariaDisabled', () => !this.get('collapsible')))
+			.forEach(setProperty('ariaDisabled', () => !this.get('collapsible')))
 	}
 }
 AccordionPanel.define('accordion-panel')
