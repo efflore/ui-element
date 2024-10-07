@@ -14,7 +14,7 @@
 					<span class="file">input-button.html</span>
 					<span class="language">html</span>
 				</p>
-				<pre><code class="language-html">&lt;input-button&gt;
+				<pre class="language-html"><code>&lt;input-button&gt;
 	&lt;button type="button"&gt;Button&lt;/button&gt;
 &lt;/input-button&gt;
 
@@ -37,7 +37,7 @@
 					<span class="file">input-button.html.css</span>
 					<span class="language">css</span>
 				</p>
-				<pre><code class="language-css">input-button {
+				<pre class="language-css"><code>input-button {
 	display: inline-block;
 	flex: 0;
 
@@ -51,6 +51,7 @@
 		padding: 0 var(--space-s);
 		font-size: var(--font-size-s);
 		line-height: var(--line-height-s);
+		white-space: nowrap;
 		opacity: var(--opacity-dimmed);
 		transition: all var(--transition-shorter) var(--easing-inout);
 
@@ -154,7 +155,7 @@
 					<span class="file">input-button.js</span>
 					<span class="language">js</span>
 				</p>
-				<pre><code class="language-js">import { UIElement, asBoolean, setText, setProperty } from '@efflore/ui-element'
+				<pre class="language-js"><code>import { UIElement, asBoolean, setText, setProperty } from '@efflore/ui-element'
 
 class InputButton extends UIElement {
 	static observedAttributes = ['disabled']

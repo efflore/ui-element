@@ -11,53 +11,13 @@
 			</summary>
 			<code-block language="html" copy-success="Copied!" copy-error="Error trying to copy to clipboard!">
 				<p class="meta">
-					<span class="file">lazy-load.html.html</span>
+					<span class="file">lazy-load.html</span>
 					<span class="language">html</span>
 				</p>
-				<pre><code class="language-html">&lt;lazy-load.html count="42"&gt;
-	&lt;p&gt;
-		Count: &lt;span class="count"&gt;&lt;/span&gt;
-		Parity: &lt;span class="parity"&gt;&lt;/span&gt;
-	&lt;/p&gt;
-	&lt;button id="increment"&gt;+&lt;/button&gt;
-	&lt;button id="decrement"&gt;−&lt;/button&gt;
-&lt;/lazy-load.html&gt;</code></pre>
-				<input-button class="copy">
-					<button type="button" class="secondary small">Copy</button>
-				</input-button>
-			</code-block>
-		</details>
-	</accordion-panel>
-	<accordion-panel>
-		<details aria-disabled="true">
-			<summary class="visually-hidden">
-				<div class="summary">CSS</div>
-			</summary>
-			<code-block language="css" copy-success="Copied!" copy-error="Error trying to copy to clipboard!">
-				<p class="meta">
-					<span class="file">lazy-load.html.css</span>
-					<span class="language">css</span>
-				</p>
-				<pre><code class="language-css">lazy-load.html {
-	display: flex;
-	gap: 0.5rem;
-	margin-block: 1rem;
-
-	p {
-		display: inline-block;
-		margin: 0;
-		flex: 1;
-	}
-
-	span {
-		margin-right: 0.5rem;
-	}
-
-	button {
-		padding: 0.25rem 0.5rem;
-		flex: 0;
-	}
-}</code></pre>
+				<pre class="language-html"><code>&lt;lazy-load src="./examples/snippets/snippet.html"&gt;
+	&lt;p class="loading"&gt;Loading...&lt;/p&gt;
+	&lt;p class="error"&gt;&lt;/p&gt;
+&lt;/lazy-load&gt;</code></pre>
 				<input-button class="copy">
 					<button type="button" class="secondary small">Copy</button>
 				</input-button>
@@ -71,26 +31,68 @@
 			</summary>
 			<code-block language="js" copy-success="Copied!" copy-error="Error trying to copy to clipboard!">
 				<p class="meta">
-					<span class="file">lazy-load.html.js</span>
+					<span class="file">lazy-load.js</span>
 					<span class="language">js</span>
 				</p>
-				<pre><code class="language-js">import { UIElement, asInteger, on, setText } from '@efflore/ui-element'
+				<pre class="language-js"><code>import { UIElement, setText, setProperty, effect } from '@efflore/ui-element';
 
-class MyCounter extends UIElement {
-	static observedAttributes = ['count']
+class LazyLoad extends UIElement {
+	static observedAttributes = ['src']
 	static attributeMap = {
-		count: asInteger
+		src: v => v.map(src => {
+				let url = ''
+				try {
+					url = new URL(src, location.href) // ensure 'src' attribute is a valid URL
+					if (url.origin !== location.origin) { // sanity check for cross-origin URLs
+						throw new TypeError('Invalid URL origin')
+					}
+				} catch (error) {
+					console.error(error, url)
+					url = ''
+				}
+				return url.toString()
+			})
 	}
 
 	connectedCallback() {
-		this.set('parity', () => this.get('count') % 2 ? 'odd' : 'even')
-		this.first('.increment').map(on('click', () => this.set('count', v => ++v)))
-		this.first('.decrement').map(on('click', () => this.set('count', v => --v)))
-		this.first('.count').map(setText('count'))
-		this.first('.parity').map(setText('parity'))
+
+		// Show / hide loading message
+		this.first('.loading')
+			.forEach(setProperty('ariaHidden', () => !!this.get('error')))
+
+		// Set and show / hide error message
+		this.first('.error')
+			.map(setText('error'))
+			.forEach(setProperty('ariaHidden', () => !this.get('error')))
+
+		// Load content from provided URL
+		effect(enqueue => {
+			const src = this.get('src')
+			if (!src) return // silently fail if no valid URL is provided
+			fetch(src)
+				.then(async response => {
+					if (response.ok) {
+						const content = await response.text()
+						enqueue(this.root, 'h', el => () => {
+							// UNSAFE!, use only trusted sources in 'src' attribute
+							el.innerHTML = content
+							el.querySelectorAll('script').forEach(script => {
+								const newScript = document.createElement('script')
+								newScript.appendChild(document.createTextNode(script.textContent))
+								el.appendChild(newScript)
+								script.remove()
+							})
+						})
+						this.set('error', '')
+					} else {
+						this.set('error', response.status + ':'+ response.statusText)
+					}
+				})
+				.catch(error => this.set('error', error))
+		})
 	}
 }
-MyCounter.define('lazy-load.html')</code></pre>
+LazyLoad.define('lazy-load')</code></pre>
 				<input-button class="copy">
 					<button type="button" class="secondary small">Copy</button>
 				</input-button>

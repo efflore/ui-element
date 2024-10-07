@@ -11,17 +11,25 @@
 			</summary>
 			<code-block language="html" copy-success="Copied!" copy-error="Error trying to copy to clipboard!">
 				<p class="meta">
-					<span class="file">my-counter.html</span>
+					<span class="file">todo-list.html</span>
 					<span class="language">html</span>
 				</p>
-				<pre><code class="language-html">&lt;my-counter count="42"&gt;
-	&lt;p&gt;
-		Count: &lt;span class="count"&gt;&lt;/span&gt;
-		Parity: &lt;span class="parity"&gt;&lt;/span&gt;
-	&lt;/p&gt;
-	&lt;button id="increment"&gt;+&lt;/button&gt;
-	&lt;button id="decrement"&gt;−&lt;/button&gt;
-&lt;/my-counter&gt;</code></pre>
+				<pre class="language-html"><code>&lt;todo-list filter="all"&gt;
+	&lt;ol&gt;&lt;/ol&gt;
+	&lt;template&gt;
+		&lt;li&gt;
+			&lt;input-checkbox class="todo"&gt;
+				&lt;label&gt;
+					&lt;input type="checkbox" class="visually-hidden" /&gt;
+					&lt;span&gt;&lt;/span&gt;
+				&lt;/label&gt;
+			&lt;/input-checkbox&gt;
+			&lt;input-button&gt;
+				&lt;button type="button"&gt;Delete&lt;/button&gt;
+			&lt;/input-button&gt;
+		&lt;/li&gt;
+	&lt;/template&gt;
+&lt;/todo-list&gt;</code></pre>
 				<input-button class="copy">
 					<button type="button" class="secondary small">Copy</button>
 				</input-button>
@@ -35,27 +43,39 @@
 			</summary>
 			<code-block language="css" copy-success="Copied!" copy-error="Error trying to copy to clipboard!">
 				<p class="meta">
-					<span class="file">my-counter.css</span>
+					<span class="file">todo-list.css</span>
 					<span class="language">css</span>
 				</p>
-				<pre><code class="language-css">my-counter {
-	display: flex;
-	gap: 0.5rem;
-	margin-block: 1rem;
+				<pre class="language-css"><code>todo-list {
+	display: block;
 
-	p {
-		display: inline-block;
+	& ol {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-m);
+		list-style: none;
 		margin: 0;
-		flex: 1;
+		padding: 0;
 	}
 
-	span {
-		margin-right: 0.5rem;
+	& li {
+		display: flex;
+		justify-content: space-between;
+		gap: var(--space-m);
+		margin: 0;
+		padding: 0;
 	}
 
-	button {
-		padding: 0.25rem 0.5rem;
-		flex: 0;
+	&[filter="completed"] {
+		li:not(:has([checked])) {
+			display: none;
+		}
+	}
+
+	&[filter="active"] {
+		li:has([checked]) {
+			display: none;
+		}
 	}
 }</code></pre>
 				<input-button class="copy">
@@ -71,26 +91,61 @@
 			</summary>
 			<code-block language="js" copy-success="Copied!" copy-error="Error trying to copy to clipboard!">
 				<p class="meta">
-					<span class="file">my-counter.js</span>
+					<span class="file">todo-list.js</span>
 					<span class="language">js</span>
 				</p>
-				<pre><code class="language-js">import { UIElement, asInteger, on, setText } from '@efflore/ui-element'
+				<pre class="language-js"><code>import { UIElement, on, setAttribute } from '@efflore/ui-element'
 
-class MyCounter extends UIElement {
-	static observedAttributes = ['count']
-	static attributeMap = {
-		count: asInteger
-	}
-
+class TodoList extends UIElement {
 	connectedCallback() {
-		this.set('parity', () => this.get('count') % 2 ? 'odd' : 'even')
-		this.first('.increment').map(on('click', () => this.set('count', v => ++v)))
-		this.first('.decrement').map(on('click', () => this.set('count', v => --v)))
-		this.first('.count').map(setText('count'))
-		this.first('.parity').map(setText('parity'))
+		this.set('filter', 'all') // set initial filter
+		this.#updateList()
+
+		// Event listener and attribute on own element
+		this.self
+			.map(on('click', e => {
+				if (e.target.localName === 'button') this.removeItem(e.target)
+			}))
+			.forEach(setAttribute('filter'))
+
+		// Update count on each change
+		this.set('count', () => {
+			const tasks = this.get('tasks').map(el => el.signal('checked'))
+			const completed = tasks.filter(fn => fn()).length
+			const total = tasks.length
+			return {
+				active: total - completed,
+				completed,
+				total
+			}
+		})
 	}
+
+	addItem = task => {
+		const template = this.querySelector('template').content.cloneNode(true)
+		template.querySelector('span').textContent = task
+		this.querySelector('ol').appendChild(template)
+		this.#updateList()
+	}
+
+	removeItem = element => {
+		element.closest('li').remove()
+		this.#updateList()
+	}
+
+	clearCompleted = () => {
+		this.get('tasks')
+			.filter(el => el.get('checked'))
+			.forEach(el => el.parentElement.remove())
+		this.#updateList()
+	}
+
+	#updateList() {
+		this.set('tasks', Array.from(this.querySelectorAll('input-checkbox')))
+	}
+
 }
-MyCounter.define('my-counter')</code></pre>
+TodoList.define('todo-list')</code></pre>
 				<input-button class="copy">
 					<button type="button" class="secondary small">Copy</button>
 				</input-button>

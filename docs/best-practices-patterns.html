@@ -125,7 +125,7 @@
 					<p class="meta">
 						<span class="language">css</span>
 					</p>
-					<pre><code class="language-css">my-component {
+					<pre class="language-css"><code>my-component {
 	padding: 1rem;
 
 	/* Only divs that are immediate children of my-component will be styled */
@@ -146,7 +146,7 @@
 					<p class="meta">
 						<span class="language">css</span>
 					</p>
-					<pre><code class="language-css">parent-component {
+					<pre class="language-css"><code>parent-component {
 	--box-bg-color: red;
 	--box-text-color: white;
 }
@@ -178,7 +178,7 @@ message-box {
 					<p class="meta">
 						<span class="language">js</span>
 					</p>
-					<pre><code class="language-js">class ParentComponent extends UIElement {
+					<pre class="language-js"><code>class ParentComponent extends UIElement {
 	connectedCallback() {
 	this.set('parentColor', 'blue');
 	this.pass('parentColor', 'child-component', 'color');
@@ -194,7 +194,7 @@ ParentComponent.define('parent-component');</code></pre>
 					<p class="meta">
 						<span class="language">js</span>
 					</p>
-					<pre><code class="language-js">class ChildComponent extends UIElement {
+					<pre class="language-js"><code>class ChildComponent extends UIElement {
 	connectedCallback() {
 	this.first('.box').map(setStyle('background-color', 'color'));
 	}
@@ -213,7 +213,7 @@ ChildComponent.define('child-component');</code></pre>
 					<p class="meta">
 						<span class="language">js</span>
 					</p>
-					<pre><code class="language-js">// In child component
+					<pre class="language-js"><code>// In child component
 this.emit('change', { detail: { value: this.get('value') } });</code></pre>
 				</code-block>
 		  
@@ -223,7 +223,7 @@ this.emit('change', { detail: { value: this.get('value') } });</code></pre>
 					<p class="meta">
 						<span class="language">js</span>
 					</p>
-					<pre><code class="language-js">// In parent component
+					<pre class="language-js"><code>// In parent component
 this.first('child-component').map(on('change', (event) => {
 	console.log('Received change event:', event.detail.value);
 	// Handle state changes

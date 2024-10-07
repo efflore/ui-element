@@ -116,7 +116,7 @@
 					<p class="meta">
 						<span class="language">js</span>
 					</p>
-					<pre><code class="language-js">import { UIElement, asInteger } from '@efflore/ui-element'
+					<pre class="language-js"><code>import { UIElement, asInteger } from '@efflore/ui-element'
 
 class CounterComponent extends UIElement {
 	static observedAttributes = ['count']
@@ -131,7 +131,7 @@ class CounterComponent extends UIElement {
 					<p class="meta">
 						<span class="language">html</span>
 					</p>
-					<pre><code class="language-html">&lt;counter-component count="5"&gt;&lt;/counter-component&gt;</code></pre>
+					<pre class="language-html"><code>&lt;counter-component count="5"&gt;&lt;/counter-component&gt;</code></pre>
 					<input-button class="copy">
 						<button type="button" class="secondary small">Copy</button>
 					</input-button>
@@ -153,7 +153,7 @@ class CounterComponent extends UIElement {
 					<p class="meta">
 						<span class="language">html</span>
 					</p>
-					<pre><code class="language-html">&lt;hello-world&gt;
+					<pre class="language-html"><code>&lt;hello-world&gt;
 	&lt;p&gt;Hello, &lt;span class="name"&gt;World&lt;/span&gt;!&lt;/p&gt;
 &lt;/hello-world&gt;</code></pre>
 					<input-button class="copy">
@@ -164,7 +164,7 @@ class CounterComponent extends UIElement {
 					<p class="meta">
 						<span class="language">js</span>
 					</p>
-					<pre><code class="language-js">this.first('.name').map(setText('name'))</code></pre>
+					<pre class="language-js"><code>this.first('.name').map(setText('name'))</code></pre>
 					<input-button class="copy">
 						<button type="button" class="secondary small">Copy</button>
 					</input-button>
@@ -182,7 +182,7 @@ class CounterComponent extends UIElement {
 					<p class="meta">
 						<span class="language">js</span>
 					</p>
-					<pre><code class="language-js">// Setting a default state
+					<pre class="language-js"><code>// Setting a default state
 this.set('count', 10)
 
 // Setting a derived state
@@ -212,7 +212,7 @@ this.set('even', () => this.get('count') % 2 === 0)</code></pre>
 					<p class="meta">
 						<span class="language">js</span>
 					</p>
-					<pre><code class="language-js">this.first('.count').map(setText('count'))</code></pre>
+					<pre class="language-js"><code>this.first('.count').map(setText('count'))</code></pre>
 					<input-button class="copy">
 						<button type="button" class="secondary small">Copy</button>
 					</input-button>
@@ -224,7 +224,7 @@ this.set('even', () => this.get('count') % 2 === 0)</code></pre>
 					<p class="meta">
 						<span class="language">js</span>
 					</p>
-					<pre><code class="language-js">this.all('.item').map(toggleClass('active', 'isActive'))</code></pre>
+					<pre class="language-js"><code>this.all('.item').map(toggleClass('active', 'isActive'))</code></pre>
 					<input-button class="copy">
 						<button type="button" class="secondary small">Copy</button>
 					</input-button>
@@ -246,7 +246,7 @@ this.set('even', () => this.get('count') % 2 === 0)</code></pre>
 					<p class="meta">
 						<span class="language">js</span>
 					</p>
-					<pre><code class="language-js">// Example chaining event handler and effect
+					<pre class="language-js"><code>// Example chaining event handler and effect
 this.first('button')
 	.map(on('click', () => this.set('clicked', true)))
 	.map(toggleClass('clicked'))
@@ -271,7 +271,7 @@ this.all('.item')
 					<p class="meta">
 						<span class="language">js</span>
 					</p>
-					<pre><code class="language-js">this.first('input').map(on('input', e => this.set('name', e.target.value)))</code></pre>
+					<pre class="language-js"><code>this.first('input').map(on('input', e => this.set('name', e.target.value)))</code></pre>
 					<input-button class="copy">
 						<button type="button" class="secondary small">Copy</button>
 					</input-button>
@@ -290,7 +290,7 @@ this.all('.item')
 					<p class="meta">
 						<span class="language">js</span>
 					</p>
-					<pre><code class="language-js">fetch('/data')
+					<pre class="language-js"><code>fetch('/data')
 	.then(response => response.json())
 	.then(data => this.set('data', data))</code></pre>
 					<input-button class="copy">
