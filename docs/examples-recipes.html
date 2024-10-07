@@ -215,7 +215,7 @@
 								<span class="file">code-block.html</span>
 								<span class="language">html</span>
 							</p>
-							<pre><code class="language-html">&lt;code-block collapsed language="html" copy-success="Copied!" copy-error="Error trying to copy to clipboard!"&gt;
+							<pre class="language-html"><code>&lt;code-block collapsed language="html" copy-success="Copied!" copy-error="Error trying to copy to clipboard!"&gt;
 	&lt;p class="meta"&gt;
 		&lt;span class="file"&gt;code-block.html&lt;/span&gt;
 		&lt;span class="language"&gt;html&lt;/span&gt;
@@ -265,20 +265,10 @@
 				<h2>LazyLoad Example</h2>
 				<component-demo>
 					<div class="preview">
-						<my-slider>
-							<button type="button" class="prev" aria-label="Previous">‹</button>
-							<div class="slides">
-								<div class="slide active">Slide 1</div>
-								<div class="slide">Slide 2</div>
-								<div class="slide">Slide 3</div>
-							</div>
-							<button type="button" class="next" aria-label="Next">›</button>
-							<div class="dots">
-								<span class="active"></span>
-								<span></span>
-								<span></span>
-							</div>
-						</my-slider>
+						<lazy-load src="./examples/snippets/snippet.html">
+							<p class="loading">Loading...</p>
+							<p class="error"></p>
+						</lazy-load>
 					</div>
 					<accordion-panel collapsible>
 						<details>
@@ -378,30 +368,32 @@
 									</li>
 								</template>
 							</todo-list>
-							<todo-count>
-								<p class="all-done">Well done, all done!</p>
-								<p class="remaining"><span></span> tasks left</p>
-							</todo-count>
-							<input-radiogroup value="all" class="split-button">
-								<fieldset>
-									<legend class="visually-hidden">Filter</legend>
-										<label class="selected">
-											<input type="radio" class="visually-hidden" name="filter" value="all" checked>
-											<span>All</span>
-										</label>
-										<label>
-											<input type="radio" class="visually-hidden" name="filter" value="active">
-											<span>Active</span>
-										</label>
-										<label>
-											<input type="radio" class="visually-hidden" name="filter" value="completed">
-											<span>Completed</span>
-										</label>
-								</fieldset>
-							</input-radiogroup>
-							<input-button class="clear-completed">
-								<button type="button">Clear Completed</button>
-							</input-button>
+							<footer>
+								<todo-count>
+									<p class="all-done">Well done, all done!</p>
+									<p class="remaining"><span></span> tasks left</p>
+								</todo-count>
+								<input-radiogroup value="all" class="split-button">
+									<fieldset>
+										<legend class="visually-hidden">Filter</legend>
+											<label class="selected">
+												<input type="radio" class="visually-hidden" name="filter" value="all" checked>
+												<span>All</span>
+											</label>
+											<label>
+												<input type="radio" class="visually-hidden" name="filter" value="active">
+												<span>Active</span>
+											</label>
+											<label>
+												<input type="radio" class="visually-hidden" name="filter" value="completed">
+												<span>Completed</span>
+											</label>
+									</fieldset>
+								</input-radiogroup>
+								<input-button class="clear-completed">
+									<button type="button">Clear Completed</button>
+								</input-button>
+							</footer>
 						</todo-app>
 					</div>
 					<accordion-panel collapsible>
@@ -504,14 +496,14 @@
 				<p>
 				  For example, to set a small breakpoint at 40em and a medium breakpoint at 60em, use:
 				</p>
-				<pre><code class="language-html">
+				<pre class="language-html"><code>
 			  &lt;media-context sm="40em" md="60em"&gt;&lt;/media-context&gt;
 				</code></pre>
 			  
 				<!-- Source code collapsible -->
 				<details>
 				  <summary>Source Code</summary>
-				  <pre><code class="language-js">
+				  <pre class="language-js"><code>
 			  import { UIElement, maybe } from '@efflore/ui-element'
 			  
 			  const VIEWPORT_XS = 'xs';
@@ -599,7 +591,7 @@
 					<!-- HTML Tab Panel -->
 					<tab-panel label="HTML">
 					  <h3>HTML</h3>
-					  <pre><code class="language-html">
+					  <pre class="language-html"><code>
 			  &lt;media-context&gt;
 				&lt;themed-component&gt;
 				  This component changes its background based on the theme!
@@ -611,7 +603,7 @@
 					<!-- CSS Tab Panel -->
 					<tab-panel label="CSS">
 					  <h3>CSS</h3>
-					  <pre><code class="language-css">
+					  <pre class="language-css"><code>
 			  themed-component {
 				display: block;
 				padding: 20px;
@@ -632,7 +624,7 @@
 					<!-- JavaScript Tab Panel -->
 					<tab-panel label="JavaScript">
 					  <h3>JavaScript</h3>
-					  <pre><code class="language-js">
+					  <pre class="language-js"><code>
 			  import { UIElement, toggleClass } from '@efflore/ui-element';
 			  
 			  class ThemedComponent extends UIElement {
@@ -673,7 +665,7 @@
 					<!-- HTML Tab Panel -->
 					<tab-panel label="HTML">
 					  <h3>HTML</h3>
-					  <pre><code class="language-html">
+					  <pre class="language-html"><code>
 			  &lt;media-context&gt;
 				&lt;animated-component&gt;
 				  &lt;div class="animated-box"&gt;Box 1&lt;/div&gt;
@@ -687,7 +679,7 @@
 					<!-- CSS Tab Panel -->
 					<tab-panel label="CSS">
 					  <h3>CSS</h3>
-					  <pre><code class="language-css">
+					  <pre class="language-css"><code>
 			  animated-component {
 				display: block;
 				padding: 20px;
@@ -730,7 +722,7 @@
 					<!-- JavaScript Tab Panel -->
 					<tab-panel label="JavaScript">
 					  <h3>JavaScript</h3>
-					  <pre><code class="language-js">
+					  <pre class="language-js"><code>
 			  import { UIElement, toggleClass } from '@efflore/ui-element';
 			  
 			  class AnimatedComponent extends UIElement {
@@ -784,7 +776,7 @@
 					<!-- HTML Tab Panel -->
 					<tab-panel label="HTML">
 					  <h3>HTML</h3>
-					  <pre><code class="language-html">
+					  <pre class="language-html"><code>
 			  &lt;media-context&gt;
 				&lt;tab-list&gt;
 				  &lt;button class="tab-button"&gt;Tab 1&lt;/button&gt;
@@ -811,7 +803,7 @@
 					<!-- CSS Tab Panel -->
 					<tab-panel label="CSS">
 					  <h3>CSS</h3>
-					  <pre><code class="language-css">
+					  <pre class="language-css"><code>
 			  tab-list {
 				display: flex;
 				flex-direction: column;
@@ -873,7 +865,7 @@
 					<!-- JavaScript Tab Panel -->
 					<tab-panel label="JavaScript">
 					  <h3>JavaScript</h3>
-					  <pre><code class="language-js">
+					  <pre class="language-js"><code>
 			  import { UIElement, on, pass, toggleClass } from '@efflore/ui-element';
 			  
 			  // TabList Component
@@ -957,7 +949,7 @@
 					<!-- HTML Tab Panel -->
 					<tab-panel label="HTML">
 					  <h3>HTML</h3>
-					  <pre><code class="language-html">
+					  <pre class="language-html"><code>
 			  &lt;media-context&gt;
 				&lt;responsive-image-gallery&gt;
 				  &lt;img src="image1.jpg" alt="Image 1"&gt;
@@ -973,7 +965,7 @@
 					<!-- CSS Tab Panel -->
 					<tab-panel label="CSS">
 					  <h3>CSS</h3>
-					  <pre><code class="language-css">
+					  <pre class="language-css"><code>
 			  responsive-image-gallery {
 				display: flex;
 				flex-wrap: wrap;
@@ -1011,7 +1003,7 @@
 					<!-- JavaScript Tab Panel -->
 					<tab-panel label="JavaScript">
 					  <h3>JavaScript</h3>
-					  <pre><code class="language-js">
+					  <pre class="language-js"><code>
 			  import { UIElement, toggleClass, effect } from '@efflore/ui-element';
 			  import { MySlider } from './my-slider.js'; // Assume this is the existing MySlider component
 			  

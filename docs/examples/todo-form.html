@@ -11,17 +11,24 @@
 			</summary>
 			<code-block language="html" copy-success="Copied!" copy-error="Error trying to copy to clipboard!">
 				<p class="meta">
-					<span class="file">todo-form.html.html</span>
+					<span class="file">todo-form.html</span>
 					<span class="language">html</span>
 				</p>
-				<pre><code class="language-html">&lt;todo-form.html count="42"&gt;
-	&lt;p&gt;
-		Count: &lt;span class="count"&gt;&lt;/span&gt;
-		Parity: &lt;span class="parity"&gt;&lt;/span&gt;
-	&lt;/p&gt;
-	&lt;button id="increment"&gt;+&lt;/button&gt;
-	&lt;button id="decrement"&gt;−&lt;/button&gt;
-&lt;/todo-form.html&gt;</code></pre>
+				<pre class="language-html"><code>&lt;todo-form&gt;
+	&lt;form action="#"&gt;
+		&lt;input-field&gt;
+			&lt;label for="add-todo"&gt;What needs to be done?&lt;/label&gt;
+			&lt;div class="row"&gt;
+				&lt;div class="group auto"&gt;
+					&lt;input id="add-todo" type="text" value="" required&gt;
+				&lt;/div&gt;
+			&lt;/div&gt;
+		&lt;/input-field&gt;
+		&lt;input-button class="submit"&gt;
+			&lt;button type="submit" class="primary" disabled&gt;Add Todo&lt;/button&gt;
+		&lt;/input-button&gt;
+	&lt;/form&gt;
+&lt;/todo-form&gt;</code></pre>
 				<input-button class="copy">
 					<button type="button" class="secondary small">Copy</button>
 				</input-button>
@@ -35,10 +42,10 @@
 			</summary>
 			<code-block language="css" copy-success="Copied!" copy-error="Error trying to copy to clipboard!">
 				<p class="meta">
-					<span class="file">todo-form.html.css</span>
+					<span class="file">todo-form.css</span>
 					<span class="language">css</span>
 				</p>
-				<pre><code class="language-css">todo-form.html {
+				<pre class="language-css"><code>todo-form.html {
 	display: flex;
 	gap: 0.5rem;
 	margin-block: 1rem;
@@ -71,26 +78,32 @@
 			</summary>
 			<code-block language="js" copy-success="Copied!" copy-error="Error trying to copy to clipboard!">
 				<p class="meta">
-					<span class="file">todo-form.html.js</span>
+					<span class="file">todo-form.js</span>
 					<span class="language">js</span>
 				</p>
-				<pre><code class="language-js">import { UIElement, asInteger, on, setText } from '@efflore/ui-element'
+				<pre class="language-js"><code>import { UIElement, on, pass } from '@efflore/ui-element'
 
-class MyCounter extends UIElement {
-	static observedAttributes = ['count']
-	static attributeMap = {
-		count: asInteger
-	}
-
+class TodoForm extends UIElement {
 	connectedCallback() {
-		this.set('parity', () => this.get('count') % 2 ? 'odd' : 'even')
-		this.first('.increment').map(on('click', () => this.set('count', v => ++v)))
-		this.first('.decrement').map(on('click', () => this.set('count', v => --v)))
-		this.first('.count').map(setText('count'))
-		this.first('.parity').map(setText('parity'))
+		const inputField = this.querySelector('input-field')
+
+		this.first('form').forEach(on('submit', e => {
+			e.preventDefault()
+			setTimeout(() => {
+				this.dispatchEvent(new CustomEvent('add-todo', {
+					bubbles: true,
+					detail: inputField.get('value')
+				}))
+				inputField.clear()
+			}, 0)
+		}))
+		
+		this.first('input-button').forEach(pass({
+			disabled: () => inputField.get('empty')
+		}))
 	}
 }
-MyCounter.define('todo-form.html')</code></pre>
+TodoForm.define('todo-form')</code></pre>
 				<input-button class="copy">
 					<button type="button" class="secondary small">Copy</button>
 				</input-button>

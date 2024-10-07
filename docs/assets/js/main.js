@@ -389,7 +389,7 @@ InputRadiogroup.define('input-radiogroup')
 class LazyLoad extends UIElement {
 	static observedAttributes = ['src']
 	static attributeMap = {
-        src: v => v.map(src => {
+		src: v => v.map(src => {
 				let url = ''
 				try {
 					url = new URL(src, location.href) // ensure 'src' attribute is a valid URL
@@ -402,20 +402,20 @@ class LazyLoad extends UIElement {
 				}
 				return url.toString()
 			})
-    }
+	}
 
 	connectedCallback() {
 
-		// show / hide loading message
+		// Show / hide loading message
 		this.first('.loading')
 			.forEach(setProperty('ariaHidden', () => !!this.get('error')))
 
-		// set and show / hide error message
+		// Set and show / hide error message
 		this.first('.error')
 			.map(setText('error'))
 			.forEach(setProperty('ariaHidden', () => !this.get('error')))
 
-		// load content from provided URL
+		// Load content from provided URL
 		effect(enqueue => {
 			const src = this.get('src')
 			if (!src) return // silently fail if no valid URL is provided
@@ -434,7 +434,7 @@ class LazyLoad extends UIElement {
 							})
 						})
 						this.set('error', '')
-                    } else {
+					} else {
 						this.set('error', response.status + ':'+ response.statusText)
 					}
 				})
@@ -525,44 +525,40 @@ class MediaContext extends UIElement {
 MediaContext.define('media-context')
 
 class TodoApp extends UIElement {
-    connectedCallback() {
+	connectedCallback() {
 		const [todoList, todoFilter] = ['todo-list', 'input-radiogroup']
 			.map(selector => this.querySelector(selector))
 
 		// Event listener on own element
-        this.self
-            .map(on('add-todo', e => todoList?.addItem(e.detail)))
-        
-        // Coordinate todo-count
-		this.first('todo-count')
-            .map(pass({ active: () => todoList?.get('count').active }))
+		this.self.forEach(on('add-todo', e => todoList?.addItem(e.detail)))
+		
+		// Coordinate todo-count
+		this.first('todo-count').forEach(pass({
+			active: () => todoList?.get('count').active
+		}))
 
-        // Coordinate todo-list
-        this.first('todo-list')
-            .map(pass({ filter: () => todoFilter?.get('value') }))
+		// Coordinate todo-list
+		this.first('todo-list').forEach(pass({
+			filter: () => todoFilter?.get('value')
+		}))
 
-        // Coordinate .clear-completed button
-        this.first('.clear-completed')
-            .map(on('click', () => todoList?.clearCompleted()))
-            .map(pass({ disabled: () => !todoList?.get('count').completed }))
-    }
+		// Coordinate .clear-completed button
+		this.first('.clear-completed')
+			.map(on('click', () => todoList?.clearCompleted()))
+			.forEach(pass({ disabled: () => !todoList?.get('count').completed }))
+	}
 }
 TodoApp.define('todo-app')
 
 class TodoCount extends UIElement {
 	connectedCallback() {
-        this.set('active', 0, false)
-		this.first('.count')
-			.map(setText('active'))
-		this.first('.singular')
-		    .map(setProperty('ariaHidden', () => this.get('active') > 1))
-		this.first('.plural')
-		    .map(setProperty('ariaHidden', () => this.get('active') === 1))
-		this.first('.remaining')
-			.map(setProperty('ariaHidden', () => !this.get('active')))
-		this.first('.all-done')
-			.map(setProperty('ariaHidden', () => !!this.get('active')))
-    }
+		this.set('active', 0, false)
+		this.first('.count').forEach(setText('active'))
+		this.first('.singular').forEach(setProperty('ariaHidden', () => this.get('active') > 1))
+		this.first('.plural').forEach(setProperty('ariaHidden', () => this.get('active') === 1))
+		this.first('.remaining').forEach(setProperty('ariaHidden', () => !this.get('active')))
+		this.first('.all-done').forEach(setProperty('ariaHidden', () => !!this.get('active')))
+	}
 }
 TodoCount.define('todo-count')
 
@@ -570,73 +566,71 @@ class TodoForm extends UIElement {
 	connectedCallback() {
 		const inputField = this.querySelector('input-field')
 
-        this.first('form')
-			.forEach(on('submit', e => {
-				e.preventDefault()
-				setTimeout(() => {
-					this.dispatchEvent(new CustomEvent('add-todo', {
-						bubbles: true,
-						detail: inputField.get('value')
-					}))
-					inputField.clear()
-				}, 0)
-			}))
-		
-		this.first('input-button')
-			.forEach(pass({
-				disabled: () => inputField.get('empty')
-			}))
+        this.first('form').forEach(on('submit', e => {
+			e.preventDefault()
+			setTimeout(() => {
+				this.dispatchEvent(new CustomEvent('add-todo', {
+					bubbles: true,
+					detail: inputField.get('value')
+				}))
+				inputField.clear()
+			}, 0)
+		}))
+	
+		this.first('input-button').forEach(pass({
+			disabled: () => inputField.get('empty')
+		}))
     }
 }
 TodoForm.define('todo-form')
 
 class TodoList extends UIElement {
-    connectedCallback() {
-        this.set('filter', 'all') // set initial filter
+	connectedCallback() {
+		this.set('filter', 'all') // set initial filter
 		this.#updateList()
 
 		// Event listener and attribute on own element
-        this.self
-            .map(on('click', e => {
-                if (e.target.localName === 'button') this.removeItem(e.target)
-            }))
-            .map(setAttribute('filter'))
+		this.self
+			.map(on('click', e => {
+				if (e.target.localName === 'button') this.removeItem(e.target)
+			}))
+			.forEach(setAttribute('filter'))
 
-        // Update count on each change
-        this.set('count', () => {
-            const tasks = this.get('tasks').map(el => el.signal('checked'))
-            const completed = tasks.filter(fn => fn()).length
-            const total = tasks.length
-            return {
+		// Update count on each change
+		this.set('count', () => {
+			const tasks = this.get('tasks').map(el => el.signal('checked'))
+			const completed = tasks.filter(fn => fn()).length
+			const total = tasks.length
+			return {
 				active: total - completed,
 				completed,
 				total
 			}
-        })
-    }
+		})
+	}
 
-    addItem = task => {
-        const template = this.querySelector('template').content.cloneNode(true)
-        template.querySelector('span').textContent = task
-        this.querySelector('ol').appendChild(template)
-        this.#updateList()
-    }
+	addItem = task => {
+		const template = this.querySelector('template').content.cloneNode(true)
+		template.querySelector('span').textContent = task
+		this.querySelector('ol').appendChild(template)
+		this.#updateList()
+	}
 
-    removeItem = element => {
-        element.closest('li').remove()
-        this.#updateList()
-    }
+	removeItem = element => {
+		element.closest('li').remove()
+		this.#updateList()
+	}
 
-    clearCompleted = () => {
-        this.get('tasks')
-            .filter(el => el.get('checked'))
-            .forEach(el => el.parentElement.remove())
-        this.#updateList()
-    }
+	clearCompleted = () => {
+		this.get('tasks')
+			.filter(el => el.get('checked'))
+			.forEach(el => el.parentElement.remove())
+		this.#updateList()
+	}
 
 	#updateList() {
-        this.set('tasks', Array.from(this.querySelectorAll('input-checkbox')))
-    }
+		this.set('tasks', Array.from(this.querySelectorAll('input-checkbox')))
+	}
 
 }
 TodoList.define('todo-list')

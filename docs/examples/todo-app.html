@@ -11,17 +11,68 @@
 			</summary>
 			<code-block language="html" copy-success="Copied!" copy-error="Error trying to copy to clipboard!">
 				<p class="meta">
-					<span class="file">todo-app.html.html</span>
+					<span class="file">todo-app.html</span>
 					<span class="language">html</span>
 				</p>
-				<pre><code class="language-html">&lt;todo-app.html count="42"&gt;
-	&lt;p&gt;
-		Count: &lt;span class="count"&gt;&lt;/span&gt;
-		Parity: &lt;span class="parity"&gt;&lt;/span&gt;
-	&lt;/p&gt;
-	&lt;button id="increment"&gt;+&lt;/button&gt;
-	&lt;button id="decrement"&gt;−&lt;/button&gt;
-&lt;/todo-app.html&gt;</code></pre>
+				<pre class="language-html"><code>&lt;&lt;todo-app&gt;
+	&lt;todo-form&gt;
+		&lt;form action="#"&gt;
+			&lt;input-field&gt;
+				&lt;label for="add-todo"&gt;What needs to be done?&lt;/label&gt;
+				&lt;div class="row"&gt;
+					&lt;div class="group auto"&gt;
+						&lt;input id="add-todo" type="text" value="" required&gt;
+					&lt;/div&gt;
+				&lt;/div&gt;
+			&lt;/input-field&gt;
+			&lt;input-button class="submit"&gt;
+				&lt;button type="submit" class="primary" disabled&gt;Add Todo&lt;/button&gt;
+			&lt;/input-button&gt;
+		&lt;/form&gt;
+	&lt;/todo-form&gt;
+	&lt;todo-list filter="all"&gt;
+		&lt;ol&gt;&lt;/ol&gt;
+		&lt;template&gt;
+			&lt;li&gt;
+				&lt;input-checkbox class="todo"&gt;
+					&lt;label&gt;
+						&lt;input type="checkbox" class="visually-hidden" /&gt;
+						&lt;span&gt;&lt;/span&gt;
+					&lt;/label&gt;
+				&lt;/input-checkbox&gt;
+				&lt;input-button&gt;
+					&lt;button type="button"&gt;Delete&lt;/button&gt;
+				&lt;/input-button&gt;
+			&lt;/li&gt;
+		&lt;/template&gt;
+	&lt;/todo-list&gt;
+	&lt;footer&gt;
+		&lt;todo-count&gt;
+			&lt;p class="all-done"&gt;Well done, all done!&lt;/p&gt;
+			&lt;p class="remaining"&gt;&lt;span&gt;&lt;/span&gt; tasks left&lt;/p&gt;
+		&lt;/todo-count&gt;
+		&lt;input-radiogroup value="all" class="split-button"&gt;
+			&lt;fieldset&gt;
+				&lt;legend class="visually-hidden"&gt;Filter&lt;/legend&gt;
+					&lt;label class="selected"&gt;
+						&lt;input type="radio" class="visually-hidden" name="filter" value="all" checked&gt;
+						&lt;span&gt;All&lt;/span&gt;
+					&lt;/label&gt;
+					&lt;label&gt;
+						&lt;input type="radio" class="visually-hidden" name="filter" value="active"&gt;
+						&lt;span&gt;Active&lt;/span&gt;
+					&lt;/label&gt;
+					&lt;label&gt;
+						&lt;input type="radio" class="visually-hidden" name="filter" value="completed"&gt;
+						&lt;span&gt;Completed&lt;/span&gt;
+					&lt;/label&gt;
+			&lt;/fieldset&gt;
+		&lt;/input-radiogroup&gt;
+		&lt;input-button class="clear-completed"&gt;
+			&lt;button type="button"&gt;Clear Completed&lt;/button&gt;
+		&lt;/input-button&gt;
+	&lt;/footer&gt;
+&lt;/todo-app&gt;</code></pre>
 				<input-button class="copy">
 					<button type="button" class="secondary small">Copy</button>
 				</input-button>
@@ -35,27 +86,33 @@
 			</summary>
 			<code-block language="css" copy-success="Copied!" copy-error="Error trying to copy to clipboard!">
 				<p class="meta">
-					<span class="file">todo-app.html.css</span>
+					<span class="file">todo-app.css</span>
 					<span class="language">css</span>
 				</p>
-				<pre><code class="language-css">todo-app.html {
+				<pre class="language-css"><code>todo-app {
 	display: flex;
-	gap: 0.5rem;
-	margin-block: 1rem;
+	flex-direction: column;
+	gap: var(--space-l);
 
-	p {
-		display: inline-block;
+	& footer {
+		display: grid;
+		grid-template-columns: 1fr 1fr 1fr;
+		align-items: center;
+		gap: var(--space-m);
 		margin: 0;
-		flex: 1;
+	
+		.clear-completed {
+			justify-self: end;
+		}
 	}
+}
 
-	span {
-		margin-right: 0.5rem;
-	}
-
-	button {
-		padding: 0.25rem 0.5rem;
-		flex: 0;
+todo-count {
+	justify-self: start;
+	
+	& p {
+		font-size: var(--font-size-s);
+		margin: 0;
 	}
 }</code></pre>
 				<input-button class="copy">
@@ -71,26 +128,48 @@
 			</summary>
 			<code-block language="js" copy-success="Copied!" copy-error="Error trying to copy to clipboard!">
 				<p class="meta">
-					<span class="file">todo-app.html.js</span>
+					<span class="file">todo-app.js</span>
 					<span class="language">js</span>
 				</p>
-				<pre><code class="language-js">import { UIElement, asInteger, on, setText } from '@efflore/ui-element'
+				<pre class="language-js"><code>import { UIElement, on, pass, setText, setProperty } from '@efflore/ui-element'
 
-class MyCounter extends UIElement {
-	static observedAttributes = ['count']
-	static attributeMap = {
-		count: asInteger
-	}
-
+class TodoApp extends UIElement {
 	connectedCallback() {
-		this.set('parity', () => this.get('count') % 2 ? 'odd' : 'even')
-		this.first('.increment').map(on('click', () => this.set('count', v => ++v)))
-		this.first('.decrement').map(on('click', () => this.set('count', v => --v)))
-		this.first('.count').map(setText('count'))
-		this.first('.parity').map(setText('parity'))
+		const [todoList, todoFilter] = ['todo-list', 'input-radiogroup']
+			.map(selector => this.querySelector(selector))
+
+		// Event listener on own element
+		this.self.forEach(on('add-todo', e => todoList?.addItem(e.detail)))
+		
+		// Coordinate todo-count
+		this.first('todo-count').forEach(pass({
+			active: () => todoList?.get('count').active
+		}))
+
+		// Coordinate todo-list
+		this.first('todo-list').forEach(pass({
+			filter: () => todoFilter?.get('value')
+		}))
+
+		// Coordinate .clear-completed button
+		this.first('.clear-completed')
+			.map(on('click', () => todoList?.clearCompleted()))
+			.forEach(pass({ disabled: () => !todoList?.get('count').completed }))
 	}
 }
-MyCounter.define('todo-app.html')</code></pre>
+TodoApp.define('todo-app')
+
+class TodoCount extends UIElement {
+	connectedCallback() {
+		this.set('active', 0, false)
+		this.first('.count').forEach(setText('active'))
+		this.first('.singular').forEach(setProperty('ariaHidden', () => this.get('active') > 1))
+		this.first('.plural').forEach(setProperty('ariaHidden', () => this.get('active') === 1))
+		this.first('.remaining').forEach(setProperty('ariaHidden', () => !this.get('active')))
+		this.first('.all-done').forEach(setProperty('ariaHidden', () => !!this.get('active')))
+	}
+}
+TodoCount.define('todo-count')</code></pre>
 				<input-button class="copy">
 					<button type="button" class="secondary small">Copy</button>
 				</input-button>

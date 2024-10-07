@@ -275,6 +275,7 @@ input-button {
 		padding: 0 var(--space-s);
 		font-size: var(--font-size-s);
 		line-height: var(--line-height-s);
+		white-space: nowrap;
 		opacity: var(--opacity-dimmed);
 		transition: all var(--transition-shorter) var(--easing-inout);
 

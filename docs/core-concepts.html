@@ -115,7 +115,7 @@
 					<p class="meta">
 						<span class="language">js</span>
 					</p>
-					<pre><code class="language-js">class MyComponent extends UIElement {
+					<pre class="language-js"><code>class MyComponent extends UIElement {
 	/* component definition */
 }</code></pre>
 					<input-button class="copy">
@@ -129,7 +129,7 @@
 					<p class="meta">
 						<span class="language">js</span>
 					</p>
-					<pre><code class="language-js">MyComponent.define('my-component');</code></pre>
+					<pre class="language-js"><code>MyComponent.define('my-component');</code></pre>
 					<input-button class="copy">
 						<button type="button" class="secondary small">Copy</button>
 					</input-button>
@@ -142,7 +142,7 @@
 					<p class="meta">
 						<span class="language">html</span>
 					</p>
-					<pre><code class="language-html">&lt;my-component&gt;Content goes here&lt;/my-component&gt;</code></pre>
+					<pre class="language-html"><code>&lt;my-component&gt;Content goes here&lt;/my-component&gt;</code></pre>
 					<input-button class="copy">
 						<button type="button" class="secondary small">Copy</button>
 					</input-button>
@@ -176,7 +176,7 @@
 					<p class="meta">
 						<span class="language">js</span>
 					</p>
-					<pre><code class="language-js">this.set('count', 0); // Create a signal
+					<pre class="language-js"><code>this.set('count', 0); // Create a signal
 this.set('isEven', () => this.get('count') % 2 === 0); // Create a derived signal</code></pre>
 					<input-button class="copy">
 						<button type="button" class="secondary small">Copy</button>
@@ -195,7 +195,7 @@ this.set('isEven', () => this.get('count') % 2 === 0); // Create a derived signa
 					<p class="meta">
 						<span class="language">js</span>
 					</p>
-					<pre><code class="language-js">static observedAttributes = ['count'];</code></pre>
+					<pre class="language-js"><code>static observedAttributes = ['count'];</code></pre>
 					<input-button class="copy">
 						<button type="button" class="secondary small">Copy</button>
 					</input-button>
@@ -205,7 +205,7 @@ this.set('isEven', () => this.get('count') % 2 === 0); // Create a derived signa
 					<p class="meta">
 						<span class="language">js</span>
 					</p>
-					<pre><code class="language-js">static attributeMap = {
+					<pre class="language-js"><code>static attributeMap = {
 	count: asInteger,
 }</code></pre>
 					<input-button class="copy">
@@ -217,7 +217,7 @@ this.set('isEven', () => this.get('count') % 2 === 0); // Create a derived signa
 					<p class="meta">
 						<span class="language">js</span>
 					</p>
-				<pre><code class="language-js">static attributeMap = {
+				<pre class="language-js"><code>static attributeMap = {
 	date: value => value.map(v => new Date(v)),
 }</code></pre>
 					<input-button class="copy">
@@ -234,7 +234,7 @@ this.set('isEven', () => this.get('count') % 2 === 0); // Create a derived signa
 					<p class="meta">
 						<span class="language">js</span>
 					</p>
-                    <pre><code class="language-js">this.first('.increment').map(on('click', () => this.set('count', v => ++v)));</code></pre>
+                    <pre class="language-js"><code>this.first('.increment').map(on('click', () => this.set('count', v => ++v)));</code></pre>
 					<input-button class="copy">
 						<button type="button" class="secondary small">Copy</button>
 					</input-button>
@@ -250,7 +250,7 @@ this.set('isEven', () => this.get('count') % 2 === 0); // Create a derived signa
 					<p class="meta">
 						<span class="language">js</span>
 					</p>
-                    <pre><code class="language-js">this.first('.count').map(setText('count'));</code></pre>
+                    <pre class="language-js"><code>this.first('.count').map(setText('count'));</code></pre>
 					<input-button class="copy">
 						<button type="button" class="secondary small">Copy</button>
 					</input-button>
