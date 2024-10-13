@@ -3,6 +3,7 @@ import { maybe } from './core/maybe'
 import { type Signal, isState, cause, derive, effect } from './cause-effect'
 import { log, LOG_ERROR } from './core/log'
 import { parse } from './core/parse'
+import { syncInternals } from './core/internals'
 import { type UnknownContext, initContext } from './core/context'
 import { type StateMap, pass } from './lib/pass'
 import { on, off, emit } from './lib/event'
@@ -31,6 +32,7 @@ type StateLike<T> = PropertyKey | Signal<T> | ((old: T | undefined) => T)
 class UIElement extends HTMLElement {
 	static registry: CustomElementRegistry = customElements
 	static attributeMap: AttributeMap = {}
+	static observedAttributes: string[]
 	static consumedContexts: UnknownContext[]
 	static providedContexts: UnknownContext[]
 
@@ -52,6 +54,12 @@ class UIElement extends HTMLElement {
 	#states = new Map<PropertyKey, Signal<any>>()
 
 	/**
+	 * @since 0.9.0
+	 * @property {ElementInternals | undefined} internals - native internal properties of the custom element
+	 */
+	internals: ElementInternals | undefined
+
+	/**
 	 * @since 0.8.1
 	 * @property {UI<UIElement>[]} self - single item array of UI object for this element
 	 */
@@ -64,6 +72,14 @@ class UIElement extends HTMLElement {
 	 * @since 0.8.3
 	 */
 	root: Element | ShadowRoot = this.shadowRoot || this
+
+	/**
+	 * Constructor for the UIElement class
+	 */
+	constructor() {
+		super()
+		this.internals = this.attachInternals()
+	}
 
 	/**
 	 * Native callback function when an observed attribute of the custom element changes
@@ -88,6 +104,7 @@ class UIElement extends HTMLElement {
      */
 	connectedCallback(): void {
 		initContext(this)
+		syncInternals(this)
 	}
 
 	disconnectedCallback(): void {}

@@ -25,6 +25,7 @@ declare class UIElement extends HTMLElement {
     #private;
     static registry: CustomElementRegistry;
     static attributeMap: AttributeMap;
+    static observedAttributes: string[];
     static consumedContexts: UnknownContext[];
     static providedContexts: UnknownContext[];
     /**
@@ -35,6 +36,11 @@ declare class UIElement extends HTMLElement {
      */
     static define(tag: string): void;
     /**
+     * @since 0.9.0
+     * @property {ElementInternals | undefined} internals - native internal properties of the custom element
+     */
+    internals: ElementInternals | undefined;
+    /**
      * @since 0.8.1
      * @property {UI<UIElement>[]} self - single item array of UI object for this element
      */
@@ -43,6 +49,10 @@ declare class UIElement extends HTMLElement {
      * @since 0.8.3
      */
     root: Element | ShadowRoot;
+    /**
+     * Constructor for the UIElement class
+     */
+    constructor();
     /**
      * Native callback function when an observed attribute of the custom element changes
      *
