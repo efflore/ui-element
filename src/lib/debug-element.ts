@@ -144,7 +144,7 @@ class DebugElement extends UIElement {
    * /
   targets(key: PropertyKey): Element[] {
     let targets = []
-    const state = this.signal(key)
+    const state = this.signals.get(key)
     if (!state || !state.effects) return targets
     const recurse = (effects: Set<Effect | Computed<unknown>>) => {
       for (const effect of effects) {

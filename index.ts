@@ -1,5 +1,5 @@
 import { UIElement } from './src/ui-element'
-import { derive, effect } from './src/cause-effect'
+import { computed, effect } from './src/cause-effect'
 import { maybe } from './src/core/maybe'
 import { log } from './src/core/log'
 import { pass } from './src/lib/pass'
@@ -9,11 +9,11 @@ import { setAttribute, setProperty, setStyle, setText, toggleAttribute, toggleCl
 
 /**
  * @name UIElement
- * @version 0.8.5
+ * @version 0.9.0
  */
 
 export {
-  UIElement, derive, effect, maybe, log, pass, on, off, emit,
+  UIElement, computed, effect, maybe, log, pass, on, off, emit,
   asBoolean, asInteger, asNumber, asString, asJSON,
   setText, setProperty, setAttribute, toggleAttribute, toggleClass, setStyle
 }

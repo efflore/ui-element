@@ -8,11 +8,43 @@ const isNull = (value) => value === null;
 const isNullish = (value) => value == null;
 const isDefined = (value) => value != null;
 const isDefinedObject = (value) => isDefined(value) && (isObject(value) || isFunction(value));
-// eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
-const hasMethod = (obj, name) => isFunction(obj[name]);
+const isObjectOfType = (value, type) => isDefinedObject(value) && Symbol.toStringTag in value && value[Symbol.toStringTag] === type;
 const isComment = (node) => node.nodeType !== Node.COMMENT_NODE;
 
+/* === Constants === */
+const TYPE_OK = 'Ok';
+const TYPE_NONE = 'None';
 /* === Exported Function === */
+/**
+ * Create a "None" value, representing a lack of a value
+ *
+ * @since 0.9.0
+ * @returns {None} - "None" value
+ */
+const none = () => ({
+    [Symbol.toStringTag]: TYPE_NONE,
+    map: () => none(),
+    flatMap: () => none(),
+    filter: () => none(),
+    or: fallback => ok(fallback),
+    get: () => undefined,
+});
+/**
+ * Create an "Ok" value, representing a value
+ *
+ * @since 0.9.0
+ * @param {T} value - value to wrap in an "Ok" value
+ * @returns {Ok<T>} - "Ok" value with the given value
+ */
+const ok = (value) => ({
+    [Symbol.toStringTag]: TYPE_OK,
+    value,
+    map: f => ok(f(value)),
+    flatMap: f => f(value),
+    filter: f => f(value) ? ok(value) : none(),
+    or: () => ok(value),
+    get: () => value,
+});
 /**
  * Create an array for a given value to gracefully handle nullable values
  *
@@ -20,7 +52,7 @@ const isComment = (node) => node.nodeType !== Node.COMMENT_NODE;
  * @param {unknown} value - value to wrap in an array
  * @returns {T[]} - array of either zero or one element, depending on whether the input is nullish
  */
-const maybe = (value) => isNullish(value) ? [] : [value];
+const maybe = (value) => isDefined(value) ? ok(value) : none();
 
 /* === Types === */
 /* === Constants === */
@@ -83,6 +115,9 @@ const scheduler = () => {
     };
 };
 
+/* === Constants === */
+const TYPE_STATE = 'State';
+const TYPE_COMPUTED = 'Computed';
 /* === Internal === */
 // hold the currently active effect
 let active;
@@ -126,10 +161,13 @@ const reactive = (fn, notify) => {
 /**
  * Check if a given variable is a state signal
  *
+ * @since 0.7.0
  * @param {unknown} value - variable to check
  * @returns {boolean} true if supplied parameter is a state signal
  */
-const isState = (value) => isDefinedObject(value) && hasMethod(value, 'set');
+const isState = (value) => isObjectOfType(value, TYPE_STATE);
+const isComputed = (value) => isObjectOfType(value, TYPE_COMPUTED);
+const isSignal = (value) => isState(value) || isComputed(value);
 /**
  * Define a reactive state
  *
@@ -137,19 +175,21 @@ const isState = (value) => isDefinedObject(value) && hasMethod(value, 'set');
  * @param {any} value - initial value of the state; may be a function for derived state
  * @returns {State<T>} getter function for the current value with a `set` method to update the value
  */
-const cause = (value) => {
+const state = (value) => {
     const targets = new Set();
-    const state = () => {
-        autotrack(targets);
-        return value;
+    return {
+        [Symbol.toStringTag]: TYPE_STATE,
+        get() {
+            autotrack(targets);
+            return value;
+        },
+        set(updater) {
+            const old = value;
+            value = isFunction(updater) && updater.length ? updater(value) : updater;
+            if (!Object.is(value, old))
+                autorun(targets);
+        }
     };
-    state.set = (updater) => {
-        const old = value;
-        value = isFunction(updater) && updater.length ? updater(value) : updater;
-        if (!Object.is(value, old))
-            autorun(targets);
-    };
-    return state;
 };
 /**
  * Create a derived state from a existing states
@@ -158,7 +198,7 @@ const cause = (value) => {
  * @param {() => T} fn - compute function to derive state
  * @returns {Computed<T>} result of derived state
  */
-const derive = (fn, memo = false) => {
+const computed = (fn, memo = false) => {
     const targets = new Set();
     let value;
     let stale = true;
@@ -167,14 +207,17 @@ const derive = (fn, memo = false) => {
         if (memo)
             autorun(targets);
     };
-    return () => {
-        autotrack(targets);
-        if (!memo || stale)
-            reactive(() => {
-                value = fn();
-                stale = isNullish(value);
-            }, notify);
-        return value;
+    return {
+        [Symbol.toStringTag]: TYPE_COMPUTED,
+        get() {
+            autotrack(targets);
+            if (!memo || stale)
+                reactive(() => {
+                    value = fn();
+                    stale = isNullish(value);
+                }, notify);
+            return value;
+        }
     };
 };
 /**
@@ -204,216 +247,20 @@ const effect = (fn) => {
  */
 const parse = (host, name, value, old = undefined) => {
     const parser = host.constructor.attributeMap[name];
-    return isFunction(parser) ? parser(maybe(value), host, old)[0] : value;
+    return isFunction(parser) ? parser(maybe(value), host, old).get() : value;
 };
 
-/* === Exported functions === */
-/**
- * Parse a boolean attribute as an actual boolean value
- *
- * @since 0.7.0
- * @param {string[]} value - maybe string value or nothing
- * @returns {boolean[]}
- */
-const asBoolean = (value) => [isDefined(value[0])];
-/**
- * Parse an attribute as a number forced to integer
- *
- * @since 0.7.0
- * @param {string[]} value - maybe string value or nothing
- * @returns {number[]}
- */
-const asInteger = (value) => value.map(v => parseInt(v, 10)).filter(Number.isFinite);
-/**
- * Parse an attribute as a number
- *
- * @since 0.7.0
- * @param {string[]} value - maybe string value or nothing
- * @returns {number[]}
- */
-const asNumber = (value) => value.map(parseFloat).filter(Number.isFinite);
-/**
- * Parse an attribute as a string
- *
- * @since 0.7.0
- * @param {string[]} value - maybe string value or nothing
- * @returns {string[]}
- */
-const asString = (value) => value;
-/**
- * Parse an attribute as a JSON serialized object
- *
- * @since 0.7.2
- * @param {string[]} value - maybe string value or nothing
- * @returns {unknown[]}
- */
-const asJSON = (value) => {
-    let result = [];
-    try {
-        result = value.map(v => JSON.parse(v));
-    }
-    catch (error) {
-        log(error, 'Failed to parse JSON', LOG_ERROR);
-    }
-    return result;
-};
-
+/* === Constants === */
+const TYPE_UI = 'UI';
 /* === Exported Functions === */
-/**
- * Toggle an internal state of an element based on given state
- *
- * @since 0.9.0
- * @param {UIElement} host - host UIElement to update internals
- * @param {string} name - name of internal state to be toggled
- * @param {string} ariaProp - aria property to be updated when internal state changes
- */
-const toggleInternal = (host, name, ariaProp) => {
-    host.set(name, host.hasAttribute(name), false);
-    effect((enqueue) => {
-        const current = host.internals.states.has(name);
-        const value = host.get(name);
-        if (!Object.is(value, current)) {
-            enqueue(host, `i-${name}`, value
-                ? (element) => () => {
-                    element.internals.states.add(name);
-                    if (ariaProp) {
-                        element.internals[ariaProp] = 'true';
-                        element.setAttribute(`aria-${name}`, 'true');
-                    }
-                    element.toggleAttribute(name, true);
-                }
-                : (element) => () => {
-                    element.internals.states.delete(name);
-                    if (ariaProp) {
-                        element.internals[ariaProp] = 'false';
-                        element.setAttribute(`aria-${name}`, 'false');
-                    }
-                    element.toggleAttribute(name, false);
-                });
-        }
-    });
-};
-/**
- * Set ElementInternals ARIA property and attribute based on given state
- *
- * @since 0.9.0
- * @param {UIElement} host - host UIElement to update internals
- * @param {string} name - name of internal state to be toggled
- * @param {string} ariaProp - aria property to be updated when internal state changes
- */
-const setInternal = (host, name, ariaProp) => {
-    host.set(name, parse(host, name, host.getAttribute(name)), false);
-    effect((enqueue) => {
-        const current = host.internals[ariaProp];
-        const value = String(host.get(name));
-        if (value !== current) {
-            enqueue(host, `i-${name}`, isDefined(value)
-                ? (element) => () => {
-                    element.internals[ariaProp] = value;
-                    element.setAttribute(`aria-${name}`, value);
-                }
-                : (element) => () => {
-                    element.internals[ariaProp] = undefined;
-                    element.removeAttribute(`aria-${name}`);
-                });
-        }
-    });
-};
-/**
- * Synchronize internal states of an element with corresponding HTML attributes and aria properties
- *
- * @param host host UIElement to sync internals
- */
-const syncInternals = (host) => {
-    const proto = host.constructor;
-    const capitalize = (s) => s.charAt(0).toUpperCase() + s.slice(1);
-    const addInternals = (map, internals) => internals.forEach((internal) => map.set(internal, capitalize(internal)));
-    const role = host.role;
-    const boolInternals = new Map([]);
-    addInternals(boolInternals, [
-        'disabled',
-        'hidden',
-    ]);
-    const numberInternals = new Map();
-    const stringInternals = new Map([
-        ['keyshortcuts', 'KeyShortcuts'],
-    ]);
-    addInternals(stringInternals, [
-        'controls',
-        'description',
-        'label',
-    ]);
-    addInternals(proto.attributeMap['current'] === asBoolean ? boolInternals : stringInternals, ['current']);
-    if (role)
-        stringInternals.set('roledescription', 'RoleDescription');
-    if (host.hasAttribute('aria-live')) {
-        addInternals(boolInternals, ['atomic', 'busy']);
-        addInternals(stringInternals, ['live', 'relevant']);
-    }
-    if (['textbox', 'combobox'].includes(role))
-        stringInternals.set('autocomplete', 'AutoComplete');
-    if (['checkbox', 'menuitemcheckbox', 'menuitemradio', 'radio', 'switch'].includes(role))
-        addInternals(proto.attributeMap['checked'] === asBoolean ? boolInternals : stringInternals, ['checked']);
-    if (['table', 'grid', 'treegrid'].includes(role)) {
-        numberInternals.set('colcount', 'ColCount');
-        numberInternals.set('colindex', 'ColIndex');
-        numberInternals.set('colspan', 'ColSpan');
-        numberInternals.set('rowcount', 'RowCount');
-        numberInternals.set('rowindex', 'RowIndex');
-        numberInternals.set('rowspan', 'RowSpan');
-    }
-    if (['button', 'link', 'treeitem', 'grid', 'row', 'listbox', 'tabpanel', 'menuitem', 'combobox'].includes(role))
-        addInternals(boolInternals, ['expanded']);
-    if (['button', 'link', 'menuitem', 'combobox', 'gridcell'].includes(role))
-        (proto.attributeMap['haspopup'] === asBoolean ? boolInternals : stringInternals).set('haspopup', 'HasPopup');
-    if (['heading', 'treeitem', 'listitem'].includes(role))
-        numberInternals.set('level', 'Level');
-    if (role === 'dialog')
-        boolInternals.set('modal', 'Modal');
-    if (role === 'textbox') {
-        boolInternals.set('multiline', 'MultiLine');
-        stringInternals.set('placeholder', 'Placeholder');
-    }
-    if (['listbox', 'grid', 'table', 'tree'].includes(role))
-        boolInternals.set('multiselectable', 'MultiSelectable');
-    if (['scrollbar', 'slider', 'separator', 'progressbar', 'tabpanel'].includes(role))
-        stringInternals.set('orientation', 'Orientation');
-    if (['listitem', 'treeitem'].includes(role))
-        numberInternals.set('posinset', 'PosInSet');
-    if (['button', 'switch'].includes(role))
-        addInternals(proto.attributeMap['pressed'] === asBoolean ? boolInternals : stringInternals, ['pressed']);
-    if (['textbox', 'gridcell', 'spinbutton'].includes(role))
-        boolInternals.set('readonly', 'ReadOnly');
-    if (['textbox', 'gridcell', 'spinbutton', 'combobox', 'listbox'].includes(role))
-        boolInternals.set('required', 'Required');
-    if (['gridcell', 'listitem', 'option', 'tab', 'treeitem'].includes(role))
-        boolInternals.set('selected', 'Selected');
-    if (['listitem', 'treeitem', 'option', 'row', 'tab'].includes(role))
-        numberInternals.set('setsize', 'SetSize');
-    if (['grid', 'treegrid', 'table'].includes(role))
-        stringInternals.set('sorted', 'Sorted');
-    if (['range', 'progressbar', 'slider', 'spinbutton'].includes(role)) {
-        numberInternals.set('valuemax', 'ValueMax');
-        numberInternals.set('valuemin', 'ValueMin');
-        numberInternals.set('valuenow', 'ValueNow');
-        stringInternals.set('valuetext', 'ValueText');
-    }
-    for (const attr of proto.observedAttributes) {
-        if (numberInternals.has(attr)) {
-            if (!Object.hasOwn(proto.attributeMap, attr))
-                proto.attributeMap[attr] = attr.slice(0, 5) === 'value' ? asNumber : asInteger;
-            setInternal(host, attr, `aria${numberInternals.get(attr)}`);
-        }
-        else if (stringInternals.has(attr)) {
-            setInternal(host, attr, `aria${stringInternals.get(attr)}`);
-        }
-        else if (boolInternals.has(attr)) {
-            if (!Object.hasOwn(proto.attributeMap, attr))
-                proto.attributeMap[attr] = asBoolean;
-            toggleInternal(host, attr, `aria${boolInternals.get(attr)}`);
-        }
-    }
-};
+const ui = (host, target = host) => ({
+    [Symbol.toStringTag]: TYPE_UI,
+    host,
+    target
+});
+const self = (host) => ok(ui(host));
+const first = (host) => (selector) => maybe(host.root.querySelector(selector)).map((target) => ui(host, target));
+const all = (host) => (selector) => Array.from(host.root.querySelectorAll(selector)).map(target => ui(host, target));
 
 /* === Constants === */
 const CONTEXT_REQUEST = 'context-request';
@@ -475,7 +322,7 @@ const initContext = (host) => {
         if (!provided.includes(context) || !isFunction(callback))
             return;
         e.stopPropagation();
-        callback(host.signal(String(context)));
+        callback(host.signals.get(String(context)));
     });
 };
 
@@ -496,12 +343,12 @@ const pass = (stateMap) =>
  */
 async (ui) => {
     await ui.host.constructor.registry.whenDefined(ui.target.localName);
-    for (const [key, source] of Object.entries(stateMap))
-        ui.target.set(key, isState(source)
+    for (const [key, source = key] of Object.entries(stateMap))
+        ui.target.set(key, isSignal(source)
             ? source
             : isFunction(source)
-                ? cause(source) // we need cause() here; with derive() the lexical scope of the source would be lost
-                : ui.host.signal(source));
+                ? state(source) // we need state() here; with computed() the lexical scope of the source would be lost
+                : ui.host.signals.get(source));
     return ui;
 };
 
@@ -564,6 +411,56 @@ const emit = (event, state = event) =>
         }));
     });
     return ui;
+};
+
+/* === Exported functions === */
+/**
+ * Parse a boolean attribute as an actual boolean value
+ *
+ * @since 0.7.0
+ * @param {Maybe<string>} value - maybe string value or nothing
+ * @returns {Maybe<boolean>}
+ */
+const asBoolean = (value) => maybe(isDefined(value.get()));
+/**
+ * Parse an attribute as a number forced to integer
+ *
+ * @since 0.7.0
+ * @param {Maybe<string>} value - maybe string value or nothing
+ * @returns {Maybe<number>}
+ */
+const asInteger = (value) => value.map(v => parseInt(v, 10)).filter(Number.isFinite);
+/**
+ * Parse an attribute as a number
+ *
+ * @since 0.7.0
+ * @param {Maybe<string>} value - maybe string value or nothing
+ * @returns {Maybe<number>}
+ */
+const asNumber = (value) => value.map(parseFloat).filter(Number.isFinite);
+/**
+ * Parse an attribute as a string
+ *
+ * @since 0.7.0
+ * @param {Maybe<string>} value - maybe string value or nothing
+ * @returns {Maybe<string>}
+ */
+const asString = (value) => value;
+/**
+ * Parse an attribute as a JSON serialized object
+ *
+ * @since 0.7.2
+ * @param {Maybe<string>} value - maybe string value or nothing
+ * @returns {Maybe<unknown>}
+ */
+const asJSON = (value) => {
+    try {
+        return value.map(v => JSON.parse(v));
+    }
+    catch (error) {
+        log(error, 'Failed to parse JSON', LOG_ERROR);
+        return none();
+    }
 };
 
 /* === Internal Functions === */
@@ -677,8 +574,11 @@ class UIElement extends HTMLElement {
             log(tag, error.message, LOG_ERROR);
         }
     }
-    // @private hold states – use `has()`, `get()`, `set()` and `delete()` to access and modify
-    #states = new Map();
+    /**
+     * @since 0.9.0
+     * @property {Map<PropertyKey, Signal<any>>} signals - map of observable properties
+     */
+    signals = new Map();
     /**
      * @since 0.9.0
      * @property {ElementInternals | undefined} internals - native internal properties of the custom element
@@ -686,23 +586,13 @@ class UIElement extends HTMLElement {
     internals;
     /**
      * @since 0.8.1
-     * @property {UI<UIElement>[]} self - single item array of UI object for this element
+     * @property {UI<Element>[]} self - single item array of UI object for this element
      */
-    self = [{
-            host: this,
-            target: this
-        }];
+    self = self(this);
     /**
      * @since 0.8.3
      */
     root = this.shadowRoot || this;
-    /**
-     * Constructor for the UIElement class
-     */
-    constructor() {
-        super();
-        this.internals = this.attachInternals();
-    }
     /**
      * Native callback function when an observed attribute of the custom element changes
      *
@@ -726,7 +616,7 @@ class UIElement extends HTMLElement {
      */
     connectedCallback() {
         initContext(this);
-        syncInternals(this);
+        // syncInternals(this)
     }
     disconnectedCallback() { }
     /**
@@ -737,7 +627,7 @@ class UIElement extends HTMLElement {
      * @returns {boolean} `true` if this element has state with the given key; `false` otherwise
      */
     has(key) {
-        return this.#states.has(key);
+        return this.signals.has(key);
     }
     /**
      * Get the current value of a state
@@ -747,8 +637,8 @@ class UIElement extends HTMLElement {
      * @returns {T | undefined} current value of state; undefined if state does not exist
      */
     get(key) {
-        const unwrap = (v) => isFunction(v) ? unwrap(v()) : v;
-        return unwrap(this.#states.get(key));
+        const unwrap = (v) => isFunction(v) ? unwrap(v()) : isSignal(v) ? unwrap(v.get()) : v;
+        return unwrap(this.signals.get(key));
     }
     /**
      * Create a state or update its value and return its current value
@@ -759,11 +649,11 @@ class UIElement extends HTMLElement {
      * @param {boolean} [update=true] - if `true` (default), the state is updated; if `false`, do nothing if state already exists
      */
     set(key, value, update = true) {
-        if (!this.#states.has(key)) {
-            this.#states.set(key, isState(value) ? value : cause(value));
+        if (!this.signals.has(key)) {
+            this.signals.set(key, isState(value) ? value : state(value));
         }
         else if (update) {
-            const state = this.#states.get(key);
+            const state = this.signals.get(key);
             if (isState(state))
                 state.set(value);
         }
@@ -776,17 +666,7 @@ class UIElement extends HTMLElement {
      * @returns {boolean} `true` if the state existed and was deleted; `false` if ignored
      */
     delete(key) {
-        return this.#states.delete(key);
-    }
-    /**
-     * Return the signal for a state
-     *
-     * @since 0.8.0
-     * @param {any} key - state to get signal for
-     * @returns {Signal<T> | undefined} signal for the given state; undefined if
-     */
-    signal(key) {
-        return this.#states.get(key);
+        return this.signals.delete(key);
     }
     /**
      * Get array of first sub-element matching a given selector within the custom element
@@ -795,9 +675,7 @@ class UIElement extends HTMLElement {
      * @param {string} selector - selector to match sub-element
      * @returns {UI<Element>[]} - array of zero or one UI objects of matching sub-element
      */
-    first(selector) {
-        return maybe(this.root.querySelector(selector)).map(target => ({ host: this, target }));
-    }
+    first = first(this);
     /**
      * Get array of all sub-elements matching a given selector within the custom element
      *
@@ -805,9 +683,7 @@ class UIElement extends HTMLElement {
      * @param {string} selector - selector to match sub-elements
      * @returns {UI<Element>[]} - array of UI object of matching sub-elements
      */
-    all(selector) {
-        return Array.from(this.root.querySelectorAll(selector)).map(target => ({ host: this, target }));
-    }
+    all = all(this);
 }
 
-export { UIElement, asBoolean, asInteger, asJSON, asNumber, asString, derive, effect, emit, log, maybe, off, on, pass, setAttribute, setProperty, setStyle, setText, toggleAttribute, toggleClass };
+export { UIElement, asBoolean, asInteger, asJSON, asNumber, asString, computed, effect, emit, log, maybe, off, on, pass, setAttribute, setProperty, setStyle, setText, toggleAttribute, toggleClass };

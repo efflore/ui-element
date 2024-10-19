@@ -1,5 +1,5 @@
 import type { UI, UIElement, StateLike } from '../ui-element'
-import { isState, cause } from '../cause-effect'
+import { isSignal, state } from '../cause-effect'
 import { isFunction } from '../core/is-type'
 
 /* === Types === */
@@ -25,14 +25,14 @@ const pass = <E extends UIElement>(stateMap: StateMap) =>
 	 */
 	async (ui: UI<E>): Promise<UI<E>> => {
 		await (ui.host.constructor as typeof UIElement).registry.whenDefined(ui.target.localName)
-		for (const [key, source] of Object.entries(stateMap))
+		for (const [key, source = key] of Object.entries(stateMap))
 			ui.target.set(
 				key,
-				isState(source)
+				isSignal(source)
 					? source
 					: isFunction(source)
-						? cause(source) // we need cause() here; with derive() the lexical scope of the source would be lost
-						: ui.host.signal(source)
+						? state(source) // we need state() here; with computed() the lexical scope of the source would be lost
+						: ui.host.signals.get(source)
 			)
 		return ui
 	}

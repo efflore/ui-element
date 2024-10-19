@@ -1,17 +1,14 @@
-import { maybe } from './core/maybe';
-import { type Signal, derive, effect } from './cause-effect';
+import { type Maybe, type Ok, maybe, ok, none } from './core/maybe';
+import { type Signal, computed, effect } from './cause-effect';
 import { log } from './core/log';
 import { parse } from './core/parse';
+import { type UI, self, first, all } from './core/ui';
 import { type UnknownContext } from './core/context';
 import { type StateMap, pass } from './lib/pass';
 import { on, off, emit } from './lib/event';
 import { asBoolean, asInteger, asJSON, asNumber, asString } from './lib/parse-attribute';
 import { setText, setProperty, setAttribute, toggleAttribute, toggleClass, setStyle } from './lib/auto-effects';
-type UI<T> = {
-    host: UIElement;
-    target: T;
-};
-type AttributeParser = (value: string[], element: UIElement, old: string | undefined) => unknown[];
+type AttributeParser = (value: Maybe<string>, element: UIElement, old: string | undefined) => Maybe<unknown>;
 type AttributeMap = Record<string, AttributeParser>;
 type StateLike<T> = PropertyKey | Signal<T> | ((old: T | undefined) => T);
 /**
@@ -22,7 +19,6 @@ type StateLike<T> = PropertyKey | Signal<T> | ((old: T | undefined) => T);
  * @type {UIElement}
  */
 declare class UIElement extends HTMLElement {
-    #private;
     static registry: CustomElementRegistry;
     static attributeMap: AttributeMap;
     static observedAttributes: string[];
@@ -37,22 +33,23 @@ declare class UIElement extends HTMLElement {
     static define(tag: string): void;
     /**
      * @since 0.9.0
+     * @property {Map<PropertyKey, Signal<any>>} signals - map of observable properties
+     */
+    signals: Map<PropertyKey, Signal<any>>;
+    /**
+     * @since 0.9.0
      * @property {ElementInternals | undefined} internals - native internal properties of the custom element
      */
     internals: ElementInternals | undefined;
     /**
      * @since 0.8.1
-     * @property {UI<UIElement>[]} self - single item array of UI object for this element
+     * @property {UI<Element>[]} self - single item array of UI object for this element
      */
-    self: UI<UIElement>[];
+    self: Ok<UI<Element>>;
     /**
      * @since 0.8.3
      */
     root: Element | ShadowRoot;
-    /**
-     * Constructor for the UIElement class
-     */
-    constructor();
     /**
      * Native callback function when an observed attribute of the custom element changes
      *
@@ -106,21 +103,13 @@ declare class UIElement extends HTMLElement {
      */
     delete(key: any): boolean;
     /**
-     * Return the signal for a state
-     *
-     * @since 0.8.0
-     * @param {any} key - state to get signal for
-     * @returns {Signal<T> | undefined} signal for the given state; undefined if
-     */
-    signal<T>(key: any): Signal<T> | undefined;
-    /**
      * Get array of first sub-element matching a given selector within the custom element
      *
      * @since 0.8.1
      * @param {string} selector - selector to match sub-element
      * @returns {UI<Element>[]} - array of zero or one UI objects of matching sub-element
      */
-    first(selector: string): UI<Element>[];
+    first: (selector: string) => Maybe<UI<Element>>;
     /**
      * Get array of all sub-elements matching a given selector within the custom element
      *
@@ -128,6 +117,6 @@ declare class UIElement extends HTMLElement {
      * @param {string} selector - selector to match sub-elements
      * @returns {UI<Element>[]} - array of UI object of matching sub-elements
      */
-    all(selector: string): UI<Element>[];
+    all: (selector: string) => UI<Element>[];
 }
-export { type UI, type AttributeMap, type StateMap, type StateLike, UIElement, parse, derive, effect, maybe, log, pass, on, off, emit, asBoolean, asInteger, asNumber, asString, asJSON, setText, setProperty, setAttribute, toggleAttribute, toggleClass, setStyle };
+export { type UI, type AttributeMap, type StateMap, type StateLike, UIElement, computed, effect, maybe, ok, none, log, self, first, all, pass, on, off, emit, parse, asBoolean, asInteger, asNumber, asString, asJSON, setText, setProperty, setAttribute, toggleAttribute, toggleClass, setStyle, };

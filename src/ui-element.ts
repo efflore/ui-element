@@ -1,22 +1,16 @@
 import { isFunction } from './core/is-type'
-import { maybe } from './core/maybe'
-import { type Signal, isState, cause, derive, effect } from './cause-effect'
+import { type Maybe, type Ok, maybe, ok, none } from './core/maybe'
+import { type Signal, isState, isSignal, state, computed, effect } from './cause-effect'
 import { log, LOG_ERROR } from './core/log'
 import { parse } from './core/parse'
-import { syncInternals } from './core/internals'
+import { type UI, self, first, all } from './core/ui'
 import { type UnknownContext, initContext } from './core/context'
 import { type StateMap, pass } from './lib/pass'
 import { on, off, emit } from './lib/event'
 import { asBoolean, asInteger, asJSON, asNumber, asString } from './lib/parse-attribute'
 import { setText, setProperty, setAttribute, toggleAttribute, toggleClass, setStyle } from './lib/auto-effects'
 
-/* === Types === */
-
-type UI<T> = {
-	host: UIElement,
-    target: T,
-}
-type AttributeParser = (value: string[], element: UIElement, old: string | undefined) => unknown[]
+type AttributeParser = (value: Maybe<string>, element: UIElement, old: string | undefined) => Maybe<unknown>
 type AttributeMap = Record<string, AttributeParser>
 type StateLike<T> = PropertyKey | Signal<T> | ((old: T | undefined) => T)
 
@@ -50,8 +44,11 @@ class UIElement extends HTMLElement {
 		}
 	}
 
-	// @private hold states – use `has()`, `get()`, `set()` and `delete()` to access and modify
-	#states = new Map<PropertyKey, Signal<any>>()
+	/**
+	 * @since 0.9.0
+	 * @property {Map<PropertyKey, Signal<any>>} signals - map of observable properties
+	 */
+	signals = new Map<PropertyKey, Signal<any>>()
 
 	/**
 	 * @since 0.9.0
@@ -61,25 +58,14 @@ class UIElement extends HTMLElement {
 
 	/**
 	 * @since 0.8.1
-	 * @property {UI<UIElement>[]} self - single item array of UI object for this element
+	 * @property {UI<Element>[]} self - single item array of UI object for this element
 	 */
-	self: UI<UIElement>[] = [{
-		host: this,
-		target: this
-	}]
+	self: Ok<UI<Element>> = self(this)
 
 	/**
 	 * @since 0.8.3
 	 */
 	root: Element | ShadowRoot = this.shadowRoot || this
-
-	/**
-	 * Constructor for the UIElement class
-	 */
-	constructor() {
-		super()
-		this.internals = this.attachInternals()
-	}
 
 	/**
 	 * Native callback function when an observed attribute of the custom element changes
@@ -104,7 +90,7 @@ class UIElement extends HTMLElement {
      */
 	connectedCallback(): void {
 		initContext(this)
-		syncInternals(this)
+		// syncInternals(this)
 	}
 
 	disconnectedCallback(): void {}
@@ -117,7 +103,7 @@ class UIElement extends HTMLElement {
 	 * @returns {boolean} `true` if this element has state with the given key; `false` otherwise
 	 */
 	has(key: any): boolean {
-		return this.#states.has(key)
+		return this.signals.has(key)
 	}
 
 	/**
@@ -128,8 +114,8 @@ class UIElement extends HTMLElement {
 	 * @returns {T | undefined} current value of state; undefined if state does not exist
 	 */
 	get<T>(key: any): T | undefined {
-		const unwrap = (v: any): any => isFunction(v) ? unwrap(v()) : v
-		return unwrap(this.#states.get(key))
+		const unwrap = (v: any): any => isFunction(v) ? unwrap(v()) : isSignal(v) ? unwrap(v.get()) : v
+		return unwrap(this.signals.get(key))
 	}
 
 	/**
@@ -141,10 +127,10 @@ class UIElement extends HTMLElement {
 	 * @param {boolean} [update=true] - if `true` (default), the state is updated; if `false`, do nothing if state already exists
 	 */
 	set<T>(key: any, value: T | Signal<T> | ((old: T | undefined) => T), update: boolean = true): void {
-		if (!this.#states.has(key)) {
-			this.#states.set(key, isState(value) ? value : cause(value))
+		if (!this.signals.has(key)) {
+			this.signals.set(key, isState(value) ? value : state(value))
 		} else if (update) {
-			const state = this.#states.get(key)
+			const state = this.signals.get(key)
 			if (isState(state)) state.set(value)
 		}
 	}
@@ -157,18 +143,7 @@ class UIElement extends HTMLElement {
 	 * @returns {boolean} `true` if the state existed and was deleted; `false` if ignored
 	 */
 	delete(key: any): boolean {
-		return this.#states.delete(key)
-	}
-
-	/**
-	 * Return the signal for a state
-	 * 
-	 * @since 0.8.0
-	 * @param {any} key - state to get signal for
-	 * @returns {Signal<T> | undefined} signal for the given state; undefined if
-	 */
-	signal<T>(key: any): Signal<T> | undefined {
-		return this.#states.get(key)
+		return this.signals.delete(key)
 	}
 
 	/**
@@ -178,9 +153,7 @@ class UIElement extends HTMLElement {
 	 * @param {string} selector - selector to match sub-element
 	 * @returns {UI<Element>[]} - array of zero or one UI objects of matching sub-element
 	 */
-	first(selector: string): UI<Element>[] {
-		return maybe(this.root.querySelector(selector)).map(target => ({ host: this, target }))
-	}
+	first: (selector: string) => Maybe<UI<Element>> = first(this)
 
 	/**
 	 * Get array of all sub-elements matching a given selector within the custom element
@@ -189,15 +162,13 @@ class UIElement extends HTMLElement {
 	 * @param {string} selector - selector to match sub-elements
 	 * @returns {UI<Element>[]} - array of UI object of matching sub-elements
 	 */
-	all(selector: string): UI<Element>[] {
-		return Array.from(this.root.querySelectorAll(selector)).map(target => ({ host: this, target }))
-	}
+	all: (selector: string) => UI<Element>[] = all(this)
 
 }
 
 export {
 	type UI, type AttributeMap, type StateMap, type StateLike,
-	UIElement, parse, derive, effect, maybe, log, pass, on, off, emit,
-	asBoolean, asInteger, asNumber, asString, asJSON,
-	setText, setProperty, setAttribute, toggleAttribute, toggleClass, setStyle
+	UIElement, computed, effect, maybe, ok, none, log, self, first, all, pass, on, off, emit,
+	parse, asBoolean, asInteger, asNumber, asString, asJSON,
+	setText, setProperty, setAttribute, toggleAttribute, toggleClass, setStyle,
 }

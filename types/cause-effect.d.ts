@@ -1,9 +1,13 @@
 import { type Enqueue } from './core/scheduler';
 type State<T> = {
-    (): T;
+    readonly [Symbol.toStringTag]: string;
+    get(): T;
     set(value: T): void;
 };
-type Computed<T> = () => T;
+type Computed<T> = {
+    readonly [Symbol.toStringTag]: string;
+    get(): T;
+};
 type Signal<T> = State<T> | Computed<T>;
 type Effect = () => void;
 type MaybeCleanup = void | (() => void);
@@ -11,10 +15,13 @@ type EffectCallback = (enqueue: Enqueue) => MaybeCleanup;
 /**
  * Check if a given variable is a state signal
  *
+ * @since 0.7.0
  * @param {unknown} value - variable to check
  * @returns {boolean} true if supplied parameter is a state signal
  */
 declare const isState: (value: unknown) => value is State<unknown>;
+declare const isComputed: (value: unknown) => value is Computed<unknown>;
+declare const isSignal: (value: unknown) => value is Signal<unknown>;
 /**
  * Define a reactive state
  *
@@ -22,7 +29,7 @@ declare const isState: (value: unknown) => value is State<unknown>;
  * @param {any} value - initial value of the state; may be a function for derived state
  * @returns {State<T>} getter function for the current value with a `set` method to update the value
  */
-declare const cause: <T>(value: T) => State<T>;
+declare const state: <T>(value: T) => State<T>;
 /**
  * Create a derived state from a existing states
  *
@@ -30,7 +37,7 @@ declare const cause: <T>(value: T) => State<T>;
  * @param {() => T} fn - compute function to derive state
  * @returns {Computed<T>} result of derived state
  */
-declare const derive: <T>(fn: () => T | undefined, memo?: boolean) => Computed<T>;
+declare const computed: <T>(fn: () => T | undefined, memo?: boolean) => Computed<T>;
 /**
  * Define what happens when a reactive state changes
  *
@@ -38,4 +45,4 @@ declare const derive: <T>(fn: () => T | undefined, memo?: boolean) => Computed<T
  * @param {EffectCallback} fn - callback function to be executed when a state changes
  */
 declare const effect: (fn: EffectCallback) => void;
-export { type State, type Computed, type Signal, type Effect, isState, cause, derive, effect };
+export { type State, type Computed, type Signal, type Effect, isState, isComputed, isSignal, state, computed, effect };

@@ -6,8 +6,7 @@ const isFunction = isOfType('function');
 const isNullish = (value) => value == null;
 const isDefined = (value) => value != null;
 const isDefinedObject = (value) => isDefined(value) && (isObject(value) || isFunction(value));
-// eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
-const hasMethod = (obj, name) => isFunction(obj[name]);
+const isObjectOfType = (value, type) => isDefinedObject(value) && Symbol.toStringTag in value && value[Symbol.toStringTag] === type;
 
 /* === Types === */
 /* === Constants === */
@@ -70,6 +69,9 @@ const scheduler = () => {
     };
 };
 
+/* === Constants === */
+const TYPE_STATE = 'State';
+const TYPE_COMPUTED = 'Computed';
 /* === Internal === */
 // hold the currently active effect
 let active;
@@ -113,10 +115,13 @@ const reactive = (fn, notify) => {
 /**
  * Check if a given variable is a state signal
  *
+ * @since 0.7.0
  * @param {unknown} value - variable to check
  * @returns {boolean} true if supplied parameter is a state signal
  */
-const isState = (value) => isDefinedObject(value) && hasMethod(value, 'set');
+const isState = (value) => isObjectOfType(value, TYPE_STATE);
+const isComputed = (value) => isObjectOfType(value, TYPE_COMPUTED);
+const isSignal = (value) => isState(value) || isComputed(value);
 /**
  * Define a reactive state
  *
@@ -124,19 +129,21 @@ const isState = (value) => isDefinedObject(value) && hasMethod(value, 'set');
  * @param {any} value - initial value of the state; may be a function for derived state
  * @returns {State<T>} getter function for the current value with a `set` method to update the value
  */
-const cause = (value) => {
+const state = (value) => {
     const targets = new Set();
-    const state = () => {
-        autotrack(targets);
-        return value;
+    return {
+        [Symbol.toStringTag]: TYPE_STATE,
+        get() {
+            autotrack(targets);
+            return value;
+        },
+        set(updater) {
+            const old = value;
+            value = isFunction(updater) && updater.length ? updater(value) : updater;
+            if (!Object.is(value, old))
+                autorun(targets);
+        }
     };
-    state.set = (updater) => {
-        const old = value;
-        value = isFunction(updater) && updater.length ? updater(value) : updater;
-        if (!Object.is(value, old))
-            autorun(targets);
-    };
-    return state;
 };
 /**
  * Create a derived state from a existing states
@@ -145,7 +152,7 @@ const cause = (value) => {
  * @param {() => T} fn - compute function to derive state
  * @returns {Computed<T>} result of derived state
  */
-const derive = (fn, memo = false) => {
+const computed = (fn, memo = false) => {
     const targets = new Set();
     let value;
     let stale = true;
@@ -154,14 +161,17 @@ const derive = (fn, memo = false) => {
         if (memo)
             autorun(targets);
     };
-    return () => {
-        autotrack(targets);
-        if (!memo || stale)
-            reactive(() => {
-                value = fn();
-                stale = isNullish(value);
-            }, notify);
-        return value;
+    return {
+        [Symbol.toStringTag]: TYPE_COMPUTED,
+        get() {
+            autotrack(targets);
+            if (!memo || stale)
+                reactive(() => {
+                    value = fn();
+                    stale = isNullish(value);
+                }, notify);
+            return value;
+        }
     };
 };
 /**
@@ -179,4 +189,4 @@ const effect = (fn) => {
     run();
 };
 
-export { cause, derive, effect, isState };
+export { computed, effect, isComputed, isSignal, isState, state };

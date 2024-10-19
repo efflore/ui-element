@@ -106,7 +106,7 @@ const initContext = (host: UIElement) => {
 		const { context, callback } = e
 		if (!provided.includes(context) || !isFunction(callback)) return
 		e.stopPropagation()
-		callback(host.signal(String(context)))
+		callback(host.signals.get(String(context)))
 	})
 }
 

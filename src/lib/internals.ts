@@ -1,9 +1,9 @@
-import { isDefined } from './is-type'
-import { parse } from './parse'
+import { isDefined } from '../core/is-type'
+import { parse } from '../core/parse'
 import { effect } from '../cause-effect'
 import type { UIElement } from '../ui-element'
-import type { Enqueue } from './scheduler'
-import { asBoolean, asInteger, asNumber } from '../lib/parse-attribute'
+import type { Enqueue } from '../core/scheduler'
+import { asBoolean, asInteger, asNumber } from './parse-attribute'
 
 /* === Exported Functions === */
 
@@ -16,27 +16,28 @@ import { asBoolean, asInteger, asNumber } from '../lib/parse-attribute'
  * @param {string} ariaProp - aria property to be updated when internal state changes
  */
 const toggleInternal = <E extends UIElement>(host: E, name: string, ariaProp?: string) => {
+	if (!host.internals) return
 	host.set(name, host.hasAttribute(name), false)
 	effect((enqueue: Enqueue) => {
 		const current = host.internals.states.has(name)
 		const value = host.get(name)
 		if (!Object.is(value, current)) {
 			enqueue(host, `i-${name}`, value
-				? (element: UIElement) => () => {
-					element.internals.states.add(name)
+				? (el: UIElement) => () => {
+					el.internals.states.add(name)
 					if (ariaProp) {
-						element.internals[ariaProp] = 'true'
-						element.setAttribute(`aria-${name}`, 'true')
+						el.internals[ariaProp] = 'true'
+						el.setAttribute(`aria-${name}`, 'true')
 					}
-					element.toggleAttribute(name, true)
+					el.toggleAttribute(name, true)
 				}
-				: (element: UIElement) => () => {
-					element.internals.states.delete(name)
+				: (el: UIElement) => () => {
+					el.internals.states.delete(name)
 					if (ariaProp) {
-						element.internals[ariaProp] = 'false'
-						element.setAttribute(`aria-${name}`, 'false')
+						el.internals[ariaProp] = 'false'
+						el.setAttribute(`aria-${name}`, 'false')
 					}
-					element.toggleAttribute(name, false)
+					el.toggleAttribute(name, false)
 				}
 			)
 		}
@@ -52,19 +53,20 @@ const toggleInternal = <E extends UIElement>(host: E, name: string, ariaProp?: s
  * @param {string} ariaProp - aria property to be updated when internal state changes
  */
 const setInternal = <E extends UIElement>(host: E, name: string, ariaProp: string) => {
+	if (!host.internals) return
 	host.set(name, parse(host, name, host.getAttribute(name)), false)
 	effect((enqueue: Enqueue) => {
 		const current = host.internals[ariaProp]
 		const value = String(host.get(name))
 		if (value!== current) {
 			enqueue(host, `i-${name}`, isDefined(value)
-				? (element: UIElement) => () => {
-					element.internals[ariaProp] = value
-					element.setAttribute(`aria-${name}`, value)
+				? (el: UIElement) => () => {
+					el.internals[ariaProp] = value
+					el.setAttribute(`aria-${name}`, value)
 				}
-				: (element: UIElement) => () => {
-					element.internals[ariaProp] = undefined
-					element.removeAttribute(`aria-${name}`)
+				: (el: UIElement) => () => {
+					el.internals[ariaProp] = undefined
+					el.removeAttribute(`aria-${name}`)
 				}
 			)
 		}
@@ -77,6 +79,7 @@ const setInternal = <E extends UIElement>(host: E, name: string, ariaProp: strin
  * @param host host UIElement to sync internals
  */
 const syncInternals = (host: UIElement) => {
+	if (!host.internals) host.internals = host.attachInternals()
 	const proto = host.constructor as typeof UIElement
 	const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
 	const addInternals = (map: Map<string, string>, internals: string[]) =>
@@ -155,6 +158,7 @@ const syncInternals = (host: UIElement) => {
 		stringInternals.set('valuetext', 'ValueText')
     }
 
+	if (!proto.observedAttributes) return
 	for (const attr of proto.observedAttributes) {
 		if (numberInternals.has(attr)) {
 			if (!Object.hasOwn(proto.attributeMap, attr))
@@ -171,4 +175,4 @@ const syncInternals = (host: UIElement) => {
 
 }
 
-export { syncInternals, toggleInternal }
+export { syncInternals, toggleInternal, setInternal }

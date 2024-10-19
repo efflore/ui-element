@@ -8,7 +8,7 @@
   <script type="module">
     import { runTests } from '@web/test-runner-mocha';
     import { assert } from '@esm-bundle/chai';
-    import { cause, derive, effect } from '../cause-effect.js';
+    import { state, computed, effect } from '../cause-effect.js';
 
     import { makeGraph, runGraph, Counter } from "./util/dependency-graph.js";
 
@@ -22,15 +22,15 @@
     const framework = {
       name: "Cause & Effect",
       signal: initialValue => {
-        const s = cause(initialValue);
+        const s = state(initialValue);
         return {
           write: v => s.set(v),
-          read: () => s(),
+          read: () => s.get(),
         };
       },
       computed: fn => {
-        const c = derive(fn, true);
-        return { read: () => c() };
+        const c = computed(fn, true);
+        return { read: () => c.get() };
       },
       effect: fn => effect(fn),
       withBatch: fn => fn(),

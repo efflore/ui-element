@@ -116,7 +116,7 @@
 		import { runTests } from '@web/test-runner-mocha'
 		import { assert } from '@esm-bundle/chai'
 		import {
-			UIElement, derive, effect, maybe, pass, on,
+			UIElement, effect, maybe, pass, on,
 			asBoolean, asInteger, asNumber,
 			setText, setProperty, setAttribute, toggleAttribute, toggleClass, setStyle
 		} from '../index.js'
@@ -131,7 +131,7 @@
 		class CausalComponent extends UIElement {
 			connectedCallback() {
 				this.set('heading', 'Hello from Internal State')
-				this.first('h1').forEach(setText('heading'))
+				this.first('h1').map(setText('heading'))
 			}
 		}
 		CausalComponent.define('causal-component')
@@ -148,11 +148,11 @@
 			connectedCallback() {
 				this.first('h1')
 					.map(setText('heading'))
-					.forEach(toggleClass('selected'))
-				this.first('span').forEach(setText('count'))
+					.map(toggleClass('selected'))
+				this.first('span').map(setText('count'))
 				this.first('input')
 					.map(setAttribute('step'))
-					.forEach(setProperty('value'))
+					.map(setProperty('value'))
 			}
 		}
 		UpdatingComponent.define('updating-component')
@@ -161,7 +161,7 @@
 			static observedAttributes = ['heading']
 
 			connectedCallback() {
-				this.first('child-component').forEach(pass({
+				this.first('child-component').map(pass({
 					heading: 'heading',
 					text: () => this.get('heading').toUpperCase()
 				}))
@@ -172,7 +172,7 @@
 		class ChildComponent extends UIElement {
 			connectedCallback() {
 				this.first('h1').map(setText('heading'))
-				this.first('p').forEach(setText('text'))
+				this.first('p').map(setText('text'))
 			}
 		}
 		ChildComponent.define('child-component')
@@ -184,11 +184,11 @@
 			}
 
 			connectedCallback() {
-				this.first('.decrement').forEach(on('click', () => this.set('value', v => --v)))
-				this.first('.increment').forEach(on('click', () => this.set('value', v => ++v)))
-				this.first('.value').forEach(setText('value'))
-				this.first('.parity').forEach(setText(() => this.get('value') % 2 ? 'odd' : 'even'))
-				this.first('.double').forEach(setText(() => this.get('value') * 2))
+				this.first('.decrement').map(on('click', () => this.set('value', v => --v)))
+				this.first('.increment').map(on('click', () => this.set('value', v => ++v)))
+				this.first('.value').map(setText('value'))
+				this.first('.parity').map(setText(() => this.get('value') % 2 ? 'odd' : 'even'))
+				this.first('.double').map(setText(() => this.get('value') * 2))
 			}
 		}
 		MyCounter.define('my-counter')
@@ -196,7 +196,7 @@
 		class GreetingConfigurator extends UIElement {
 			connectedCallback() {
 				const firstName = this.querySelector('.first')
-				this.first('hello-world').forEach(pass({
+				this.first('hello-world').map(pass({
 					name: () => this.querySelector('input-checkbox').get('checked')
 						? `${firstName?.get('value')} ${this.querySelector('.last')?.get('value')}`
 						: firstName?.get('value')
@@ -209,8 +209,8 @@
 			static observedAttributes = ['greeting']
 
 			connectedCallback() {
-				this.first('.greeting').forEach(setText('greeting'))
-				this.first('.name').forEach(setText('name'))
+				this.first('.greeting').map(setText('greeting'))
+				this.first('.name').map(setText('name'))
 			}
 		}
 		HelloWorld.define('hello-world')

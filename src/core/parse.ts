@@ -15,7 +15,7 @@ import type { UIElement } from '../ui-element'
  */
 const parse = (host: UIElement, name: string, value: string, old: string | undefined = undefined) => {
 	const parser = (host.constructor as typeof UIElement).attributeMap[name]
-	return isFunction(parser) ? parser(maybe(value), host, old)[0] : value
+	return isFunction(parser) ? parser(maybe(value), host, old).get() : value
 }
 
 export { parse }

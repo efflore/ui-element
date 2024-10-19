@@ -35,8 +35,11 @@ const isTrue: (value: unknown) => boolean = (value: unknown): boolean =>
 const isTruthy: (value: unknown) => boolean = (value: unknown): boolean =>
 	!!value
 
-const isDefinedObject = (value: unknown): value is Record<string, unknown> =>
+const isDefinedObject = (value: unknown): value is Record<PropertyKey, unknown> =>
 	isDefined(value) && (isObject(value) || isFunction(value))
+
+const isObjectOfType = (value: unknown, type: string): value is Record<PropertyKey, unknown> =>
+	isDefinedObject(value) && Symbol.toStringTag in value && value[Symbol.toStringTag] === type
 
 // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
 const hasMethod = <T, K extends keyof T>(obj: T, name: K): obj is T & Record<K, Function> =>
@@ -52,6 +55,6 @@ const isComment: (node: Node) => boolean = (node: Node) =>
 
 export {
 	isOfType, isUndefined, isSymbol, isBoolean, isNumber, isString, isObject, isFunction,
-	isNull, isNullish, isDefined, isFalse, isFalsy, isTrue, isTruthy, isDefinedObject, hasMethod,
-	isInstanceOf, isElement, isComment
+	isNull, isNullish, isDefined, isFalse, isFalsy, isTrue, isTruthy,
+	isDefinedObject, isObjectOfType, hasMethod, isInstanceOf, isElement, isComment
 }

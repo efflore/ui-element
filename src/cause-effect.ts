@@ -1,21 +1,31 @@
-import { isFunction, hasMethod, isDefinedObject, isNullish } from './core/is-type'
+import { isFunction, isNullish, isObjectOfType } from './core/is-type'
 import { log, LOG_ERROR } from './core/log'
 import { type Enqueue, scheduler } from './core/scheduler'
 
 /* === Types === */
 
 type State<T> = {
-	(): T
+	readonly [Symbol.toStringTag]: string
+	get(): T
 	set(value: T): void
 }
 
-type Computed<T> = () => T
+type Computed<T> = {
+	readonly [Symbol.toStringTag]: string
+	get(): T
+}
+
 type Signal<T> = State<T> | Computed<T>
 type Effect = () => void
 
 type MaybeCleanup = void | (() => void)
 
 type EffectCallback = (enqueue: Enqueue) => MaybeCleanup
+
+/* === Constants === */
+
+const TYPE_STATE = 'State'
+const TYPE_COMPUTED = 'Computed'
 
 /* === Internal === */
 
@@ -66,11 +76,18 @@ const reactive = (fn: () => void, notify: () => void): void => {
 /**
  * Check if a given variable is a state signal
  * 
+ * @since 0.7.0
  * @param {unknown} value - variable to check
  * @returns {boolean} true if supplied parameter is a state signal
  */
 const isState = (value: unknown): value is State<unknown> =>
-	isDefinedObject(value) && hasMethod(value, 'set')
+	isObjectOfType(value, TYPE_STATE)
+
+const isComputed = (value: unknown): value is Computed<unknown> =>
+	isObjectOfType(value, TYPE_COMPUTED)
+
+const isSignal = (value: unknown): value is Signal<unknown> =>
+	isState(value) || isComputed(value)
 
 /**
  * Define a reactive state
@@ -79,18 +96,20 @@ const isState = (value: unknown): value is State<unknown> =>
  * @param {any} value - initial value of the state; may be a function for derived state
  * @returns {State<T>} getter function for the current value with a `set` method to update the value
  */
-const cause = <T>(value: T): State<T> => {
+const state = <T>(value: T): State<T> => {
 	const targets = new Set<() => void>()
-	const state: State<T> = (): T | undefined => { // getter function
-		autotrack(targets)
-		return value
+	return {
+		[Symbol.toStringTag]: TYPE_STATE,
+        get(): T | undefined {
+			autotrack(targets)
+			return value
+		},
+        set(updater: unknown | ((v: T | undefined) => T | undefined)): void {
+			const old = value
+			value = isFunction(updater) && updater.length ? updater(value) : updater
+			if (!Object.is(value, old)) autorun(targets)
+		}
 	}
-	state.set = (updater: unknown | ((v: T | undefined) => T | undefined)) => { // setter function
-		const old = value
-		value = isFunction(updater) && updater.length ? updater(value) : updater
-		if (!Object.is(value, old)) autorun(targets)
-	}
-	return state
 }
 
 /**
@@ -100,7 +119,7 @@ const cause = <T>(value: T): State<T> => {
  * @param {() => T} fn - compute function to derive state
  * @returns {Computed<T>} result of derived state
  */
-const derive = <T>(fn: () => T | undefined, memo: boolean = false): Computed<T> => {
+const computed = <T>(fn: () => T | undefined, memo: boolean = false): Computed<T> => {
 	const targets = new Set<() => void>()
 	let value: T | undefined
 	let stale = true
@@ -108,13 +127,16 @@ const derive = <T>(fn: () => T | undefined, memo: boolean = false): Computed<T> 
 		stale = true
 		if (memo) autorun(targets)
 	}
-	return () => {
-		autotrack(targets)
-		if (!memo || stale) reactive(() => {
-			value = fn()
-			stale = isNullish(value)
-		}, notify)
-		return value
+	return {
+        [Symbol.toStringTag]: TYPE_COMPUTED,
+		get(): T | undefined {
+			autotrack(targets)
+			if (!memo || stale) reactive(() => {
+				value = fn()
+				stale = isNullish(value)
+			}, notify)
+			return value
+		}
 	}
 }
 
@@ -134,5 +156,5 @@ const effect = (fn: EffectCallback) => {
 
 export {
 	type State, type Computed, type Signal, type Effect,
-	isState, cause, derive, effect
+	isState, isComputed, isSignal, state, computed, effect
 }

@@ -30,7 +30,7 @@
 		import { runTests } from '@web/test-runner-mocha'
 		import { assert } from '@esm-bundle/chai'
 		import {
-			UIElement, derive, effect, maybe, pass, on,
+			UIElement, effect, maybe, pass, on,
 			asBoolean, asInteger, asNumber,
 			setText, setProperty, setAttribute, toggleAttribute, toggleClass, setStyle
 		} from '../index.js'
@@ -43,7 +43,7 @@
 			static observedAttributes = ['text']
 
 			connectedCallback() {
-				this.first('p').forEach(setText('text'))
+				this.first('p').map(setText('text'))
 			}
 		}
 		UpdateText.define('update-text')
@@ -52,7 +52,7 @@
 			static observedAttributes = ['value']
 
 			connectedCallback() {
-                this.first('input').forEach(setProperty('value'))
+                this.first('input').map(setProperty('value'))
             }
 		}
 		UpdateProperty.define('update-property')
@@ -71,7 +71,7 @@
 				    .map(setProperty('ariaInvalid'))
 					.map(setAttribute('aria-errormessage'))
 					.map(toggleAttribute('required'))
-					.forEach(on('change', e => this.set('ariaInvalid', String(!e.target.checkValidity()))))
+					.map(on('change', e => this.set('ariaInvalid', String(!e.target.checkValidity()))))
             }
 		}
 		UpdateAttribute.define('update-attribute')
@@ -92,7 +92,7 @@
 			static observedAttributes = ['color']
 
 			connectedCallback() {
-                this.first('p').forEach(setStyle('color'))
+                this.first('p').map(setStyle('color'))
             }
 		}
 		UpdateStyle.define('update-style')

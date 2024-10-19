@@ -43,7 +43,7 @@
 
 			connectedCallback() {
 				super.connectedCallback()
-				this.first('span').forEach(setText('reduced-motion'))
+				this.first('span').map(setText('reduced-motion'))
 			}
 		}
 		MyAnimation.define('my-animation')
@@ -59,7 +59,7 @@
 
 			connectedCallback() {
 				super.connectedCallback();
-				this.first('span').forEach(setText('display-name'))
+				this.first('span').map(setText('display-name'))
 			}
 		}
 		HelloWorld.define('hello-world')
