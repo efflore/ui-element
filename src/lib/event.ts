@@ -1,5 +1,6 @@
-import { effect } from '../cause-effect'
-import type { UI, StateLike } from '../ui-element'
+import { effect } from '../core/cause-effect'
+import type { UI } from '../core/ui'
+import type { StateLike } from '../ui-element'
 
 /* === Exported Functions === */
 

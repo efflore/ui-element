@@ -1,12 +1,17 @@
+import { TYPE_FAIL, attempt, match } from './maybe'
 import { log, LOG_ERROR } from './log'
 
 /* === Types === */
 
-type UnknownFunction = (...args: unknown[]) => unknown
 type ElementFunction = (element: Element) => () => void
 type Enqueue = (element: Element, prop: string, fn: ElementFunction) => void
-type Cleanup = (key: unknown, fn: UnknownFunction) => void
-type Scheduler = { enqueue: Enqueue, cleanup: Cleanup }
+// eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
+type Cleanup = (key: unknown, fn: Function) => void
+
+type Scheduler = {
+	enqueue: Enqueue,
+	cleanup: Cleanup
+}
 
 /* === Exported Function === */
 
@@ -22,18 +27,18 @@ const scheduler = (): Scheduler => {
 	let requestId: number
 
 	const run = (fn: () => void, msg: string) => {
-		try {
-			fn()
-		} catch (reason) {
-			log(reason, msg, LOG_ERROR)
-		}
+		const result = attempt(fn)
+		match({
+			[TYPE_FAIL]: error => log(error, msg, LOG_ERROR)
+		})(result)
 	}
 
 	const flush = () => {
 		requestId = null
-		effectQueue.forEach((elEffect, el) =>
-			elEffect.forEach((fn: ElementFunction, prop: string) =>
-				run(fn(el), `Effect ${prop} on ${el?.localName || 'unknown'} failed`)
+		effectQueue.forEach(
+			(elEffect, el) => elEffect.forEach(
+				(fn: ElementFunction, prop: string) =>
+					run(fn(el), `Effect ${prop} on ${el?.localName || 'unknown'} failed`)
 			)
 		)
 		effectQueue.clear()
@@ -51,8 +56,10 @@ const scheduler = (): Scheduler => {
 		return effectQueue.get(key)
 	}
 
-	const addToQueue = (map: Map<unknown, UnknownFunction>) =>
-		(key: unknown, fn: UnknownFunction) => {
+	// eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
+	const addToQueue = (map: Map<unknown, Function>) =>
+		// eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
+		(key: unknown, fn: Function) => {
 			const more = !map.has(key)
 			map.set(key, fn)
 			if (more) requestTick()

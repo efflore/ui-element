@@ -1,16 +1,9 @@
-import { type Maybe, type Ok, maybe, ok, none } from './core/maybe';
-import { type Signal, computed, effect } from './cause-effect';
-import { log } from './core/log';
-import { parse } from './core/parse';
-import { type UI, self, first, all } from './core/ui';
+import { type Maybe, type Ok } from './core/maybe';
+import { type Signal } from './core/cause-effect';
+import { type AttributeMap } from './core/parse';
+import { type UI } from './core/ui';
 import { type UnknownContext } from './core/context';
-import { type StateMap, pass } from './lib/pass';
-import { on, off, emit } from './lib/event';
-import { asBoolean, asInteger, asJSON, asNumber, asString } from './lib/parse-attribute';
-import { setText, setProperty, setAttribute, toggleAttribute, toggleClass, setStyle } from './lib/auto-effects';
-type AttributeParser = (value: Maybe<string>, element: UIElement, old: string | undefined) => Maybe<unknown>;
-type AttributeMap = Record<string, AttributeParser>;
-type StateLike<T> = PropertyKey | Signal<T> | ((old: T | undefined) => T);
+type StateLike<T> = PropertyKey | Signal<T> | ((old: T | undefined) => T) | (() => T);
 /**
  * Base class for reactive custom elements
  *
@@ -69,6 +62,7 @@ declare class UIElement extends HTMLElement {
      */
     connectedCallback(): void;
     disconnectedCallback(): void;
+    adoptedCallback(): void;
     /**
      * Check whether a state is set
      *
@@ -119,4 +113,4 @@ declare class UIElement extends HTMLElement {
      */
     all: (selector: string) => UI<Element>[];
 }
-export { type UI, type AttributeMap, type StateMap, type StateLike, UIElement, computed, effect, maybe, ok, none, log, self, first, all, pass, on, off, emit, parse, asBoolean, asInteger, asNumber, asString, asJSON, setText, setProperty, setAttribute, toggleAttribute, toggleClass, setStyle, };
+export { type StateLike, UIElement };

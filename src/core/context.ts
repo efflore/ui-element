@@ -89,8 +89,8 @@ const initContext = (host: UIElement) => {
 
 	// context consumers
 	const consumed = proto.consumedContexts || []
-	for (const context of consumed)
-		host.set(String(context), undefined, false)
+	/* for (const context of consumed)
+		host.set(String(context), undefined, false) */
 	setTimeout(() => { // wait for all custom elements to be defined
 		for (const context of consumed)
 			host.dispatchEvent(new ContextRequestEvent(

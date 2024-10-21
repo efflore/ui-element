@@ -1,4 +1,7 @@
+import { type Maybe } from './maybe';
 import type { UIElement } from '../ui-element';
+type AttributeParser = (value: Maybe<string>, element: UIElement, old: string | undefined) => Maybe<unknown>;
+type AttributeMap = Record<string, AttributeParser>;
 /**
  * Parse according to static attributeMap
  *
@@ -8,5 +11,5 @@ import type { UIElement } from '../ui-element';
  * @param {string} value - attribute value
  * @param {string | undefined} [old=undefined] - old attribute value
  */
-declare const parse: (host: UIElement, name: string, value: string, old?: string | undefined) => unknown;
-export { parse };
+declare const parse: (host: UIElement, name: string, value: string, old?: string | undefined) => string | Maybe<unknown>;
+export { type AttributeParser, type AttributeMap, parse };

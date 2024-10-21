@@ -1,17 +1,17 @@
-import { type Enqueue } from './core/scheduler';
+import { type Enqueue } from './scheduler';
 type State<T> = {
     readonly [Symbol.toStringTag]: string;
     get(): T;
     set(value: T): void;
+    get targets(): Array<() => void>;
 };
 type Computed<T> = {
     readonly [Symbol.toStringTag]: string;
     get(): T;
+    get targets(): Array<() => void>;
 };
 type Signal<T> = State<T> | Computed<T>;
-type Effect = () => void;
-type MaybeCleanup = void | Function;
-type EffectCallback = (enqueue: Enqueue) => MaybeCleanup;
+type EffectCallback = (enqueue: Enqueue) => void | Function;
 declare const TYPE_STATE = "State";
 declare const TYPE_COMPUTED = "Computed";
 /**
@@ -47,4 +47,4 @@ declare const computed: <T>(fn: () => T | undefined, memo?: boolean) => Computed
  * @param {EffectCallback} fn - callback function to be executed when a state changes
  */
 declare const effect: (fn: EffectCallback) => void;
-export { type State, type Computed, type Signal, type Effect, TYPE_STATE, TYPE_COMPUTED, isState, isComputed, isSignal, state, computed, effect };
+export { type State, type Computed, type Signal, TYPE_STATE, TYPE_COMPUTED, isState, isComputed, isSignal, state, computed, effect };

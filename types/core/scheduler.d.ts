@@ -1,7 +1,6 @@
-type UnknownFunction = (...args: unknown[]) => unknown;
 type ElementFunction = (element: Element) => () => void;
 type Enqueue = (element: Element, prop: string, fn: ElementFunction) => void;
-type Cleanup = (key: unknown, fn: UnknownFunction) => void;
+type Cleanup = (key: unknown, fn: Function) => void;
 type Scheduler = {
     enqueue: Enqueue;
     cleanup: Cleanup;

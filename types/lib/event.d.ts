@@ -1,4 +1,5 @@
-import type { UI, StateLike } from '../ui-element';
+import type { UI } from '../core/ui';
+import type { StateLike } from '../ui-element';
 /**
  * Add event listener to a target element
  *

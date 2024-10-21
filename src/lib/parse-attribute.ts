@@ -1,6 +1,6 @@
 import { isDefined } from '../core/is-type'
 import { log, LOG_ERROR } from '../core/log'
-import { type Maybe, maybe, none } from '../core/maybe'
+import { attempt, match, type Maybe, maybe, none, TYPE_FAIL } from '../core/maybe'
 
 /* === Exported functions === */
 
@@ -51,12 +51,13 @@ const asString = (value: Maybe<string>): Maybe<string> => value
  * @returns {Maybe<unknown>}
  */
 const asJSON = (value: Maybe<string>): Maybe<unknown> => {
-	try {
-		return value.map(v => JSON.parse(v))
-	} catch (error) {
-		log(error, 'Failed to parse JSON', LOG_ERROR)
-		return none()
-	}
+	const result = attempt(() => value.map(v => JSON.parse(v)))
+	return match({
+		[TYPE_FAIL]: error => {
+			log(error, 'Failed to parse JSON', LOG_ERROR)
+			return none()
+		}
+	})(result)
 }
 
 export { asBoolean, asInteger, asNumber, asString, asJSON }

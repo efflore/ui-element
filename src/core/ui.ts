@@ -34,4 +34,4 @@ const first = (host: UIElement) => (selector: string) =>
 const all = (host: UIElement) => (selector: string) =>
 	Array.from(host.root.querySelectorAll(selector)).map(target => ui(host, target))
 
-export { type UI, ui, isUI, self, first, all }
+export { type UI, TYPE_UI, ui, isUI, self, first, all }

@@ -4,6 +4,7 @@ type UI<T> = {
     host: UIElement;
     target: T;
 };
+declare const TYPE_UI = "UI";
 declare const ui: (host: UIElement, target?: Element) => {
     [Symbol.toStringTag]: string;
     host: UIElement;
@@ -25,4 +26,4 @@ declare const all: (host: UIElement) => (selector: string) => {
     host: UIElement;
     target: Element;
 }[];
-export { type UI, ui, isUI, self, first, all };
+export { type UI, TYPE_UI, ui, isUI, self, first, all };

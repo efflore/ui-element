@@ -1,6 +1,7 @@
-import { isFunction, isNullish, isObjectOfType } from './core/is-type'
-import { log, LOG_ERROR } from './core/log'
-import { type Enqueue, scheduler } from './core/scheduler'
+import { isFunction, isNullish, isObjectOfType } from './is-type'
+import { log, LOG_ERROR } from './log'
+import { TYPE_FAIL, maybe, attempt, match } from './maybe'
+import { type Enqueue, scheduler } from './scheduler'
 
 /* === Types === */
 
@@ -8,19 +9,19 @@ type State<T> = {
 	readonly [Symbol.toStringTag]: string
 	get(): T
 	set(value: T): void
+	get targets(): Array<() => void>
 }
 
 type Computed<T> = {
 	readonly [Symbol.toStringTag]: string
 	get(): T
+	get targets(): Array<() => void>
 }
 
 type Signal<T> = State<T> | Computed<T>
-type Effect = () => void
 
-type MaybeCleanup = void | (() => void)
-
-type EffectCallback = (enqueue: Enqueue) => MaybeCleanup
+// eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
+type EffectCallback = (enqueue: Enqueue) => void | Function
 
 /* === Constants === */
 
@@ -62,13 +63,11 @@ const autorun = (targets: Set<() => void>) =>
 const reactive = (fn: () => void, notify: () => void): void => {
 	const prev = active
 	active = notify
-	try {
-		fn()
-	} catch (error) {
-		log(error, 'Error during reactive computation', LOG_ERROR)
-	} finally {
-		active = prev
-	}
+	const result = attempt(fn)
+	match({
+		[TYPE_FAIL]: error => log(error, 'Error during reactive computation', LOG_ERROR)
+	})(result)
+	active = prev
 }
 
 /* === Exported Functions === */
@@ -108,7 +107,10 @@ const state = <T>(value: T): State<T> => {
 			const old = value
 			value = isFunction(updater) && updater.length ? updater(value) : updater
 			if (!Object.is(value, old)) autorun(targets)
-		}
+		},
+		get targets() {
+			return [...targets]
+		},
 	}
 }
 
@@ -136,7 +138,10 @@ const computed = <T>(fn: () => T | undefined, memo: boolean = false): Computed<T
 				stale = isNullish(value)
 			}, notify)
 			return value
-		}
+		},
+		get targets() {
+			return [...targets]
+		},
 	}
 }
 
@@ -147,14 +152,17 @@ const computed = <T>(fn: () => T | undefined, memo: boolean = false): Computed<T
  * @param {EffectCallback} fn - callback function to be executed when a state changes
  */
 const effect = (fn: EffectCallback) => {
-	const run = () => reactive(() => {
-		const cleanupFn = fn(enqueue)
-		if (isFunction(cleanupFn)) cleanup(fn, cleanupFn)
-	}, run)
+	const run = () => reactive(
+		() => maybe(fn(enqueue))
+			.guard(isFunction)
+			.map(cleanupFn => cleanup(fn, cleanupFn)),
+		run
+	)
 	run()
 }
 
 export {
-	type State, type Computed, type Signal, type Effect,
+	type State, type Computed, type Signal,
+	TYPE_STATE, TYPE_COMPUTED,
 	isState, isComputed, isSignal, state, computed, effect
 }

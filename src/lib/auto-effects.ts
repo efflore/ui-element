@@ -1,8 +1,9 @@
 import { isComment, isFunction, isNull, isNullish, isString } from '../core/is-type'
 import { parse } from '../core/parse'
-import { effect } from '../cause-effect'
+import { effect } from '../core/cause-effect'
 import type { Enqueue } from '../core/scheduler'
-import type { UI, StateLike } from '../ui-element'
+import type { UI } from '../core/ui'
+import type { StateLike } from '../ui-element'
 
 /* === Internal Functions === */
 
@@ -26,25 +27,19 @@ const autoEffect = <E extends Element, T>(
 	remover?: (element: E) => () => void
 ): UI<E> => {
 	const fallback = getter()
-	if (!isFunction(state))
-		ui.host.set(
-			state,
-			isString(state) && isString(fallback) ? parse(ui.host, state, fallback) : fallback,
-			false
-		)
+	if (!isFunction(state)) {
+		const value = isString(state) && isString(fallback) ? parse(ui.host, state, fallback) : fallback
+		ui.host.set(state, value, false)
+	}
 	effect((enqueue: Enqueue) => {
 		const current = getter()
 		const value = isFunction(state) ? state(current) : ui.host.get<T>(state)
-		if (!Object.is(value, current))
-			enqueue(
-				ui.target,
-				prop,
-				remover && isNull(value)
-					? remover
-					: isNullish(value)
-						? setter(fallback)
-						: setter(value)
-			)
+		if (!Object.is(value, current)) {
+			const action = remover && isNull(value) ? remover
+				: isNullish(value) ? setter(fallback)
+				: setter(value)
+			enqueue(ui.target, prop, action)
+		}
 	})
 	return ui
 }
@@ -67,8 +62,8 @@ const setText = <E extends Element>(state: StateLike<string>) =>
 			(value: string) => (element: E) =>
 				() => {
 					Array.from(element.childNodes)
-						.filter(isComment)
-						.forEach(match => match.remove())
+						.filter(node => !isComment(node))
+						.forEach(node => node.remove())
 					element.append(document.createTextNode(value))
 				}
 		)

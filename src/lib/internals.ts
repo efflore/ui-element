@@ -1,6 +1,6 @@
 import { isDefined } from '../core/is-type'
 import { parse } from '../core/parse'
-import { effect } from '../cause-effect'
+import { effect } from '../core/cause-effect'
 import type { UIElement } from '../ui-element'
 import type { Enqueue } from '../core/scheduler'
 import { asBoolean, asInteger, asNumber } from './parse-attribute'

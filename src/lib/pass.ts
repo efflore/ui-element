@@ -1,10 +1,13 @@
-import type { UI, UIElement, StateLike } from '../ui-element'
-import { isSignal, state } from '../cause-effect'
-import { isFunction } from '../core/is-type'
+import type { UIElement, StateLike } from '../ui-element'
+import type { UI } from '../core/ui'
+import { isFunction, isPropertyKey } from '../core/is-type'
+import { isSignal, state } from '../core/cause-effect'
 
 /* === Types === */
 
 type StateMap = Record<PropertyKey, StateLike<unknown>>
+
+/* === Exported Type === */
 
 /* === Exported Function === */
 
@@ -25,15 +28,14 @@ const pass = <E extends UIElement>(stateMap: StateMap) =>
 	 */
 	async (ui: UI<E>): Promise<UI<E>> => {
 		await (ui.host.constructor as typeof UIElement).registry.whenDefined(ui.target.localName)
-		for (const [key, source = key] of Object.entries(stateMap))
-			ui.target.set(
-				key,
-				isSignal(source)
-					? source
-					: isFunction(source)
-						? state(source) // we need state() here; with computed() the lexical scope of the source would be lost
-						: ui.host.signals.get(source)
-			)
+		for (const [key, source = key] of Object.entries(stateMap)) {
+			const value = isPropertyKey(source) ? ui.host.signals.get(source) // shorthand for signals with PropertyKey keys
+				: isSignal(source) ? source // just copy the signal reference
+			    // : isNullaryFunction(source) ? computed(source) // create a computed signal
+				: isFunction(source) ? state(source) // create a state signal with a function value
+				: ui.host.signals.get(source) // map keys can be anything, so try this as last resort
+			ui.target.set(key, value)
+		}
 		return ui
 	}
 
