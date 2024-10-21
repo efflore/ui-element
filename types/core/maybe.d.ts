@@ -28,7 +28,7 @@ type Fail<E extends Error> = {
     get: () => never;
 };
 type Maybe<T> = Ok<T> | None;
-type Attempt<T, E extends Error> = Ok<T> | Fail<E> | None;
+type Result<T, E extends Error> = Ok<T> | Fail<E> | None;
 type Cases<U> = {
     [TYPE_OK]?: (value: unknown) => U;
     [TYPE_NONE]?: () => U;
@@ -101,7 +101,7 @@ declare const maybe: <T>(value: T | null | undefined) => Maybe<T>;
  * @param {() => T} f - function to try
  * @returns {Ok<T> | Fail<E>} - "Ok" value if the function succeeds, or a "Fail" value if it fails
  */
-declare const attempt: <T, E extends Error>(f: () => T) => Attempt<T, E>;
+declare const result: <T, E extends Error>(f: () => T) => Result<T, E>;
 /**
  * Create an async task that retries the given function with exponential backoff if it fails
  *
@@ -109,9 +109,9 @@ declare const attempt: <T, E extends Error>(f: () => T) => Attempt<T, E>;
  * @param {() => Promise<T>} f - async function to try and maybe retry
  * @param {number} [retries=0] - number of times to retry the function if it fails; default is 0 (no retries)
  * @param {number} [delay=1000] - initial delay in milliseconds between retries; default is 1000ms
- * @returns {Promise<Attempt<T, E>>} - promise that resolves to the result of the function or fails with the last error encountered
+ * @returns {Promise<Result<T, E>>} - promise that resolves to the result of the function or fails with the last error encountered
  */
-declare const task: <T, E extends Error>(f: () => Promise<T>, retries?: number, delay?: number) => Promise<Attempt<T, E>>;
+declare const task: <T, E extends Error>(f: () => Promise<T>, retries?: number, delay?: number) => Promise<Result<T, E>>;
 /**
  * Helper function to execute a series of functions in sequence
  *
@@ -125,7 +125,7 @@ declare const flow: (...fs: unknown[]) => unknown;
  *
  * @since 0.9.0
  * @param {Cases<T, E, U>} cases - object with case handlers for pattern matching
- * @returns {<T, E extends Error>(result: Attempt<T, E>) => Attempt<U, E>} - value from the matching case handler, or the original value if no match is found
+ * @returns {<T, E extends Error>(result: Result<T, E>) => Result<U, E>} - value from the matching case handler, or the original value if no match is found
  */
-declare const match: <U>(cases: Cases<U>) => (<T, E extends Error>(result: Attempt<T, E>) => U);
-export { type Ok, type None, type Fail, type Maybe, TYPE_OK, TYPE_NONE, TYPE_FAIL, ok, none, fail, isOk, isNone, isFail, isResult, maybe, attempt, task, flow, match };
+declare const match: <U>(cases: Cases<U>) => (<T, E extends Error>(result: Result<T, E>) => U);
+export { type Ok, type None, type Fail, type Maybe, type Result, type Cases, TYPE_OK, TYPE_NONE, TYPE_FAIL, ok, none, fail, isOk, isNone, isFail, isResult, maybe, result, task, flow, match };

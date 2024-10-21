@@ -8,7 +8,7 @@ import {
 	TYPE_COMPUTED, TYPE_STATE
 } from './src/core/cause-effect'
 import {
-	attempt, fail, flow, isFail, isNone, isOk, isResult, match, maybe, none, ok, task,
+	fail, flow, isFail, isNone, isOk, isResult, match, maybe, none, ok, result, task,
 	TYPE_FAIL, TYPE_NONE, TYPE_OK
 } from './src/core/maybe'
 import { TYPE_UI, ui, self, first, all } from './src/core/ui'
@@ -29,7 +29,7 @@ export {
 	isString, isSymbol, isNumber, isObject, isPropertyKey, isFunction, callFunction,
 	isNull, isNullish, isDefined, isDefinedObject, isObjectOfType, isComment,
 	LOG_ERROR, LOG_WARN, LOG_INFO, LOG_DEBUG, log,
-	TYPE_OK, TYPE_NONE, TYPE_FAIL, ok, none, fail, maybe, attempt, task, flow, match, isOk, isNone, isFail, isResult,
+	TYPE_OK, TYPE_NONE, TYPE_FAIL, ok, none, fail, maybe, result, task, flow, match, isOk, isNone, isFail, isResult,
 	TYPE_STATE, TYPE_COMPUTED, state, computed, effect, isState, isComputed, isSignal,
 	TYPE_UI, ui, self, first, all,
 	UIElement, pass, on, off, emit,

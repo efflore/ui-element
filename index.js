@@ -129,7 +129,7 @@ const maybe = (value) => isDefined(value) ? ok(value) : none();
  * @param {() => T} f - function to try
  * @returns {Ok<T> | Fail<E>} - "Ok" value if the function succeeds, or a "Fail" value if it fails
  */
-const attempt = (f) => {
+const result = (f) => {
     try {
         return maybe(f());
     }
@@ -144,11 +144,11 @@ const attempt = (f) => {
  * @param {() => Promise<T>} f - async function to try and maybe retry
  * @param {number} [retries=0] - number of times to retry the function if it fails; default is 0 (no retries)
  * @param {number} [delay=1000] - initial delay in milliseconds between retries; default is 1000ms
- * @returns {Promise<Attempt<T, E>>} - promise that resolves to the result of the function or fails with the last error encountered
+ * @returns {Promise<Result<T, E>>} - promise that resolves to the result of the function or fails with the last error encountered
  */
 const task = (f, retries = 0, delay = 1000) => {
     const attemptTask = async (retries, delay) => {
-        const result = attempt(async () => await f());
+        const r = result(async () => await f());
         return await match({
             [TYPE_FAIL]: async (error) => {
                 if (retries < 1)
@@ -156,7 +156,7 @@ const task = (f, retries = 0, delay = 1000) => {
                 await new Promise(resolve => setTimeout(resolve, delay));
                 return attemptTask(retries - 1, delay * 2); // retry with exponential backoff
             },
-        })(result);
+        })(r);
     };
     return attemptTask(retries, delay);
 };
@@ -173,7 +173,7 @@ const flow = (...fs) => fs.reduce((acc, f) => callFunction(f, acc));
  *
  * @since 0.9.0
  * @param {Cases<T, E, U>} cases - object with case handlers for pattern matching
- * @returns {<T, E extends Error>(result: Attempt<T, E>) => Attempt<U, E>} - value from the matching case handler, or the original value if no match is found
+ * @returns {<T, E extends Error>(result: Result<T, E>) => Result<U, E>} - value from the matching case handler, or the original value if no match is found
  */
 const match = (cases) => (result) => {
     const handler = cases[result[Symbol.toStringTag]] || cases.else;
@@ -200,10 +200,10 @@ const scheduler = () => {
     const cleanupQueue = new Map();
     let requestId;
     const run = (fn, msg) => {
-        const result = attempt(fn);
+        const r = result(fn);
         match({
             [TYPE_FAIL]: error => log(error, msg, LOG_ERROR)
-        })(result);
+        })(r);
     };
     const flush = () => {
         requestId = null;
@@ -270,10 +270,10 @@ const autorun = (targets) => targets.forEach(notify => notify());
 const reactive = (fn, notify) => {
     const prev = active;
     active = notify;
-    const result = attempt(fn);
+    const r = result(fn);
     match({
         [TYPE_FAIL]: error => log(error, 'Error during reactive computation', LOG_ERROR)
-    })(result);
+    })(r);
     active = prev;
 };
 /* === Exported Functions === */
@@ -511,11 +511,11 @@ class UIElement extends HTMLElement {
      * @param {string} tag - name of the custom element
      */
     static define(tag) {
-        const result = attempt(() => UIElement.registry.define(tag, this));
+        const r = result(() => UIElement.registry.define(tag, this));
         match({
             [TYPE_FAIL]: error => log(tag, error.message, LOG_ERROR),
             [TYPE_OK]: () => log(tag, 'Registered custom element')
-        })(result);
+        })(r);
     }
     /**
      * @since 0.9.0
@@ -787,13 +787,13 @@ const asString = (value) => value;
  * @returns {Maybe<unknown>}
  */
 const asJSON = (value) => {
-    const result = attempt(() => value.map(v => JSON.parse(v)));
+    const r = result(() => value.map(v => JSON.parse(v)));
     return match({
         [TYPE_FAIL]: error => {
             log(error, 'Failed to parse JSON', LOG_ERROR);
             return none();
         }
-    })(result);
+    })(r);
 };
 
 /* === Internal Functions === */
@@ -1045,4 +1045,4 @@ const syncInternals = (host) => {
     }
 };
 
-export { LOG_DEBUG, LOG_ERROR, LOG_INFO, LOG_WARN, TYPE_COMPUTED, TYPE_FAIL, TYPE_NONE, TYPE_OK, TYPE_STATE, TYPE_UI, UIElement, all, asBoolean, asInteger, asJSON, asNumber, asString, attempt, callFunction, computed, effect, emit, fail, first, flow, isComment, isComputed, isDefined, isDefinedObject, isFail, isFunction, isNone, isNull, isNullish, isNumber, isObject, isObjectOfType, isOk, isPropertyKey, isResult, isSignal, isState, isString, isSymbol, log, match, maybe, none, off, ok, on, parse, pass, self, setAttribute, setInternal, setProperty, setStyle, setText, state, syncInternals, task, toggleAttribute, toggleClass, toggleInternal, ui };
+export { LOG_DEBUG, LOG_ERROR, LOG_INFO, LOG_WARN, TYPE_COMPUTED, TYPE_FAIL, TYPE_NONE, TYPE_OK, TYPE_STATE, TYPE_UI, UIElement, all, asBoolean, asInteger, asJSON, asNumber, asString, callFunction, computed, effect, emit, fail, first, flow, isComment, isComputed, isDefined, isDefinedObject, isFail, isFunction, isNone, isNull, isNullish, isNumber, isObject, isObjectOfType, isOk, isPropertyKey, isResult, isSignal, isState, isString, isSymbol, log, match, maybe, none, off, ok, on, parse, pass, result, self, setAttribute, setInternal, setProperty, setStyle, setText, state, syncInternals, task, toggleAttribute, toggleClass, toggleInternal, ui };

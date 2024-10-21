@@ -1,6 +1,6 @@
 import { isFunction, isNullish, isObjectOfType } from './is-type'
 import { log, LOG_ERROR } from './log'
-import { TYPE_FAIL, maybe, attempt, match } from './maybe'
+import { TYPE_FAIL, maybe, result, match } from './maybe'
 import { type Enqueue, scheduler } from './scheduler'
 
 /* === Types === */
@@ -63,10 +63,10 @@ const autorun = (targets: Set<() => void>) =>
 const reactive = (fn: () => void, notify: () => void): void => {
 	const prev = active
 	active = notify
-	const result = attempt(fn)
+	const r = result(fn)
 	match({
 		[TYPE_FAIL]: error => log(error, 'Error during reactive computation', LOG_ERROR)
-	})(result)
+	})(r)
 	active = prev
 }
 
@@ -162,7 +162,7 @@ const effect = (fn: EffectCallback) => {
 }
 
 export {
-	type State, type Computed, type Signal,
+	type State, type Computed, type Signal, type EffectCallback,
 	TYPE_STATE, TYPE_COMPUTED,
 	isState, isComputed, isSignal, state, computed, effect
 }

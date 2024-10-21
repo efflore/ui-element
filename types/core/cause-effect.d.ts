@@ -47,4 +47,4 @@ declare const computed: <T>(fn: () => T | undefined, memo?: boolean) => Computed
  * @param {EffectCallback} fn - callback function to be executed when a state changes
  */
 declare const effect: (fn: EffectCallback) => void;
-export { type State, type Computed, type Signal, TYPE_STATE, TYPE_COMPUTED, isState, isComputed, isSignal, state, computed, effect };
+export { type State, type Computed, type Signal, type EffectCallback, TYPE_STATE, TYPE_COMPUTED, isState, isComputed, isSignal, state, computed, effect };

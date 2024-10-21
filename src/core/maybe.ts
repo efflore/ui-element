@@ -36,7 +36,7 @@ type Fail<E extends Error> = {
 
 type Maybe<T> = Ok<T> | None
 
-type Attempt<T, E extends Error> = Ok<T> | Fail<E> | None
+type Result<T, E extends Error> = Ok<T> | Fail<E> | None
 
 type Cases<U> = {
 	[TYPE_OK]?: (value: unknown) => U,
@@ -161,7 +161,7 @@ const maybe = <T>(value: T | null | undefined): Maybe<T> =>
  * @param {() => T} f - function to try
  * @returns {Ok<T> | Fail<E>} - "Ok" value if the function succeeds, or a "Fail" value if it fails
  */
-const attempt = <T, E extends Error>(f: () => T): Attempt<T, E> => {
+const result = <T, E extends Error>(f: () => T): Result<T, E> => {
 	try {
 		return maybe(f())
     } catch (error) {
@@ -176,22 +176,22 @@ const attempt = <T, E extends Error>(f: () => T): Attempt<T, E> => {
  * @param {() => Promise<T>} f - async function to try and maybe retry
  * @param {number} [retries=0] - number of times to retry the function if it fails; default is 0 (no retries)
  * @param {number} [delay=1000] - initial delay in milliseconds between retries; default is 1000ms
- * @returns {Promise<Attempt<T, E>>} - promise that resolves to the result of the function or fails with the last error encountered
+ * @returns {Promise<Result<T, E>>} - promise that resolves to the result of the function or fails with the last error encountered
  */
 const task = <T, E extends Error>(
 	f: () => Promise<T>,
 	retries: number = 0,
 	delay: number = 1000
-): Promise<Attempt<T, E>> => {
-	const attemptTask = async (retries: number, delay: number): Promise<Attempt<T, E>> => {
-		const result = attempt(async () => await f())
+): Promise<Result<T, E>> => {
+	const attemptTask = async (retries: number, delay: number): Promise<Result<T, E>> => {
+		const r = result(async () => await f())
 		return await match({
             [TYPE_FAIL]: async error => {
                 if (retries < 1) return fail(error)
                 await new Promise(resolve => setTimeout(resolve, delay))
                 return attemptTask(retries - 1, delay * 2) // retry with exponential backoff
             },
-        })(result)
+        })(r)
 	}
 	return attemptTask(retries, delay)
 }
@@ -210,12 +210,12 @@ const flow = (...fs: unknown[]) => fs.reduce((acc, f) => callFunction(f, acc))
  * 
  * @since 0.9.0
  * @param {Cases<T, E, U>} cases - object with case handlers for pattern matching
- * @returns {<T, E extends Error>(result: Attempt<T, E>) => Attempt<U, E>} - value from the matching case handler, or the original value if no match is found
+ * @returns {<T, E extends Error>(result: Result<T, E>) => Result<U, E>} - value from the matching case handler, or the original value if no match is found
  */
-const match = <U>(cases: Cases<U>): (<T, E extends Error>(result: Attempt<T, E>) => U) => 
-	<T, E extends Error>(result: Attempt<T, E>): U => {
+const match = <U>(cases: Cases<U>): (<T, E extends Error>(result: Result<T, E>) => U) => 
+	<T, E extends Error>(result: Result<T, E>): U => {
 		const handler = cases[result[Symbol.toStringTag]] || cases.else
-		const getProperty = (obj: Attempt<T, E>, prop: string) => (obj && prop in obj && obj[prop]) || undefined
+		const getProperty = (obj: Result<T, E>, prop: string) => (obj && prop in obj && obj[prop]) || undefined
 		const value = maybe(getProperty(result, 'value'))
 			.or(getProperty(result, 'error'))
 			.get()
@@ -227,7 +227,7 @@ const match = <U>(cases: Cases<U>): (<T, E extends Error>(result: Attempt<T, E>)
 	}
 
 export {
-	type Ok, type None, type Fail, type Maybe,
+	type Ok, type None, type Fail, type Maybe, type Result, type Cases,
 	TYPE_OK, TYPE_NONE, TYPE_FAIL,
-	ok, none, fail, isOk, isNone, isFail, isResult, maybe, attempt, task, flow, match
+	ok, none, fail, isOk, isNone, isFail, isResult, maybe, result, task, flow, match
 }

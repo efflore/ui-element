@@ -1,5 +1,5 @@
 import { isDefined, isDefinedObject, isFunction, isObject, isString } from './core/is-type'
-import { type Maybe, type Ok, TYPE_FAIL, TYPE_OK, attempt, isFail, isResult, match } from './core/maybe'
+import { type Maybe, type Ok, TYPE_FAIL, TYPE_OK, result, isFail, isResult, match } from './core/maybe'
 import { type Signal, isState, isSignal, state } from './core/cause-effect'
 import { log, LOG_ERROR } from './core/log'
 import { type AttributeMap, parse } from './core/parse'
@@ -81,11 +81,11 @@ class UIElement extends HTMLElement {
 	 * @param {string} tag - name of the custom element
 	 */
 	static define(tag: string): void {
-		const result = attempt(() => UIElement.registry.define(tag, this))
+		const r = result(() => UIElement.registry.define(tag, this))
 		match({
 			[TYPE_FAIL]: error => log(tag, error.message, LOG_ERROR),
 			[TYPE_OK]: () => log(tag, 'Registered custom element')
-		})(result)
+		})(r)
 	}
 
 	/**

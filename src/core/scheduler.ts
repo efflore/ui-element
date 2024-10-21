@@ -1,4 +1,4 @@
-import { TYPE_FAIL, attempt, match } from './maybe'
+import { TYPE_FAIL, result, match } from './maybe'
 import { log, LOG_ERROR } from './log'
 
 /* === Types === */
@@ -27,10 +27,10 @@ const scheduler = (): Scheduler => {
 	let requestId: number
 
 	const run = (fn: () => void, msg: string) => {
-		const result = attempt(fn)
+		const r = result(fn)
 		match({
 			[TYPE_FAIL]: error => log(error, msg, LOG_ERROR)
-		})(result)
+		})(r)
 	}
 
 	const flush = () => {
