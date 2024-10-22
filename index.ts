@@ -17,7 +17,7 @@ import { UIElement } from './src/ui-element'
 import { pass } from './src/lib/pass'
 import { on, off, emit } from './src/lib/event'
 import { asBoolean, asInteger, asJSON, asNumber, asString } from './src/lib/parse-attribute'
-import { setAttribute, setProperty, setStyle, setText, toggleAttribute, toggleClass } from './src/lib/auto-effects'
+import { setAttribute, setProperty, setStyle, setText, toggleAttribute, toggleClass, updateElement } from './src/lib/auto-effects'
 import { setInternal, syncInternals, toggleInternal } from './src/lib/internals'
 
 /**
@@ -26,14 +26,32 @@ import { setInternal, syncInternals, toggleInternal } from './src/lib/internals'
  */
 
 export {
+
+	// General type guards and utility functions
 	isString, isSymbol, isNumber, isObject, isPropertyKey, isFunction, callFunction,
 	isNull, isNullish, isDefined, isDefinedObject, isObjectOfType, isComment,
+
+	// Logging
 	LOG_ERROR, LOG_WARN, LOG_INFO, LOG_DEBUG, log,
+
+	// Result types for safe handling of nullish values, errors, and promises
 	TYPE_OK, TYPE_NONE, TYPE_FAIL, ok, none, fail, maybe, result, task, flow, match, isOk, isNone, isFail, isResult,
+
+	// Cause & Effect signals state management
 	TYPE_STATE, TYPE_COMPUTED, state, computed, effect, isState, isComputed, isSignal,
+
+	// UI element access
 	TYPE_UI, ui, self, first, all,
+
+	// Base class, events and state passing
 	UIElement, pass, on, off, emit,
+
+	// Attribute parsing
 	parse, asBoolean, asInteger, asNumber, asString, asJSON,
-	setText, setProperty, setAttribute, toggleAttribute, toggleClass, setStyle,
+
+	// Auto-effect functions for DOM manipulation
+	updateElement, setText, setProperty, setAttribute, toggleAttribute, toggleClass, setStyle,
+
+	// Element internals manipulation
 	syncInternals, toggleInternal, setInternal,
 }

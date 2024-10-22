@@ -24,8 +24,7 @@ const LOG_WARN = 'warn';
 const LOG_ERROR = 'error';
 /* === Default Export */
 const log = (value, msg, level = LOG_DEBUG) => {
-    if ([LOG_ERROR, LOG_WARN].includes(level))
-        console[level](msg, value);
+    console[level](msg, value);
     return value;
 };
 
@@ -453,7 +452,7 @@ const initContext = (host) => {
 };
 
 /* === Constants === */
-const DEBUG_STATE = 'debug';
+const DEBUG_PROP = 'debug';
 /* === Internal Functions === */
 /**
  * Return selector string for the id of the element
@@ -488,7 +487,7 @@ const elementName = (el) => `<${el.localName}${idString(el.id)}${classString(el.
  */
 const valueString = (value) => isString(value) ? `"${value}"`
     : isObject(value) ? JSON.stringify(value)
-        : isDefined(value) ? value.toString()
+        : isDefined(value) ? String(value)
             : 'undefined';
 /* === Exported Class and Functions === */
 /**
@@ -547,7 +546,8 @@ class UIElement extends HTMLElement {
     attributeChangedCallback(name, old, value) {
         if (value === old)
             return;
-        log(`${valueString(old)} => ${valueString(value)}`, `Attribute "${name}" of ${elementName(this)} changed`);
+        if (this[DEBUG_PROP])
+            log(`${valueString(old)} => ${valueString(value)}`, `Attribute "${name}" of ${elementName(this)} changed`);
         this.set(name, parse(this, name, value, old));
     }
     /**
@@ -559,17 +559,20 @@ class UIElement extends HTMLElement {
      * @since 0.7.0
      */
     connectedCallback() {
-        if (isString(this.getAttribute(DEBUG_STATE)))
-            this.set(DEBUG_STATE, true);
+        if (isString(this.getAttribute(DEBUG_PROP)))
+            this[DEBUG_PROP] = true;
         initContext(this);
         // syncInternals(this)
-        log(elementName(this), 'Connected');
+        if (this[DEBUG_PROP])
+            log(elementName(this), 'Connected');
     }
     disconnectedCallback() {
-        log(elementName(this), 'Disconnected');
+        if (this[DEBUG_PROP])
+            log(elementName(this), 'Disconnected');
     }
     adoptedCallback() {
-        log(elementName(this), 'Adopted');
+        if (this[DEBUG_PROP])
+            log(elementName(this), 'Adopted');
     }
     /**
      * Check whether a state is set
@@ -593,7 +596,10 @@ class UIElement extends HTMLElement {
             : isFunction(v) ? unwrap(v())
                 : isSignal(v) || isResult(v) ? unwrap(v.get())
                     : v;
-        return log(unwrap(this.signals.get(key)), `Get current value of state ${valueString(key)} in ${elementName(this)}`);
+        const value = unwrap(this.signals.get(key));
+        if (this[DEBUG_PROP])
+            log(value, `Get current value of state ${valueString(key)} in ${elementName(this)}`);
+        return value;
     }
     /**
      * Create a state or update its value and return its current value
@@ -609,16 +615,22 @@ class UIElement extends HTMLElement {
             return;
         }
         const v = isResult(value) ? value.get() : value; // unwrap Ok or None
-        log(v, `Set ${update ? '' : 'default '}value of state ${valueString(key)} in ${elementName(this)} to`);
+        if (this[DEBUG_PROP])
+            log(v, `Set ${update ? '' : 'default '}value of state ${valueString(key)} in ${elementName(this)} to`);
+        // State does not exist => create new state
         if (!this.signals.has(key)) {
             this.signals.set(key, isSignal(v) ? v : state(v));
+            // State already exists => update state
         }
         else if (update) {
             const state = this.signals.get(key);
+            // Value is a Signal => replace state with new signal
             if (isSignal(v)) {
-                log(v.get(), `Existing state ${valueString(key)} in ${elementName(this)} is replaced by new signal`);
+                if (this[DEBUG_PROP])
+                    log(v.get(), `Existing state ${valueString(key)} in ${elementName(this)} is replaced by new signal`);
                 this.signals.set(key, v);
                 state.targets.forEach(notify => notify()); // notify dependent computed states and effects
+                // Value is not a Signal => set existing state to new value
             }
             else {
                 if (isState(state))
@@ -636,7 +648,9 @@ class UIElement extends HTMLElement {
      * @returns {boolean} `true` if the state existed and was deleted; `false` if ignored
      */
     delete(key) {
-        return log(this.signals.delete(key), `Delete state ${valueString(key)} from ${elementName(this)}`);
+        if (this[DEBUG_PROP])
+            log(key, `Delete state ${valueString(key)} from ${elementName(this)}`);
+        return this.signals.delete(key);
     }
     /**
      * Get array of first sub-element matching a given selector within the custom element
@@ -796,48 +810,51 @@ const asJSON = (value) => {
     })(r);
 };
 
-/* === Internal Functions === */
+/* === Exported Functions === */
 /**
  * Auto-effect for setting properties of a target element according to a given state
  *
- * @since 0.8.0
- * @param {UI} ui - UI object of host UIElement and target element to update properties
- * @param {StateLike<T>} state - state to be set to the host element
- * @param {string} prop - property name to be updated
- * @param {() => T} getter - getter function to retrieve current value in the DOM
- * @param {(value: T) => (element: E) => () => void} setter - callback to be executed when state is changed
- * @returns {UI} object with host and target
+ * @since 0.9.0
+ * @param {StateLike<T>} state - state bounded to the element property
+ * @param {ElementUpdater} updater - updater object containing key, read, update, and delete methods
  */
-const autoEffect = (ui, state, prop, getter, setter, remover) => {
-    const fallback = getter();
+const updateElement = (state, updater) => (ui) => {
+    const { key, read, update } = updater;
+    const { host, target } = ui;
+    const fallback = read(target);
     if (!isFunction(state)) {
-        const value = isString(state) && isString(fallback) ? parse(ui.host, state, fallback) : fallback;
-        ui.host.set(state, value, false);
+        const value = isString(state) && isString(fallback)
+            ? parse(host, state, fallback)
+            : fallback;
+        host.set(state, value, false);
     }
     effect((enqueue) => {
-        const current = getter();
-        const value = isFunction(state) ? state(current) : ui.host.get(state);
+        const current = read(target);
+        const value = isFunction(state) ? state(current) : host.get(state);
         if (!Object.is(value, current)) {
-            const action = remover && isNull(value) ? remover
-                : isNullish(value) ? setter(fallback)
-                    : setter(value);
-            enqueue(ui.target, prop, action);
+            const action = isNull(value) && updater.delete ? updater.delete
+                : isNullish(value) ? update(fallback)
+                    : update(value);
+            enqueue(target, key, action);
         }
     });
     return ui;
 };
-/* === Exported Functions === */
 /**
  * Set text content of an element
  *
  * @since 0.8.0
  * @param {StateLike<string>} state - state bounded to the text content
  */
-const setText = (state) => (ui) => autoEffect(ui, state, 't', () => ui.target.textContent || '', (value) => (element) => () => {
-    Array.from(element.childNodes)
-        .filter(node => !isComment(node))
-        .forEach(node => node.remove());
-    element.append(document.createTextNode(value));
+const setText = (state) => updateElement(state, {
+    key: 't',
+    read: (element) => element.textContent || '',
+    update: (value) => (element) => () => {
+        Array.from(element.childNodes)
+            .filter(node => !isComment(node))
+            .forEach(node => node.remove());
+        element.append(document.createTextNode(value));
+    }
 });
 /**
  * Set property of an element
@@ -846,7 +863,11 @@ const setText = (state) => (ui) => autoEffect(ui, state, 't', () => ui.target.te
  * @param {PropertyKey} key - name of property to be set
  * @param {StateLike<unknown>} state - state bounded to the property value
  */
-const setProperty = (key, state = key) => (ui) => autoEffect(ui, state, `p-${String(key)}`, () => ui.target[key], (value) => (element) => () => element[key] = value);
+const setProperty = (key, state = key) => updateElement(state, {
+    key: `p:${String(key)}`,
+    read: (el) => el[key],
+    update: (value) => (el) => () => el[key] = value,
+});
 /**
  * Set attribute of an element
  *
@@ -854,7 +875,12 @@ const setProperty = (key, state = key) => (ui) => autoEffect(ui, state, `p-${Str
  * @param {string} name - name of attribute to be set
  * @param {StateLike<string>} state - state bounded to the attribute value
  */
-const setAttribute = (name, state = name) => (ui) => autoEffect(ui, state, `a-${name}`, () => ui.target.getAttribute(name), (value) => (element) => () => element.setAttribute(name, value), (element) => () => element.removeAttribute(name));
+const setAttribute = (name, state = name) => updateElement(state, {
+    key: `a:${name}`,
+    read: (el) => el.getAttribute(name),
+    update: (value) => (el) => () => el.setAttribute(name, value),
+    delete: (el) => () => el.removeAttribute(name)
+});
 /**
  * Toggle a boolan attribute of an element
  *
@@ -862,7 +888,11 @@ const setAttribute = (name, state = name) => (ui) => autoEffect(ui, state, `a-${
  * @param {string} name - name of attribute to be toggled
  * @param {StateLike<boolean>} state - state bounded to the attribute existence
  */
-const toggleAttribute = (name, state = name) => (ui) => autoEffect(ui, state, `a-${name}`, () => ui.target.hasAttribute(name), (value) => (element) => () => element.toggleAttribute(name, value));
+const toggleAttribute = (name, state = name) => updateElement(state, {
+    key: `a:${name}`,
+    read: (element) => element.hasAttribute(name),
+    update: (value) => (element) => () => element.toggleAttribute(name, value)
+});
 /**
  * Toggle a classList token of an element
  *
@@ -870,7 +900,11 @@ const toggleAttribute = (name, state = name) => (ui) => autoEffect(ui, state, `a
  * @param {string} token - class token to be toggled
  * @param {StateLike<boolean>} state - state bounded to the class existence
  */
-const toggleClass = (token, state = token) => (ui) => autoEffect(ui, state, `c-${token}`, () => ui.target.classList.contains(token), (value) => (element) => () => element.classList.toggle(token, value));
+const toggleClass = (token, state = token) => updateElement(state, {
+    key: `c:${token}`,
+    read: (el) => el.classList.contains(token),
+    update: (value) => (el) => () => el.classList.toggle(token, value)
+});
 /**
  * Set a style property of an element
  *
@@ -878,171 +912,336 @@ const toggleClass = (token, state = token) => (ui) => autoEffect(ui, state, `c-$
  * @param {string} prop - name of style property to be set
  * @param {StateLike<string>} state - state bounded to the style property value
  */
-const setStyle = (prop, state = prop) => (ui) => autoEffect(ui, state, `s-${prop}`, () => ui.target.style.getPropertyValue(prop), (value) => (element) => () => element.style.setProperty(prop, value), (element) => () => element.style.removeProperty(prop));
+const setStyle = (prop, state = prop) => updateElement(state, {
+    key: `s:${prop}`,
+    read: (element) => element.style.getPropertyValue(prop),
+    update: (value) => (element) => () => element.style.setProperty(prop, value),
+    delete: (element) => () => element.style.removeProperty(prop)
+});
 
+/* === Constants === */
+const ARIA_PREFIX = 'aria';
+const ROLES = {
+    button: 'button',
+    checkbox: 'checkbox',
+    combobox: 'combobox',
+    dialog: 'dialog',
+    grid: 'grid',
+    gridcell: 'gridcell',
+    heading: 'heading',
+    link: 'link',
+    listbox: 'listbox',
+    listitem: 'listitem',
+    menuitem: 'menuitem',
+    menuitemcheckbox: 'menuitemcheckbox',
+    menuitemradio: 'menuitemradio',
+    option: 'option',
+    progressbar: 'progressbar',
+    radio: 'radio',
+    range: 'range',
+    row: 'row',
+    scrollbar: 'scrollbar',
+    separator: 'separator',
+    slider: 'slider',
+    spinbutton: 'spinbutton',
+    switch: 'switch',
+    tab: 'tab',
+    table: 'table',
+    tabpanel: 'tabpanel',
+    textbox: 'textbox',
+    tree: 'tree',
+    treegrid: 'treegrid',
+    treeitem: 'treeitem',
+};
+const STATES = {
+    atomic: 'atomic',
+    autocomplete: ['autocomplete', 'AutoComplete'],
+    busy: 'busy',
+    checked: 'checked',
+    colcount: ['colcount', 'ColCount'],
+    colindex: ['colindex', 'ColIndex'],
+    colspan: ['colspan', 'ColSpan'],
+    controls: 'controls',
+    current: 'current',
+    description: 'description',
+    disabled: 'disabled',
+    expanded: 'expanded',
+    haspopup: ['haspopup', 'HasPopup'],
+    hidden: 'hidden',
+    keyshortcuts: ['keyshortcuts', 'KeyShortcuts'],
+    label: 'label',
+    level: 'level',
+    live: 'live',
+    modal: 'modal',
+    multiline: ['multiline', 'MultiLine'],
+    multiselectable: ['multiselectable', 'MultiSelectable'],
+    orientation: 'orientation',
+    placeholder: 'placeholder',
+    posinset: ['posinset', 'PosInSet'],
+    pressed: 'pressed',
+    readonly: ['readonly', 'ReadOnly'],
+    relevant: 'relevant',
+    required: 'required',
+    roledescription: ['roledescription', 'RoleDescription'],
+    rowcount: ['rowcount', 'RowCount'],
+    rowindex: ['rowindex', 'RowIndex'],
+    rowspan: ['rowspan', 'RowSpan'],
+    selected: 'selected',
+    setsize: ['setsize', 'SetSize'],
+    sorted: 'sorted',
+    valuemax: ['valuemax', 'ValueMax'],
+    valuemin: ['valuemin', 'ValueMin'],
+    valuenow: ['valuenow', 'ValueNow'],
+    valuetext: ['valuetext', 'ValueText'],
+};
 /* === Exported Functions === */
+/**
+ * Auto-effect for setting internals of a Web Component according to a given state
+ *
+ * @since 0.9.0
+ * @param {StateLike<T>} state - state bounded to the element internal
+ * @param {InternalsUpdater<E, T>} updater - updater object containing key, read, update, and delete methods
+ */
+const updateInternal = (state, updater) => (host) => {
+    if (!host.internals)
+        return;
+    const { key, initial, read, update } = updater;
+    host.set(state, initial(host), false);
+    effect((enqueue) => {
+        const current = read(host);
+        const value = isFunction(state) ? state(current) : host.get(state);
+        const action = isNullish(value) && updater.delete
+            ? updater.delete
+            : update(value);
+        if (!Object.is(value, current))
+            enqueue(host, key, action);
+    });
+};
 /**
  * Toggle an internal state of an element based on given state
  *
  * @since 0.9.0
- * @param {UIElement} host - host UIElement to update internals
  * @param {string} name - name of internal state to be toggled
  * @param {string} ariaProp - aria property to be updated when internal state changes
  */
-const toggleInternal = (host, name, ariaProp) => {
-    if (!host.internals)
-        return;
-    host.set(name, host.hasAttribute(name), false);
-    effect((enqueue) => {
-        const current = host.internals.states.has(name);
-        const value = host.get(name);
-        if (!Object.is(value, current)) {
-            enqueue(host, `i-${name}`, value
-                ? (el) => () => {
-                    el.internals.states.add(name);
-                    if (ariaProp) {
-                        el.internals[ariaProp] = 'true';
-                        el.setAttribute(`aria-${name}`, 'true');
-                    }
-                    el.toggleAttribute(name, true);
-                }
-                : (el) => () => {
-                    el.internals.states.delete(name);
-                    if (ariaProp) {
-                        el.internals[ariaProp] = 'false';
-                        el.setAttribute(`aria-${name}`, 'false');
-                    }
-                    el.toggleAttribute(name, false);
-                });
+const toggleInternal = (name, ariaProp) => updateInternal(name, {
+    key: `i-${name}`,
+    initial: (el) => el.hasAttribute(name),
+    read: (el) => el.internals.states.has(name),
+    update: (value) => (el) => () => {
+        el.internals.states[value ? 'add' : 'delete'](name);
+        if (ariaProp) {
+            el.internals[ariaProp] = String(value);
+            el.setAttribute(`${ARIA_PREFIX}-${name}`, String(value));
         }
-    });
-};
+        el.toggleAttribute(name, value);
+    }
+});
 /**
  * Set ElementInternals ARIA property and attribute based on given state
  *
  * @since 0.9.0
- * @param {UIElement} host - host UIElement to update internals
  * @param {string} name - name of internal state to be toggled
  * @param {string} ariaProp - aria property to be updated when internal state changes
  */
-const setInternal = (host, name, ariaProp) => {
-    if (!host.internals)
-        return;
-    host.set(name, parse(host, name, host.getAttribute(name)), false);
-    effect((enqueue) => {
-        const current = host.internals[ariaProp];
-        const value = String(host.get(name));
-        if (value !== current) {
-            enqueue(host, `i-${name}`, isDefined(value)
-                ? (el) => () => {
-                    el.internals[ariaProp] = value;
-                    el.setAttribute(`aria-${name}`, value);
-                }
-                : (el) => () => {
-                    el.internals[ariaProp] = undefined;
-                    el.removeAttribute(`aria-${name}`);
-                });
-        }
-    });
-};
+const setInternal = (name, ariaProp) => updateInternal(name, {
+    key: `i-${name}`,
+    initial: (el) => el.getAttribute(name),
+    read: (el) => parse(el, name, el.internals[ariaProp]),
+    update: (value) => (el) => () => {
+        el.internals[ariaProp] = value;
+        el.setAttribute(`${ARIA_PREFIX}-${name}`, value);
+    },
+    delete: (el) => () => {
+        el.internals[ariaProp] = undefined;
+        el.removeAttribute(`${ARIA_PREFIX}-${name}`);
+    }
+});
 /**
  * Synchronize internal states of an element with corresponding HTML attributes and aria properties
  *
  * @param host host UIElement to sync internals
  */
 const syncInternals = (host) => {
-    if (!host.internals)
-        host.internals = host.attachInternals();
     const proto = host.constructor;
-    const capitalize = (s) => s.charAt(0).toUpperCase() + s.slice(1);
-    const addInternals = (map, internals) => internals.forEach((internal) => map.set(internal, capitalize(internal)));
-    const role = host.role;
-    const boolInternals = new Map([]);
-    addInternals(boolInternals, [
-        'disabled',
-        'hidden',
-    ]);
-    const numberInternals = new Map();
-    const stringInternals = new Map([
-        ['keyshortcuts', 'KeyShortcuts'],
-    ]);
-    addInternals(stringInternals, [
-        'controls',
-        'description',
-        'label',
-    ]);
-    addInternals(proto.attributeMap['current'] === asBoolean ? boolInternals : stringInternals, ['current']);
-    if (role)
-        stringInternals.set('roledescription', 'RoleDescription');
-    if (host.hasAttribute('aria-live')) {
-        addInternals(boolInternals, ['atomic', 'busy']);
-        addInternals(stringInternals, ['live', 'relevant']);
-    }
-    if (['textbox', 'combobox'].includes(role))
-        stringInternals.set('autocomplete', 'AutoComplete');
-    if (['checkbox', 'menuitemcheckbox', 'menuitemradio', 'radio', 'switch'].includes(role))
-        addInternals(proto.attributeMap['checked'] === asBoolean ? boolInternals : stringInternals, ['checked']);
-    if (['table', 'grid', 'treegrid'].includes(role)) {
-        numberInternals.set('colcount', 'ColCount');
-        numberInternals.set('colindex', 'ColIndex');
-        numberInternals.set('colspan', 'ColSpan');
-        numberInternals.set('rowcount', 'RowCount');
-        numberInternals.set('rowindex', 'RowIndex');
-        numberInternals.set('rowspan', 'RowSpan');
-    }
-    if (['button', 'link', 'treeitem', 'grid', 'row', 'listbox', 'tabpanel', 'menuitem', 'combobox'].includes(role))
-        addInternals(boolInternals, ['expanded']);
-    if (['button', 'link', 'menuitem', 'combobox', 'gridcell'].includes(role))
-        (proto.attributeMap['haspopup'] === asBoolean ? boolInternals : stringInternals).set('haspopup', 'HasPopup');
-    if (['heading', 'treeitem', 'listitem'].includes(role))
-        numberInternals.set('level', 'Level');
-    if (role === 'dialog')
-        boolInternals.set('modal', 'Modal');
-    if (role === 'textbox') {
-        boolInternals.set('multiline', 'MultiLine');
-        stringInternals.set('placeholder', 'Placeholder');
-    }
-    if (['listbox', 'grid', 'table', 'tree'].includes(role))
-        boolInternals.set('multiselectable', 'MultiSelectable');
-    if (['scrollbar', 'slider', 'separator', 'progressbar', 'tabpanel'].includes(role))
-        stringInternals.set('orientation', 'Orientation');
-    if (['listitem', 'treeitem'].includes(role))
-        numberInternals.set('posinset', 'PosInSet');
-    if (['button', 'switch'].includes(role))
-        addInternals(proto.attributeMap['pressed'] === asBoolean ? boolInternals : stringInternals, ['pressed']);
-    if (['textbox', 'gridcell', 'spinbutton'].includes(role))
-        boolInternals.set('readonly', 'ReadOnly');
-    if (['textbox', 'gridcell', 'spinbutton', 'combobox', 'listbox'].includes(role))
-        boolInternals.set('required', 'Required');
-    if (['gridcell', 'listitem', 'option', 'tab', 'treeitem'].includes(role))
-        boolInternals.set('selected', 'Selected');
-    if (['listitem', 'treeitem', 'option', 'row', 'tab'].includes(role))
-        numberInternals.set('setsize', 'SetSize');
-    if (['grid', 'treegrid', 'table'].includes(role))
-        stringInternals.set('sorted', 'Sorted');
-    if (['range', 'progressbar', 'slider', 'spinbutton'].includes(role)) {
-        numberInternals.set('valuemax', 'ValueMax');
-        numberInternals.set('valuemin', 'ValueMin');
-        numberInternals.set('valuenow', 'ValueNow');
-        stringInternals.set('valuetext', 'ValueText');
-    }
     if (!proto.observedAttributes)
         return;
+    const capitalize = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+    const addInternals = (map, internals) => internals.forEach((internal) => Array.isArray(internal)
+        ? map.set(internal[0], internal[1])
+        : internal && map.set(internal, capitalize(internal)));
+    const hasRole = (role, allowedRoles) => allowedRoles.includes(role);
+    const isAutocompletable = (role) => hasRole(role, [
+        ROLES.combobox,
+        ROLES.textbox
+    ]);
+    const isCheckable = (role) => hasRole(role, [
+        ROLES.checkbox,
+        ROLES.menuitemcheckbox,
+        ROLES.menuitemradio,
+        ROLES.radio,
+        ROLES.switch
+    ]);
+    const isExpandable = (role) => hasRole(role, [
+        ROLES.button,
+        ROLES.combobox,
+        ROLES.grid,
+        ROLES.link,
+        ROLES.listbox,
+        ROLES.menuitem,
+        ROLES.row,
+        ROLES.tabpanel,
+        ROLES.treeitem
+    ]);
+    const isMultiSelectable = (role) => hasRole(role, [
+        ROLES.listbox,
+        ROLES.grid,
+        ROLES.table,
+        ROLES.tree,
+    ]);
+    const isPressable = (role) => hasRole(role, [
+        ROLES.button,
+        ROLES.switch,
+    ]);
+    const isSelectable = (role) => hasRole(role, [
+        ROLES.gridcell,
+        ROLES.listitem,
+        ROLES.option,
+        ROLES.tab,
+        ROLES.treeitem
+    ]);
+    const isTabular = (role) => hasRole(role, [
+        ROLES.grid,
+        ROLES.table,
+        ROLES.treegrid,
+    ]);
+    const maybeReadOnly = (role) => hasRole(role, [
+        ROLES.gridcell,
+        ROLES.spinbutton,
+        ROLES.textbox,
+    ]);
+    const maybeRequired = (role) => hasRole(role, [
+        ROLES.combobox,
+        ROLES.listbox,
+        ROLES.gridcell,
+        ROLES.spinbutton,
+        ROLES.textbox,
+    ]);
+    const mayHavePopup = (role) => hasRole(role, [
+        ROLES.button,
+        ROLES.link,
+        ROLES.menuitem,
+        ROLES.combobox,
+        ROLES.gridcell,
+    ]);
+    const hasLevel = (role) => hasRole(role, [
+        ROLES.heading,
+        ROLES.listitem,
+        ROLES.treeitem,
+    ]);
+    const hasOrientation = (role) => hasRole(role, [
+        ROLES.tabpanel,
+        ROLES.progressbar,
+        ROLES.scrollbar,
+        ROLES.separator,
+        ROLES.slider,
+    ]);
+    const hasPosInSet = (role) => hasRole(role, [
+        ROLES.listitem,
+        ROLES.treeitem,
+    ]);
+    const hasSetSize = (role) => hasRole(role, [
+        ROLES.listitem,
+        ROLES.option,
+        ROLES.row,
+        ROLES.tab,
+        ROLES.treeitem,
+    ]);
+    const hasNumericValue = (role) => hasRole(role, [
+        ROLES.range,
+        ROLES.progressbar,
+        ROLES.slider,
+        ROLES.spinbutton,
+    ]);
+    if (!host.internals)
+        host.internals = host.attachInternals();
+    const role = host.role;
+    const bools = new Map([]);
+    addInternals(bools, [
+        STATES.disabled, STATES.hidden,
+        hasRole(role, [ROLES.dialog]) && STATES.modal,
+        hasRole(role, [ROLES.textbox]) && STATES.multiline,
+        isMultiSelectable(role) && STATES.multiselectable,
+        maybeReadOnly(role) && STATES.readonly,
+        maybeRequired(role) && STATES.required,
+        isSelectable(role) && STATES.selected,
+        hasNumericValue(role) && STATES.valuetext,
+    ]);
+    const numbers = new Map();
+    if (hasLevel(role))
+        addInternals(numbers, [STATES.level]);
+    if (hasPosInSet(role))
+        addInternals(numbers, [STATES.posinset]);
+    if (hasSetSize(role))
+        addInternals(numbers, [STATES.setsize]);
+    if (isTabular(role))
+        addInternals(numbers, [
+            STATES.colcount,
+            STATES.colindex,
+            STATES.colspan,
+            STATES.rowcount,
+            STATES.rowspan,
+            STATES.rowindex,
+        ]);
+    if (hasNumericValue(role))
+        addInternals(numbers, [
+            STATES.valuemax,
+            STATES.valuemin,
+            STATES.valuenow
+        ]);
+    const strings = new Map();
+    addInternals(strings, [
+        isAutocompletable(role) && STATES.autocomplete,
+        STATES.controls,
+        STATES.description,
+        isExpandable(role) && STATES.expanded,
+        STATES.keyshortcuts,
+        STATES.label,
+        hasOrientation(role) && STATES.orientation,
+        hasRole(role, [ROLES.textbox]) && STATES.placeholder,
+        role && STATES.roledescription,
+        isTabular(role) && STATES.sorted,
+    ]);
+    // Conditional on whether parsed as boolean
+    addInternals(proto.attributeMap[STATES.current] === asBoolean ? bools : strings, [STATES.current]);
+    if (isCheckable(role))
+        addInternals(proto.attributeMap[STATES.checked] === asBoolean ? bools : strings, [STATES.checked]);
+    if (mayHavePopup(role))
+        addInternals(proto.attributeMap[STATES.haspopup[0]] === asBoolean ? bools : strings, [STATES.haspopup]);
+    if (isPressable(role))
+        addInternals(proto.attributeMap[STATES.pressed] === asBoolean ? bools : strings, [STATES.pressed]);
+    // Conditional on aria-live attribute
+    if (host.hasAttribute(`${ARIA_PREFIX}-${STATES.live}`)) {
+        addInternals(bools, [STATES.atomic, STATES.busy]);
+        addInternals(strings, [STATES.live, STATES.relevant]);
+    }
     for (const attr of proto.observedAttributes) {
-        if (numberInternals.has(attr)) {
+        if (numbers.has(attr)) {
             if (!Object.hasOwn(proto.attributeMap, attr))
-                proto.attributeMap[attr] = attr.slice(0, 5) === 'value' ? asNumber : asInteger;
-            setInternal(host, attr, `aria${numberInternals.get(attr)}`);
+                proto.attributeMap[attr] = attr.slice(0, 5) === 'value'
+                    ? asNumber
+                    : asInteger;
+            setInternal(attr, `${ARIA_PREFIX}${numbers.get(attr)}`)(host);
         }
-        else if (stringInternals.has(attr)) {
-            setInternal(host, attr, `aria${stringInternals.get(attr)}`);
+        else if (strings.has(attr)) {
+            setInternal(attr, `${ARIA_PREFIX}${strings.get(attr)}`)(host);
         }
-        else if (boolInternals.has(attr)) {
+        else if (bools.has(attr)) {
             if (!Object.hasOwn(proto.attributeMap, attr))
                 proto.attributeMap[attr] = asBoolean;
-            toggleInternal(host, attr, `aria${boolInternals.get(attr)}`);
+            toggleInternal(attr, `${ARIA_PREFIX}${bools.get(attr)}`)(host);
         }
     }
 };
 
-export { LOG_DEBUG, LOG_ERROR, LOG_INFO, LOG_WARN, TYPE_COMPUTED, TYPE_FAIL, TYPE_NONE, TYPE_OK, TYPE_STATE, TYPE_UI, UIElement, all, asBoolean, asInteger, asJSON, asNumber, asString, callFunction, computed, effect, emit, fail, first, flow, isComment, isComputed, isDefined, isDefinedObject, isFail, isFunction, isNone, isNull, isNullish, isNumber, isObject, isObjectOfType, isOk, isPropertyKey, isResult, isSignal, isState, isString, isSymbol, log, match, maybe, none, off, ok, on, parse, pass, result, self, setAttribute, setInternal, setProperty, setStyle, setText, state, syncInternals, task, toggleAttribute, toggleClass, toggleInternal, ui };
+export { LOG_DEBUG, LOG_ERROR, LOG_INFO, LOG_WARN, TYPE_COMPUTED, TYPE_FAIL, TYPE_NONE, TYPE_OK, TYPE_STATE, TYPE_UI, UIElement, all, asBoolean, asInteger, asJSON, asNumber, asString, callFunction, computed, effect, emit, fail, first, flow, isComment, isComputed, isDefined, isDefinedObject, isFail, isFunction, isNone, isNull, isNullish, isNumber, isObject, isObjectOfType, isOk, isPropertyKey, isResult, isSignal, isState, isString, isSymbol, log, match, maybe, none, off, ok, on, parse, pass, result, self, setAttribute, setInternal, setProperty, setStyle, setText, state, syncInternals, task, toggleAttribute, toggleClass, toggleInternal, ui, updateElement };

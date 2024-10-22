@@ -5,8 +5,9 @@
   "main": "index.min.js",
   "types": "types/ui-element.d.ts",
   "scripts": {
-    "build": "npm run lint && npm run build:main && npm run build:types && npm run build:docs",
-    "build:main": "NODE_ENV=production rollup -c && rollup -c rollup.main.min.config.js",
+    "build": "npm run lint && npm run build:dev && npm run build:prod && npm run build:types && npm run build:docs",
+	"build:dev": "NODE_ENV=development rollup -c",
+    "build:prod": "NODE_ENV=production rollup -c rollup.main.min.config.js",
     "build:types": "tsc -p tsconfig.types.json",
     "build:docs": "rollup -c rollup.docs.config.js",
     "lint": "npx eslint src/",

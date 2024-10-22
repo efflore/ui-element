@@ -1,5 +1,19 @@
 import type { UI } from '../core/ui';
 import type { StateLike } from '../ui-element';
+type ElementUpdater<E extends Element, T> = {
+    key: string;
+    read: (element: E) => T;
+    update: (value: T) => (element: E) => () => void;
+    delete?: (element: E) => () => void;
+};
+/**
+ * Auto-effect for setting properties of a target element according to a given state
+ *
+ * @since 0.9.0
+ * @param {StateLike<T>} state - state bounded to the element property
+ * @param {ElementUpdater} updater - updater object containing key, read, update, and delete methods
+ */
+declare const updateElement: <E extends Element, T>(state: StateLike<T>, updater: ElementUpdater<E, T>) => (ui: UI<E>) => UI<E>;
 /**
  * Set text content of an element
  *
@@ -47,4 +61,4 @@ declare const toggleClass: <E extends Element>(token: string, state?: StateLike<
  * @param {StateLike<string>} state - state bounded to the style property value
  */
 declare const setStyle: <E extends (HTMLElement | SVGElement | MathMLElement)>(prop: string, state?: StateLike<string>) => (ui: UI<E>) => UI<E>;
-export { setText, setProperty, setAttribute, toggleAttribute, toggleClass, setStyle };
+export { type ElementUpdater, updateElement, setText, setProperty, setAttribute, toggleAttribute, toggleClass, setStyle };

@@ -1,7 +1,7 @@
 import { isDefined, isDefinedObject, isFunction, isObject, isString } from './core/is-type'
 import { type Maybe, type Ok, TYPE_FAIL, TYPE_OK, result, isFail, isResult, match } from './core/maybe'
 import { type Signal, isState, isSignal, state } from './core/cause-effect'
-import { log, LOG_ERROR } from './core/log'
+import { DEV_MODE, log, LOG_ERROR } from './core/log'
 import { type AttributeMap, parse } from './core/parse'
 import { type UI, self, first, all } from './core/ui'
 import { type UnknownContext, initContext } from './core/context'
@@ -12,7 +12,7 @@ type StateLike<T> = PropertyKey | Signal<T> | ((old: T | undefined) => T) | (() 
 
 /* === Constants === */
 
-const DEBUG_STATE = 'debug'
+const DEBUG_PROP = 'debug'
 
 /* === Internal Functions === */
 
@@ -55,7 +55,7 @@ const elementName = (el: Element): string =>
 const valueString = (value: unknown): string =>
 	isString(value) ? `"${value}"`
 		: isObject(value) ? JSON.stringify(value)
-		: isDefined(value) ? value.toString()
+		: isDefined(value) ? String(value)
 		: 'undefined'
 
 /* === Exported Class and Functions === */
@@ -119,9 +119,13 @@ class UIElement extends HTMLElement {
 	 * @param {string | undefined} old - old value of the modified attribute
 	 * @param {string | undefined} value - new value of the modified attribute
 	 */
-	attributeChangedCallback(name: string, old: string | undefined, value: string | undefined): void {
+	attributeChangedCallback(
+		name: string,
+		old: string | undefined,
+		value: string | undefined): void
+	{
 		if (value === old) return
-		log(`${valueString(old)} => ${valueString(value)}`, `Attribute "${name}" of ${elementName(this)} changed`)
+		if (DEV_MODE && this[DEBUG_PROP]) log(`${valueString(old)} => ${valueString(value)}`, `Attribute "${name}" of ${elementName(this)} changed`)
 		this.set(name, parse(this, name, value, old))
 	}
 
@@ -134,18 +138,19 @@ class UIElement extends HTMLElement {
      * @since 0.7.0
      */
 	connectedCallback(): void {
-		if (isString(this.getAttribute(DEBUG_STATE))) this.set(DEBUG_STATE, true)
+		if (isString(this.getAttribute(DEBUG_PROP)))
+			this[DEBUG_PROP] = true
 		initContext(this)
 		// syncInternals(this)
-		log(elementName(this), 'Connected')
+		if (DEV_MODE && this[DEBUG_PROP]) log(elementName(this), 'Connected')
 	}
 
 	disconnectedCallback(): void {
-		log(elementName(this), 'Disconnected')
+		if (DEV_MODE && this[DEBUG_PROP]) log(elementName(this), 'Disconnected')
 	}
 
 	adoptedCallback(): void {
-		log(elementName(this), 'Adopted')
+		if (DEV_MODE && this[DEBUG_PROP]) log(elementName(this), 'Adopted')
     }
 
 	/**
@@ -172,7 +177,9 @@ class UIElement extends HTMLElement {
 				: isFunction(v) ? unwrap(v())
 				: isSignal(v) || isResult(v) ? unwrap(v.get())
 				: v
-		return log(unwrap(this.signals.get(key)), `Get current value of state ${valueString(key)} in ${elementName(this)}`)
+		const value = unwrap(this.signals.get(key))
+		if (DEV_MODE && this[DEBUG_PROP]) log(value, `Get current value of state ${valueString(key)} in ${elementName(this)}`)
+		return value
 	}
 
 	/**
@@ -189,15 +196,23 @@ class UIElement extends HTMLElement {
 			return
 		}
 		const v = isResult(value) ? value.get() : value // unwrap Ok or None
-		log(v, `Set ${update ? '' : 'default '}value of state ${valueString(key)} in ${elementName(this)} to`)
+		if (DEV_MODE && this[DEBUG_PROP]) log(v, `Set ${update ? '' : 'default '}value of state ${valueString(key)} in ${elementName(this)} to`)
+
+		// State does not exist => create new state
 		if (!this.signals.has(key)) {
 			this.signals.set(key, isSignal(v) ? v : state(v))
+
+		// State already exists => update state
 		} else if (update) {
 			const state = this.signals.get(key)
+
+			// Value is a Signal => replace state with new signal
 			if (isSignal(v)) {
-				log(v.get(), `Existing state ${valueString(key)} in ${elementName(this)} is replaced by new signal`)
+				if (DEV_MODE && this[DEBUG_PROP]) log(v.get(), `Existing state ${valueString(key)} in ${elementName(this)} is replaced by new signal`)
 				this.signals.set(key, v)
 				state.targets.forEach(notify => notify()) // notify dependent computed states and effects
+
+			// Value is not a Signal => set existing state to new value
 			} else {
 				if (isState(state)) state.set(v)
 				else log(v, `Computed state ${valueString(key)} in ${elementName(this)} cannot be set`, LOG_ERROR)
@@ -213,7 +228,11 @@ class UIElement extends HTMLElement {
 	 * @returns {boolean} `true` if the state existed and was deleted; `false` if ignored
 	 */
 	delete(key: any): boolean {
-		return log(this.signals.delete(key), `Delete state ${valueString(key)} from ${elementName(this)}`)
+		if (DEV_MODE && this[DEBUG_PROP]) log(
+			key,
+			`Delete state ${valueString(key)} from ${elementName(this)}`
+		)
+		return this.signals.delete(key)
 	}
 
 	/**

@@ -1,77 +1,174 @@
-import { isDefined } from '../core/is-type'
+import { isFunction, isNullish } from '../core/is-type'
 import { parse } from '../core/parse'
 import { effect } from '../core/cause-effect'
-import type { UIElement } from '../ui-element'
+import type { StateLike, UIElement } from '../ui-element'
 import type { Enqueue } from '../core/scheduler'
 import { asBoolean, asInteger, asNumber } from './parse-attribute'
 
+/* === Types === */
+
+type InternalUpdater<E extends UIElement, T> = {
+	key: string,
+	initial: (element: E) => T,
+    read: (element: E) => T,
+    update: (value: T) => (element: E) => () => void
+	delete?: (element: E) => () => void
+}
+
+/* === Constants === */
+
+const ARIA_PREFIX = 'aria'
+
+const ROLES = {
+	button: 'button',
+	checkbox: 'checkbox',
+	combobox: 'combobox',
+	dialog: 'dialog',
+	grid: 'grid',
+	gridcell: 'gridcell',
+	heading: 'heading',
+	link: 'link',
+	listbox: 'listbox',
+	listitem: 'listitem',
+	menuitem: 'menuitem',
+	menuitemcheckbox: 'menuitemcheckbox',
+	menuitemradio: 'menuitemradio',
+	option: 'option',
+	progressbar: 'progressbar',
+	radio: 'radio',
+	range: 'range',
+	row: 'row',
+	scrollbar: 'scrollbar',
+	separator: 'separator',
+	slider: 'slider',
+	spinbutton: 'spinbutton',
+	switch: 'switch',
+	tab: 'tab',
+	table: 'table',
+	tabpanel: 'tabpanel',
+	textbox: 'textbox',
+	tree: 'tree',
+	treegrid: 'treegrid',
+	treeitem: 'treeitem',
+}
+
+const STATES = {
+	atomic: 'atomic',
+	autocomplete: ['autocomplete', 'AutoComplete'],
+    busy: 'busy',
+	checked: 'checked',
+	colcount: ['colcount', 'ColCount'],
+	colindex: ['colindex', 'ColIndex'],
+	colspan: ['colspan', 'ColSpan'],
+    controls: 'controls',
+    current: 'current',
+    description: 'description',
+	disabled: 'disabled',
+	expanded: 'expanded',
+	haspopup: ['haspopup', 'HasPopup'],
+    hidden: 'hidden',
+    keyshortcuts: ['keyshortcuts', 'KeyShortcuts'],
+    label: 'label',
+	level: 'level',
+    live: 'live',
+	modal: 'modal',
+	multiline: ['multiline', 'MultiLine'],
+	multiselectable: ['multiselectable', 'MultiSelectable'],
+	orientation: 'orientation',
+	placeholder: 'placeholder',
+	posinset: ['posinset', 'PosInSet'],
+	pressed: 'pressed',
+	readonly: ['readonly', 'ReadOnly'],
+	relevant: 'relevant',
+	required: 'required',
+    roledescription: ['roledescription', 'RoleDescription'],
+	rowcount: ['rowcount', 'RowCount'],
+	rowindex: ['rowindex', 'RowIndex'],
+	rowspan: ['rowspan', 'RowSpan'],
+	selected: 'selected',
+	setsize: ['setsize', 'SetSize'],
+	sorted: 'sorted',
+	valuemax: ['valuemax', 'ValueMax'],
+	valuemin: ['valuemin', 'ValueMin'],
+    valuenow: ['valuenow', 'ValueNow'],
+    valuetext: ['valuetext', 'ValueText'],
+}
+
 /* === Exported Functions === */
+
+/**
+ * Auto-effect for setting internals of a Web Component according to a given state
+ * 
+ * @since 0.9.0
+ * @param {StateLike<T>} state - state bounded to the element internal
+ * @param {InternalsUpdater<E, T>} updater - updater object containing key, read, update, and delete methods
+ */
+const updateInternal = <E extends UIElement, T>(
+	state: StateLike<T>,
+	updater: InternalUpdater<E, T>
+) => (host: E): void => {
+	if (!host.internals) return
+	const { key, initial, read, update } = updater
+	host.set(state, initial(host), false)
+	effect((enqueue: Enqueue) => {
+		const current = read(host)
+		const value = isFunction(state) ? state(current) : host.get<T>(state)
+		const action = isNullish(value) && updater.delete
+			? updater.delete
+			: update(value)
+		if (!Object.is(value, current)) enqueue(host, key, action)
+	})
+}
 
 /**
  * Toggle an internal state of an element based on given state
  * 
  * @since 0.9.0
- * @param {UIElement} host - host UIElement to update internals
  * @param {string} name - name of internal state to be toggled
  * @param {string} ariaProp - aria property to be updated when internal state changes
  */
-const toggleInternal = <E extends UIElement>(host: E, name: string, ariaProp?: string) => {
-	if (!host.internals) return
-	host.set(name, host.hasAttribute(name), false)
-	effect((enqueue: Enqueue) => {
-		const current = host.internals.states.has(name)
-		const value = host.get(name)
-		if (!Object.is(value, current)) {
-			enqueue(host, `i-${name}`, value
-				? (el: UIElement) => () => {
-					el.internals.states.add(name)
-					if (ariaProp) {
-						el.internals[ariaProp] = 'true'
-						el.setAttribute(`aria-${name}`, 'true')
-					}
-					el.toggleAttribute(name, true)
+const toggleInternal = <E extends UIElement>(
+	name: string,
+	ariaProp?: string
+) => updateInternal(name, {
+	key: `i-${name}`,
+	initial:  (el: E) => el.hasAttribute(name),
+    read: (el: E) => el.internals.states.has(name),
+    update: (value: boolean) => (el: E) =>
+		() => {
+				el.internals.states[value ? 'add' : 'delete'](name)
+				if (ariaProp) {
+					el.internals[ariaProp] = String(value)
+					el.setAttribute(`${ARIA_PREFIX}-${name}`, String(value))
 				}
-				: (el: UIElement) => () => {
-					el.internals.states.delete(name)
-					if (ariaProp) {
-						el.internals[ariaProp] = 'false'
-						el.setAttribute(`aria-${name}`, 'false')
-					}
-					el.toggleAttribute(name, false)
-				}
-			)
-		}
-	})
-}
+				el.toggleAttribute(name, value)
+			}
+})
 
 /**
  * Set ElementInternals ARIA property and attribute based on given state
  * 
  * @since 0.9.0
- * @param {UIElement} host - host UIElement to update internals
  * @param {string} name - name of internal state to be toggled
  * @param {string} ariaProp - aria property to be updated when internal state changes
  */
-const setInternal = <E extends UIElement>(host: E, name: string, ariaProp: string) => {
-	if (!host.internals) return
-	host.set(name, parse(host, name, host.getAttribute(name)), false)
-	effect((enqueue: Enqueue) => {
-		const current = host.internals[ariaProp]
-		const value = String(host.get(name))
-		if (value!== current) {
-			enqueue(host, `i-${name}`, isDefined(value)
-				? (el: UIElement) => () => {
-					el.internals[ariaProp] = value
-					el.setAttribute(`aria-${name}`, value)
-				}
-				: (el: UIElement) => () => {
-					el.internals[ariaProp] = undefined
-					el.removeAttribute(`aria-${name}`)
-				}
-			)
-		}
-	})
-}
+const setInternal = <E extends UIElement>(
+	name: string,
+	ariaProp: string
+) => updateInternal(name, {
+	key: `i-${name}`,
+    initial:  (el: E) => el.getAttribute(name),
+    read: (el: E) => parse(el, name, el.internals[ariaProp]),
+    update: (value: any) => (el: E) =>
+        () => {
+			el.internals[ariaProp] = value
+			el.setAttribute(`${ARIA_PREFIX}-${name}`, value)
+		},
+	delete: (el: E) => () => {
+        el.internals[ariaProp] = undefined
+        el.removeAttribute(`${ARIA_PREFIX}-${name}`)
+    }
+})
 
 /**
  * Synchronize internal states of an element with corresponding HTML attributes and aria properties
@@ -79,97 +176,197 @@ const setInternal = <E extends UIElement>(host: E, name: string, ariaProp: strin
  * @param host host UIElement to sync internals
  */
 const syncInternals = (host: UIElement) => {
-	if (!host.internals) host.internals = host.attachInternals()
 	const proto = host.constructor as typeof UIElement
-	const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
-	const addInternals = (map: Map<string, string>, internals: string[]) =>
-		internals.forEach((internal: string) => map.set(internal, capitalize(internal)))
+	if (!proto.observedAttributes) return
 
+	const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
+	const addInternals = (
+		map: Map<string, string>,
+		internals: (string | string[])[]
+	) => internals.forEach((internal: string | string[]) =>
+		Array.isArray(internal)
+			? map.set(internal[0], internal[1])
+			: internal && map.set(internal, capitalize(internal))
+	)
+	const hasRole = (role: string, allowedRoles: string[]) =>
+		allowedRoles.includes(role)
+	const isAutocompletable = (role: string) => hasRole(role, [
+		ROLES.combobox,
+		ROLES.textbox
+	])
+	const isCheckable = (role: string) => hasRole(role, [
+		ROLES.checkbox,
+		ROLES.menuitemcheckbox,
+		ROLES.menuitemradio,
+        ROLES.radio,
+        ROLES.switch
+	])
+	const isExpandable = (role: string) => hasRole(role, [
+		ROLES.button,
+		ROLES.combobox,
+		ROLES.grid,
+		ROLES.link,
+		ROLES.listbox,
+		ROLES.menuitem,
+		ROLES.row,
+		ROLES.tabpanel,
+		ROLES.treeitem
+	])
+	const isMultiSelectable = (role: string) => hasRole(role, [
+		ROLES.listbox,
+        ROLES.grid,
+        ROLES.table,
+        ROLES.tree,
+	])
+	const isPressable = (role: string) => hasRole(role, [
+		ROLES.button,
+        ROLES.switch,
+	])
+	const isSelectable = (role: string) => hasRole(role, [
+		ROLES.gridcell,
+        ROLES.listitem,
+        ROLES.option,
+        ROLES.tab,
+		ROLES.treeitem
+	])
+	const isTabular = (role: string) => hasRole(role, [
+		ROLES.grid,
+		ROLES.table,
+		ROLES.treegrid,
+	])
+	const maybeReadOnly = (role: string) => hasRole(role, [
+		ROLES.gridcell,
+        ROLES.spinbutton,
+		ROLES.textbox,
+	])
+	const maybeRequired = (role: string) => hasRole(role, [
+        ROLES.combobox,
+		ROLES.listbox,
+        ROLES.gridcell,
+        ROLES.spinbutton,
+		ROLES.textbox,
+	])
+	const mayHavePopup = (role: string) => hasRole(role, [
+		ROLES.button,
+		ROLES.link,
+		ROLES.menuitem,
+		ROLES.combobox,
+		ROLES.gridcell,
+	])
+	const hasLevel = (role: string) => hasRole(role, [
+		ROLES.heading,
+		ROLES.listitem,
+		ROLES.treeitem,
+	])
+	const hasOrientation = (role: string) => hasRole(role, [
+		ROLES.tabpanel,
+		ROLES.progressbar,
+		ROLES.scrollbar,
+		ROLES.separator,
+		ROLES.slider,
+	])
+	const hasPosInSet = (role: string) => hasRole(role, [
+		ROLES.listitem,
+		ROLES.treeitem,
+	])
+	const hasSetSize = (role: string) => hasRole(role, [
+		ROLES.listitem,
+		ROLES.option,
+		ROLES.row,
+		ROLES.tab,
+		ROLES.treeitem,
+	])
+	const hasNumericValue = (role: string) => hasRole(role, [
+		ROLES.range,
+		ROLES.progressbar,
+		ROLES.slider,
+		ROLES.spinbutton,
+	])
+
+	if (!host.internals) host.internals = host.attachInternals()
 	const role = host.role
 
-	const boolInternals = new Map<string, string>([])
-	addInternals(boolInternals, [
-		'disabled',
-		'hidden',
+	const bools = new Map<string, string>([])
+	addInternals(bools, [
+		STATES.disabled, STATES.hidden,
+		hasRole(role, [ROLES.dialog]) && STATES.modal,
+		hasRole(role, [ROLES.textbox]) && STATES.multiline,
+		isMultiSelectable(role) && STATES.multiselectable,
+		maybeReadOnly(role) && STATES.readonly,
+		maybeRequired(role) && STATES.required,
+		isSelectable(role) && STATES.selected,
+		hasNumericValue(role) && STATES.valuetext,
 	])
 
-	const numberInternals = new Map<string, string>()
-
-	const stringInternals = new Map<string, string>([
-		['keyshortcuts', 'KeyShortcuts'],
+	const numbers = new Map<string, string>()
+	if (hasLevel(role)) addInternals(numbers, [STATES.level])
+	if (hasPosInSet(role)) addInternals(numbers, [STATES.posinset])
+	if (hasSetSize(role)) addInternals(numbers, [STATES.setsize])
+	if (isTabular(role)) addInternals(numbers, [
+		STATES.colcount,
+		STATES.colindex,
+		STATES.colspan,
+		STATES.rowcount,
+		STATES.rowspan,
+		STATES.rowindex,
 	])
-	addInternals(stringInternals, [
-        'controls',
-		'description',
-        'label',
+	if (hasNumericValue(role)) addInternals(numbers, [
+		STATES.valuemax,
+		STATES.valuemin,
+		STATES.valuenow
 	])
 
-	addInternals(proto.attributeMap['current'] === asBoolean ? boolInternals : stringInternals, ['current'])
-	if (role) stringInternals.set('roledescription', 'RoleDescription')
-	if (host.hasAttribute('aria-live')) {
-		addInternals(boolInternals, ['atomic', 'busy'])
-		addInternals(stringInternals, ['live', 'relevant'])
-	}
-	if (['textbox', 'combobox'].includes(role))
-		stringInternals.set('autocomplete', 'AutoComplete')
-	if (['checkbox', 'menuitemcheckbox', 'menuitemradio', 'radio', 'switch'].includes(role))
-		addInternals(proto.attributeMap['checked'] === asBoolean ? boolInternals : stringInternals, ['checked'])
-	if (['table', 'grid', 'treegrid'].includes(role)) {
-		numberInternals.set('colcount', 'ColCount')
-		numberInternals.set('colindex', 'ColIndex')
-		numberInternals.set('colspan', 'ColSpan')
-		numberInternals.set('rowcount', 'RowCount')
-		numberInternals.set('rowindex', 'RowIndex')
-		numberInternals.set('rowspan', 'RowSpan')
-	}
-	if (['button', 'link', 'treeitem', 'grid', 'row', 'listbox', 'tabpanel', 'menuitem', 'combobox'].includes(role))
-		addInternals(boolInternals, ['expanded'])
-	if (['button', 'link', 'menuitem', 'combobox', 'gridcell'].includes(role))
-        (proto.attributeMap['haspopup'] === asBoolean ? boolInternals : stringInternals).set('haspopup', 'HasPopup')
-	if (['heading', 'treeitem', 'listitem'].includes(role))
-    	numberInternals.set('level', 'Level')
-	if (role === 'dialog') boolInternals.set('modal', 'Modal')
-	if (role === 'textbox') {
-		boolInternals.set('multiline', 'MultiLine')
-		stringInternals.set('placeholder', 'Placeholder')
-	}
-	if (['listbox', 'grid', 'table', 'tree'].includes(role))
-		boolInternals.set('multiselectable', 'MultiSelectable')
-	if (['scrollbar', 'slider', 'separator', 'progressbar', 'tabpanel'].includes(role))
-        stringInternals.set('orientation', 'Orientation')
-	if (['listitem', 'treeitem'].includes(role))
-		numberInternals.set('posinset', 'PosInSet')
-	if (['button', 'switch'].includes(role))
-		addInternals(proto.attributeMap['pressed'] === asBoolean ? boolInternals : stringInternals, ['pressed'])
-	if (['textbox', 'gridcell', 'spinbutton'].includes(role))
-		boolInternals.set('readonly', 'ReadOnly')
-	if (['textbox', 'gridcell', 'spinbutton', 'combobox', 'listbox'].includes(role))
-		boolInternals.set('required', 'Required')
-	if (['gridcell', 'listitem', 'option', 'tab', 'treeitem'].includes(role))
-		boolInternals.set('selected', 'Selected')
-	if (['listitem', 'treeitem', 'option', 'row', 'tab'].includes(role))
-		numberInternals.set('setsize', 'SetSize')
-	if (['grid', 'treegrid', 'table'].includes(role))
-        stringInternals.set('sorted', 'Sorted')
-	if (['range', 'progressbar', 'slider', 'spinbutton'].includes(role)) {
-        numberInternals.set('valuemax', 'ValueMax')
-        numberInternals.set('valuemin', 'ValueMin')
-        numberInternals.set('valuenow', 'ValueNow')
-		stringInternals.set('valuetext', 'ValueText')
-    }
+	const strings = new Map<string, string>()
+	addInternals(strings, [
+		isAutocompletable(role) && STATES.autocomplete,
+        STATES.controls,
+		STATES.description,
+		isExpandable(role) && STATES.expanded,
+		STATES.keyshortcuts,
+        STATES.label,
+		hasOrientation(role) && STATES.orientation,
+		hasRole(role, [ROLES.textbox]) && STATES.placeholder,
+		role && STATES.roledescription,
+		isTabular(role) && STATES.sorted,
+	])
 
-	if (!proto.observedAttributes) return
+	// Conditional on whether parsed as boolean
+	addInternals(
+		proto.attributeMap[STATES.current] === asBoolean ? bools : strings,
+		[STATES.current]
+	)
+	if (isCheckable(role)) addInternals(
+		proto.attributeMap[STATES.checked] === asBoolean ? bools : strings,
+		[STATES.checked]
+	)
+	if (mayHavePopup(role)) addInternals(
+        proto.attributeMap[STATES.haspopup[0]] === asBoolean ? bools : strings,
+        [STATES.haspopup]
+    )
+	if (isPressable(role)) addInternals(
+        proto.attributeMap[STATES.pressed] === asBoolean ? bools : strings,
+        [STATES.pressed]
+    )
+
+	// Conditional on aria-live attribute
+	if (host.hasAttribute(`${ARIA_PREFIX}-${STATES.live}`)) {
+		addInternals(bools, [STATES.atomic, STATES.busy])
+		addInternals(strings, [STATES.live, STATES.relevant])
+	}
+
 	for (const attr of proto.observedAttributes) {
-		if (numberInternals.has(attr)) {
+		if (numbers.has(attr)) {
 			if (!Object.hasOwn(proto.attributeMap, attr))
-				proto.attributeMap[attr] = attr.slice(0, 5) === 'value' ? asNumber : asInteger
-			setInternal(host, attr, `aria${numberInternals.get(attr)}`)
-		} else if (stringInternals.has(attr)) {
-			setInternal(host, attr, `aria${stringInternals.get(attr)}`)
-		} else if (boolInternals.has(attr)) {
+				proto.attributeMap[attr] = attr.slice(0, 5) === 'value'
+					? asNumber
+					: asInteger
+			setInternal(attr, `${ARIA_PREFIX}${numbers.get(attr)}`)(host)
+		} else if (strings.has(attr)) {
+			setInternal(attr, `${ARIA_PREFIX}${strings.get(attr)}`)(host)
+		} else if (bools.has(attr)) {
 			if (!Object.hasOwn(proto.attributeMap, attr))
 				proto.attributeMap[attr] = asBoolean
-            toggleInternal(host, attr, `aria${boolInternals.get(attr)}`)
+            toggleInternal(attr, `${ARIA_PREFIX}${bools.get(attr)}`)(host)
 		}
 	}
 
