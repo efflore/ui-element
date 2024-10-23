@@ -1,5 +1,5 @@
 import type { UIElement } from "../ui-element"
-import { isFunction } from "./is-type"
+import { isFunction } from "../core/is-type"
 
 /** @see https://github.com/webcomponents-cg/community-protocols/blob/main/proposals/context.md */
 
@@ -82,9 +82,11 @@ class ContextRequestEvent<T extends UnknownContext> extends Event {
 /**
  * Initialize context provider / consumer for a UIElement instance
  * 
- * @param {UIelement} host - UIElement instance to initialize context for
+ * @since 0.9.0
+ * @param {UIElement} host - UIElement instance to initialize context for
+ * @return {boolean} - true if context provider was initialized successfully, false otherwise
  */
-const initContext = (host: UIElement) => {
+const useContext = (host: UIElement): boolean => {
 	const proto = host.constructor as typeof UIElement
 
 	// context consumers
@@ -101,16 +103,18 @@ const initContext = (host: UIElement) => {
 
 	// context providers
 	const provided = proto.providedContexts || []
-	if (!provided.length) return
+	if (!provided.length) return false
 	host.addEventListener(CONTEXT_REQUEST, (e: ContextRequestEvent<UnknownContext>) => {
 		const { context, callback } = e
 		if (!provided.includes(context) || !isFunction(callback)) return
 		e.stopPropagation()
 		callback(host.signals.get(String(context)))
 	})
+
+	return true
 }
 
 export {
 	type Context, type UnknownContext,
-	CONTEXT_REQUEST, ContextRequestEvent, initContext
+	CONTEXT_REQUEST, ContextRequestEvent, useContext
 }

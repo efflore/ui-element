@@ -2,7 +2,7 @@ import {
 	callFunction, isComment, isDefined, isDefinedObject, isFunction, isNull, isNullish,
 	isNumber, isObject, isObjectOfType, isPropertyKey, isString, isSymbol
 } from './src/core/is-type'
-import { log, LOG_DEBUG, LOG_ERROR, LOG_INFO, LOG_WARN } from './src/core/log'
+import { elementName, log, LOG_DEBUG, LOG_ERROR, LOG_INFO, LOG_WARN, valueString } from './src/core/log'
 import {
 	computed, effect, isComputed, isSignal, isState, state,
 	TYPE_COMPUTED, TYPE_STATE
@@ -14,11 +14,12 @@ import {
 import { TYPE_UI, ui, self, first, all } from './src/core/ui'
 import { parse } from './src/core/parse'
 import { UIElement } from './src/ui-element'
+import { useContext } from './src/lib/context'
 import { pass } from './src/lib/pass'
 import { on, off, emit } from './src/lib/event'
-import { asBoolean, asInteger, asJSON, asNumber, asString } from './src/lib/parse-attribute'
+import { asBoolean, asEnum, asInteger, asJSON, asNumber, asString } from './src/lib/parse-attribute'
 import { setAttribute, setProperty, setStyle, setText, toggleAttribute, toggleClass, updateElement } from './src/lib/auto-effects'
-import { setInternal, syncInternals, toggleInternal } from './src/lib/internals'
+import { setInternal, toggleInternal, useBusy, useChecked, useCurrent, useDisabled, useExpanded, useHidden, useInternals, usePressed, useSelected } from './src/lib/internals'
 
 /**
  * @name UIElement
@@ -32,7 +33,7 @@ export {
 	isNull, isNullish, isDefined, isDefinedObject, isObjectOfType, isComment,
 
 	// Logging
-	LOG_ERROR, LOG_WARN, LOG_INFO, LOG_DEBUG, log,
+	LOG_ERROR, LOG_WARN, LOG_INFO, LOG_DEBUG, log, elementName, valueString,
 
 	// Result types for safe handling of nullish values, errors, and promises
 	TYPE_OK, TYPE_NONE, TYPE_FAIL, ok, none, fail, maybe, result, task, flow, match, isOk, isNone, isFail, isResult,
@@ -43,15 +44,21 @@ export {
 	// UI element access
 	TYPE_UI, ui, self, first, all,
 
-	// Base class, events and state passing
-	UIElement, pass, on, off, emit,
+	// Base class
+	UIElement,
+	
+	// Event handling and state passing
+	on, off, emit, pass,
+
+	// Context access
+	useContext,
 
 	// Attribute parsing
-	parse, asBoolean, asInteger, asNumber, asString, asJSON,
+	parse, asBoolean, asInteger, asNumber, asString, asEnum, asJSON,
 
 	// Auto-effect functions for DOM manipulation
 	updateElement, setText, setProperty, setAttribute, toggleAttribute, toggleClass, setStyle,
 
 	// Element internals manipulation
-	syncInternals, toggleInternal, setInternal,
+	useInternals, toggleInternal, setInternal, useBusy, useChecked, useCurrent, useDisabled, useExpanded, useHidden, usePressed, useSelected,
 }

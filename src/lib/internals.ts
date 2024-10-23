@@ -1,14 +1,16 @@
 import { isFunction, isNullish } from '../core/is-type'
-import { parse } from '../core/parse'
+import { parse, type AttributeParser } from '../core/parse'
 import { effect } from '../core/cause-effect'
 import type { StateLike, UIElement } from '../ui-element'
 import type { Enqueue } from '../core/scheduler'
-import { asBoolean, asInteger, asNumber } from './parse-attribute'
+import { asBoolean, asEnum } from './parse-attribute'
+import { elementName, log, LOG_WARN, valueString } from '../core/log'
 
 /* === Types === */
 
 type InternalUpdater<E extends UIElement, T> = {
 	key: string,
+	parser: AttributeParser<T>,
 	initial: (element: E) => T,
     read: (element: E) => T,
     update: (value: T) => (element: E) => () => void
@@ -20,8 +22,12 @@ type InternalUpdater<E extends UIElement, T> = {
 const ARIA_PREFIX = 'aria'
 
 const ROLES = {
+	alert: 'alert',
+	alertdialog: 'alertdialog',
+	application: 'application',
 	button: 'button',
 	checkbox: 'checkbox',
+	columnheader: 'columnheader',
 	combobox: 'combobox',
 	dialog: 'dialog',
 	grid: 'grid',
@@ -30,23 +36,32 @@ const ROLES = {
 	link: 'link',
 	listbox: 'listbox',
 	listitem: 'listitem',
+	log: 'log',
+	marquee: 'marquee',
+	menu: 'menu',
+	menubar: 'menubar',
 	menuitem: 'menuitem',
 	menuitemcheckbox: 'menuitemcheckbox',
 	menuitemradio: 'menuitemradio',
 	option: 'option',
 	progressbar: 'progressbar',
 	radio: 'radio',
-	range: 'range',
+	radiogroup: 'radiogroup',
 	row: 'row',
+	rowheader: 'rowheader',
 	scrollbar: 'scrollbar',
+	searchbox: 'searchbox',
 	separator: 'separator',
 	slider: 'slider',
 	spinbutton: 'spinbutton',
+	status: 'status',
 	switch: 'switch',
 	tab: 'tab',
 	table: 'table',
+	tablist: 'tablist',
 	tabpanel: 'tabpanel',
 	textbox: 'textbox',
+	timer: 'timer',
 	tree: 'tree',
 	treegrid: 'treegrid',
 	treeitem: 'treeitem',
@@ -94,6 +109,125 @@ const STATES = {
     valuetext: ['valuetext', 'ValueText'],
 }
 
+const ENUM_TRISTATE = ['false', 'mixed', 'true']
+const ENUM_CURRENT = ['date', 'false', 'location', 'page', 'step', 'time', 'true']
+// const ENUM_INVALID = ['false', 'grammar', 'spelling', 'true']
+
+const ROLES_CHECKED = [
+	ROLES.checkbox,
+	ROLES.menuitemcheckbox,
+	ROLES.menuitemradio,
+	ROLES.option,
+	ROLES.radio,
+	ROLES.switch,
+	ROLES.treeitem
+]
+
+const ROLES_EXPANDED = [
+	ROLES.application,
+	ROLES.button,
+	ROLES.checkbox,
+	ROLES.columnheader,
+	ROLES.combobox,
+	ROLES.gridcell,
+	ROLES.link,
+	ROLES.listbox,
+	ROLES.menuitem,
+	ROLES.menuitemcheckbox,
+	ROLES.menuitemradio,
+	ROLES.row,
+	ROLES.rowheader,
+	ROLES.switch,
+	ROLES.tab,
+	ROLES.treeitem
+]
+
+/* const ROLES_INVALID = [
+	ROLES.application,
+	ROLES.checkbox,
+	ROLES.columnheader,
+	ROLES.combobox,
+	ROLES.gridcell,
+	ROLES.listbox,
+	ROLES.radiogroup,
+	ROLES.rowheader,
+	ROLES.searchbox,
+	ROLES.slider,
+	ROLES.spinbutton,
+	ROLES.switch,
+	ROLES.textbox,
+	ROLES.tree,
+	ROLES.treegrid,
+] */
+
+/* const ROLES_LIVE = [
+	ROLES.alert,
+	ROLES.log,
+	ROLES.marquee,
+	ROLES.status,
+	ROLES.timer,
+] */
+
+const ROLES_SELECTED = [
+	ROLES.columnheader,
+	ROLES.gridcell,
+	ROLES.option,
+	ROLES.row,
+    ROLES.rowheader,
+	ROLES.tab,
+	ROLES.treeitem,
+]
+
+/* === Internal Functions === */
+
+const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
+
+const getPair = (internal: string | string[]) => {
+	if (Array.isArray(internal)) return internal
+	return [internal, ARIA_PREFIX + capitalize(internal)]
+}
+
+const hasRole = (role: string, allowedRoles: string[]) =>
+	allowedRoles.includes(role)
+
+const validateRole = (
+	role: string,
+	allowedRoles: string[],
+	host: UIElement,
+	key: string
+) => {
+	if (hasRole(role, allowedRoles)) return true
+	log(role, `Role for ${elementName(host)} does not support aria-${key}. Use one of ${valueString(allowedRoles)}`, LOG_WARN)
+	return false
+}
+
+const booleanInternal = (
+	host: UIElement,
+	state: string | string[],
+	allowedRoles?: string[]
+): boolean => {
+	const role = host.role
+    const [key, prop] = getPair(state)
+	if (Array.isArray(allowedRoles) && !validateRole(role, allowedRoles, host, key))
+		return false
+    toggleInternal(key, `${ARIA_PREFIX}${prop}`)(host)
+    return true
+}
+
+const stringInternal = (
+	host: UIElement,
+	state: string | string[],
+	parser: AttributeParser<string>,
+	allowedRoles?: string[]
+) => {
+	const role = host.role
+    const [key, prop] = getPair(state)
+	if (Array.isArray(allowedRoles) && !validateRole(role, allowedRoles, host, key))
+		return false
+    setInternal(key, `${ARIA_PREFIX}${prop}`, parser)(host)
+    return true
+}
+
 /* === Exported Functions === */
 
 /**
@@ -105,10 +239,12 @@ const STATES = {
  */
 const updateInternal = <E extends UIElement, T>(
 	state: StateLike<T>,
-	updater: InternalUpdater<E, T>
+	updater: InternalUpdater<E, T>,
 ) => (host: E): void => {
 	if (!host.internals) return
-	const { key, initial, read, update } = updater
+	const { key, parser, initial, read, update } = updater
+	const proto = host.constructor as typeof UIElement
+	proto.attributeMap[key] = parser
 	host.set(state, initial(host), false)
 	effect((enqueue: Enqueue) => {
 		const current = read(host)
@@ -132,17 +268,18 @@ const toggleInternal = <E extends UIElement>(
 	ariaProp?: string
 ) => updateInternal(name, {
 	key: `i-${name}`,
+	parser: asBoolean,
 	initial:  (el: E) => el.hasAttribute(name),
     read: (el: E) => el.internals.states.has(name),
     update: (value: boolean) => (el: E) =>
 		() => {
-				el.internals.states[value ? 'add' : 'delete'](name)
-				if (ariaProp) {
-					el.internals[ariaProp] = String(value)
-					el.setAttribute(`${ARIA_PREFIX}-${name}`, String(value))
-				}
-				el.toggleAttribute(name, value)
+			el.internals.states[value ? 'add' : 'delete'](name)
+			if (ariaProp) {
+				el.internals[ariaProp] = String(value)
+				el.setAttribute(`${ARIA_PREFIX}-${name}`, String(value))
 			}
+			el.toggleAttribute(name, value)
+		}
 })
 
 /**
@@ -154,10 +291,12 @@ const toggleInternal = <E extends UIElement>(
  */
 const setInternal = <E extends UIElement>(
 	name: string,
-	ariaProp: string
+	ariaProp: string,
+	parser: AttributeParser<unknown>
 ) => updateInternal(name, {
 	key: `i-${name}`,
-    initial:  (el: E) => el.getAttribute(name),
+	parser,
+    initial:  (el: E) => el.getAttribute(`aria-${name}`),
     read: (el: E) => parse(el, name, el.internals[ariaProp]),
     update: (value: any) => (el: E) =>
         () => {
@@ -171,205 +310,138 @@ const setInternal = <E extends UIElement>(
 })
 
 /**
- * Synchronize internal states of an element with corresponding HTML attributes and aria properties
- * 
- * @param host host UIElement to sync internals
+ * Use element internals; will setup the global disabled and hidden states if they are observed attributes
  */
-const syncInternals = (host: UIElement) => {
-	const proto = host.constructor as typeof UIElement
-	if (!proto.observedAttributes) return
-
-	const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
-	const addInternals = (
-		map: Map<string, string>,
-		internals: (string | string[])[]
-	) => internals.forEach((internal: string | string[]) =>
-		Array.isArray(internal)
-			? map.set(internal[0], internal[1])
-			: internal && map.set(internal, capitalize(internal))
-	)
-	const hasRole = (role: string, allowedRoles: string[]) =>
-		allowedRoles.includes(role)
-	const isAutocompletable = (role: string) => hasRole(role, [
-		ROLES.combobox,
-		ROLES.textbox
-	])
-	const isCheckable = (role: string) => hasRole(role, [
-		ROLES.checkbox,
-		ROLES.menuitemcheckbox,
-		ROLES.menuitemradio,
-        ROLES.radio,
-        ROLES.switch
-	])
-	const isExpandable = (role: string) => hasRole(role, [
-		ROLES.button,
-		ROLES.combobox,
-		ROLES.grid,
-		ROLES.link,
-		ROLES.listbox,
-		ROLES.menuitem,
-		ROLES.row,
-		ROLES.tabpanel,
-		ROLES.treeitem
-	])
-	const isMultiSelectable = (role: string) => hasRole(role, [
-		ROLES.listbox,
-        ROLES.grid,
-        ROLES.table,
-        ROLES.tree,
-	])
-	const isPressable = (role: string) => hasRole(role, [
-		ROLES.button,
-        ROLES.switch,
-	])
-	const isSelectable = (role: string) => hasRole(role, [
-		ROLES.gridcell,
-        ROLES.listitem,
-        ROLES.option,
-        ROLES.tab,
-		ROLES.treeitem
-	])
-	const isTabular = (role: string) => hasRole(role, [
-		ROLES.grid,
-		ROLES.table,
-		ROLES.treegrid,
-	])
-	const maybeReadOnly = (role: string) => hasRole(role, [
-		ROLES.gridcell,
-        ROLES.spinbutton,
-		ROLES.textbox,
-	])
-	const maybeRequired = (role: string) => hasRole(role, [
-        ROLES.combobox,
-		ROLES.listbox,
-        ROLES.gridcell,
-        ROLES.spinbutton,
-		ROLES.textbox,
-	])
-	const mayHavePopup = (role: string) => hasRole(role, [
-		ROLES.button,
-		ROLES.link,
-		ROLES.menuitem,
-		ROLES.combobox,
-		ROLES.gridcell,
-	])
-	const hasLevel = (role: string) => hasRole(role, [
-		ROLES.heading,
-		ROLES.listitem,
-		ROLES.treeitem,
-	])
-	const hasOrientation = (role: string) => hasRole(role, [
-		ROLES.tabpanel,
-		ROLES.progressbar,
-		ROLES.scrollbar,
-		ROLES.separator,
-		ROLES.slider,
-	])
-	const hasPosInSet = (role: string) => hasRole(role, [
-		ROLES.listitem,
-		ROLES.treeitem,
-	])
-	const hasSetSize = (role: string) => hasRole(role, [
-		ROLES.listitem,
-		ROLES.option,
-		ROLES.row,
-		ROLES.tab,
-		ROLES.treeitem,
-	])
-	const hasNumericValue = (role: string) => hasRole(role, [
-		ROLES.range,
-		ROLES.progressbar,
-		ROLES.slider,
-		ROLES.spinbutton,
-	])
-
+const useInternals = (host: UIElement): boolean => {
 	if (!host.internals) host.internals = host.attachInternals()
+	const proto = host.constructor as typeof UIElement
+	const map = new Map<string, ((host: UIElement) => boolean)>([
+        [STATES.busy, useBusy],
+		[STATES.current, useCurrent],
+		[STATES.disabled, useDisabled],
+        [STATES.hidden, useHidden],
+	])
 	const role = host.role
-
-	const bools = new Map<string, string>([])
-	addInternals(bools, [
-		STATES.disabled, STATES.hidden,
-		hasRole(role, [ROLES.dialog]) && STATES.modal,
-		hasRole(role, [ROLES.textbox]) && STATES.multiline,
-		isMultiSelectable(role) && STATES.multiselectable,
-		maybeReadOnly(role) && STATES.readonly,
-		maybeRequired(role) && STATES.required,
-		isSelectable(role) && STATES.selected,
-		hasNumericValue(role) && STATES.valuetext,
-	])
-
-	const numbers = new Map<string, string>()
-	if (hasLevel(role)) addInternals(numbers, [STATES.level])
-	if (hasPosInSet(role)) addInternals(numbers, [STATES.posinset])
-	if (hasSetSize(role)) addInternals(numbers, [STATES.setsize])
-	if (isTabular(role)) addInternals(numbers, [
-		STATES.colcount,
-		STATES.colindex,
-		STATES.colspan,
-		STATES.rowcount,
-		STATES.rowspan,
-		STATES.rowindex,
-	])
-	if (hasNumericValue(role)) addInternals(numbers, [
-		STATES.valuemax,
-		STATES.valuemin,
-		STATES.valuenow
-	])
-
-	const strings = new Map<string, string>()
-	addInternals(strings, [
-		isAutocompletable(role) && STATES.autocomplete,
-        STATES.controls,
-		STATES.description,
-		isExpandable(role) && STATES.expanded,
-		STATES.keyshortcuts,
-        STATES.label,
-		hasOrientation(role) && STATES.orientation,
-		hasRole(role, [ROLES.textbox]) && STATES.placeholder,
-		role && STATES.roledescription,
-		isTabular(role) && STATES.sorted,
-	])
-
-	// Conditional on whether parsed as boolean
-	addInternals(
-		proto.attributeMap[STATES.current] === asBoolean ? bools : strings,
-		[STATES.current]
-	)
-	if (isCheckable(role)) addInternals(
-		proto.attributeMap[STATES.checked] === asBoolean ? bools : strings,
-		[STATES.checked]
-	)
-	if (mayHavePopup(role)) addInternals(
-        proto.attributeMap[STATES.haspopup[0]] === asBoolean ? bools : strings,
-        [STATES.haspopup]
-    )
-	if (isPressable(role)) addInternals(
-        proto.attributeMap[STATES.pressed] === asBoolean ? bools : strings,
-        [STATES.pressed]
-    )
-
-	// Conditional on aria-live attribute
-	if (host.hasAttribute(`${ARIA_PREFIX}-${STATES.live}`)) {
-		addInternals(bools, [STATES.atomic, STATES.busy])
-		addInternals(strings, [STATES.live, STATES.relevant])
+	if (ROLES_CHECKED.includes(role)) map.set(STATES.checked, useChecked)
+	if (ROLES_EXPANDED.includes(role)) map.set(STATES.expanded, useExpanded)
+	if (role === ROLES.button) map.set(STATES.pressed, usePressed)
+	if (ROLES_SELECTED.includes(role)) map.set(STATES.selected, useSelected)
+	for (const [attr, hook] of map) {
+		if (proto.observedAttributes.includes(attr)) hook(host)
 	}
-
-	for (const attr of proto.observedAttributes) {
-		if (numbers.has(attr)) {
-			if (!Object.hasOwn(proto.attributeMap, attr))
-				proto.attributeMap[attr] = attr.slice(0, 5) === 'value'
-					? asNumber
-					: asInteger
-			setInternal(attr, `${ARIA_PREFIX}${numbers.get(attr)}`)(host)
-		} else if (strings.has(attr)) {
-			setInternal(attr, `${ARIA_PREFIX}${strings.get(attr)}`)(host)
-		} else if (bools.has(attr)) {
-			if (!Object.hasOwn(proto.attributeMap, attr))
-				proto.attributeMap[attr] = asBoolean
-            toggleInternal(attr, `${ARIA_PREFIX}${bools.get(attr)}`)(host)
-		}
-	}
-
+	return true
 }
 
-export { syncInternals, toggleInternal, setInternal }
+/**
+ * Use a busy state for a live region and sync it with element internals and aria properties
+ * 
+ * @since 0.9.0
+ * @param {UIElement} host - host UIElement
+ * @returns {boolean} - whether the busy state was successfully setup
+ */
+const useBusy = (host: UIElement): boolean => {
+	host.internals.ariaLive = 'polite'
+	return booleanInternal(host, STATES.busy)
+}
+
+/**
+ * Use a checked state and sync it with element internals and aria properties
+ * 
+ * @since 0.9.0
+ * @param {UIElement} host - host UIElement
+ * @param {boolean} [isTriState=false] - whether to support tri-state checked state
+ * @returns {boolean} - whether the checked state was successfully setup
+ */
+const useChecked = (host: UIElement, isTriState: boolean = false): boolean => {
+	const role = host.role
+	const [key, prop] = getPair(STATES.checked)
+	if (!validateRole(role, ROLES_CHECKED, host, key)) return false
+	const allowsTriState = [ROLES.checkbox, ROLES.menuitemcheckbox, ROLES.option]
+	if (isTriState && !hasRole(role, allowsTriState) && isTriState) {
+		log(role, `Role for ${elementName(host)} does not support tri-state aria-checked. Use one of ${valueString(allowsTriState)} instead.`, LOG_WARN)
+		isTriState = false
+	}
+	if (isTriState) setInternal(key, `${ARIA_PREFIX}${prop}`, asEnum(ENUM_TRISTATE))(host)
+	else toggleInternal(key, `${ARIA_PREFIX}${prop}`)(host)
+	return true
+}
+
+const useCurrent = (host: UIElement, isEnumState: boolean = false): boolean => {
+	if (isEnumState) stringInternal(host, STATES.current, asEnum(ENUM_CURRENT))
+	else booleanInternal(host, STATES.current)
+	return true
+}
+
+/**
+ * Use a disabled state and sync it with element internals and aria properties
+ * 
+ * @since 0.9.0
+ * @param {UIElement} host - host UIElement
+ * @returns {boolean} - whether the disabled state was successfully setup
+ */
+const useDisabled = (host: UIElement): boolean =>
+	booleanInternal(host, STATES.disabled)
+
+/**
+ * Use an expanded state and sync it with element internals and aria properties
+ * 
+ * @since 0.9.0
+ * @param {UIElement} host - host UIElement
+ * @returns {boolean} - whether the expanded state was successfully setup
+ */
+const useExpanded = (host: UIElement): boolean =>
+	booleanInternal(host, STATES.expanded, ROLES_EXPANDED)
+
+/**
+ * Use a hidden state and sync it with element internals and aria properties
+ * 
+ * @since 0.9.0
+ * @param {UIElement} host - host UIElement
+ * @returns {boolean} - whether the hidden state was successfully setup
+ */
+const useHidden = (host: UIElement): boolean =>
+	booleanInternal(host, STATES.hidden)
+
+/**
+ * Use an invalid state and sync it with element internals and aria properties
+ * 
+ * @since 0.9.0
+ * @param {UIElement} host - host UIElement
+ * @returns {boolean} - whether the invalid state was successfully setup
+ ** /
+const useInvalid = (host: UIElement): boolean => {
+	log(host, 'Invalid state is not yet supported.', LOG_WARN)
+	// Implementation pending - we need to use checkValidity() / setValidity() instead of boolean internal
+	return false
+} */
+
+/**
+ * Use a pressed state and sync it with element internals and aria properties
+ * 
+ * @since 0.9.0
+ * @param {UIElement} host - host UIElement
+ * @returns {boolean} - whether the pressed state was successfully setup
+ */
+const usePressed = (host: UIElement, isTriState: boolean = false): boolean => {
+    const role = host.role
+    const [key, prop] = getPair(STATES.pressed)
+	if (!validateRole(role, [ROLES.button], host, key)) return false
+    if (isTriState) setInternal(key, `${ARIA_PREFIX}${prop}`, asEnum(ENUM_TRISTATE))(host)
+	else toggleInternal(key, `${ARIA_PREFIX}${prop}`)(host)
+    return true
+}
+
+/**
+ * Use a selected state and sync it with element internals and aria properties
+ * 
+ * @since 0.9.0
+ * @param {UIElement} host - host UIElement
+ * @returns {boolean} - whether the selected state was successfully setup
+ */
+const useSelected = (host: UIElement): boolean =>
+	booleanInternal(host, STATES.selected, ROLES_SELECTED)
+
+export {
+	toggleInternal, setInternal, useBusy, useChecked, useCurrent, useInternals,
+	useDisabled, useExpanded, useHidden, usePressed, useSelected,
+}

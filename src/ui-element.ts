@@ -1,10 +1,10 @@
-import { isDefined, isDefinedObject, isFunction, isObject, isString } from './core/is-type'
+import { isDefinedObject, isFunction, isString } from './core/is-type'
 import { type Maybe, type Ok, TYPE_FAIL, TYPE_OK, result, isFail, isResult, match } from './core/maybe'
 import { type Signal, isState, isSignal, state } from './core/cause-effect'
-import { DEV_MODE, log, LOG_ERROR } from './core/log'
+import { DEV_MODE, elementName, log, LOG_ERROR, valueString } from './core/log'
 import { type AttributeMap, parse } from './core/parse'
 import { type UI, self, first, all } from './core/ui'
-import { type UnknownContext, initContext } from './core/context'
+import type { UnknownContext } from './lib/context'
 
 /* === Types === */
 
@@ -14,51 +14,7 @@ type StateLike<T> = PropertyKey | Signal<T> | ((old: T | undefined) => T) | (() 
 
 const DEBUG_PROP = 'debug'
 
-/* === Internal Functions === */
-
-/**
- * Return selector string for the id of the element
- * 
- * @since 0.7.0
- * @param {string} id 
- * @returns {string} - id string for the element with '#' prefix
- */
-const idString = (id: string): string => id ? `#${id}` : '';
-
-/**
- * Return a selector string for classes of the element
- * 
- * @since 0.7.0
- * @param {DOMTokenList} classList - DOMTokenList to convert to a string
- * @returns {string} - class string for the DOMTokenList with '.' prefix if any
- */
-const classString = (classList: DOMTokenList): string =>
-	classList.length ? `.${Array.from(classList).join('.')}` : ''
-
-/**
- * Return a HyperScript string representation of the Element instance
- * 
- * @since 0.7.0
- * @param {Element} el 
- * @returns {string}
- */
-const elementName = (el: Element): string =>
-	`<${el.localName}${idString(el.id)}${classString(el.classList)}>`
-
-/**
- * Return a string representation of a JavaScript variable
- * 
- * @since 0.7.0
- * @param {unknown} value 
- * @returns {string}
- */
-const valueString = (value: unknown): string =>
-	isString(value) ? `"${value}"`
-		: isObject(value) ? JSON.stringify(value)
-		: isDefined(value) ? String(value)
-		: 'undefined'
-
-/* === Exported Class and Functions === */
+/* === Exported Class === */
 
 /**
  * Base class for reactive custom elements
@@ -84,7 +40,7 @@ class UIElement extends HTMLElement {
 		const r = result(() => UIElement.registry.define(tag, this))
 		match({
 			[TYPE_FAIL]: error => log(tag, error.message, LOG_ERROR),
-			[TYPE_OK]: () => log(tag, 'Registered custom element')
+			[TYPE_OK]: () => (DEV_MODE) && log(tag, 'Registered custom element')
 		})(r)
 	}
 
@@ -138,10 +94,7 @@ class UIElement extends HTMLElement {
      * @since 0.7.0
      */
 	connectedCallback(): void {
-		if (isString(this.getAttribute(DEBUG_PROP)))
-			this[DEBUG_PROP] = true
-		initContext(this)
-		// syncInternals(this)
+		if (isString(this.getAttribute(DEBUG_PROP))) this[DEBUG_PROP] = true
 		if (DEV_MODE && this[DEBUG_PROP]) log(elementName(this), 'Connected')
 	}
 
@@ -255,4 +208,4 @@ class UIElement extends HTMLElement {
 
 }
 
-export { type StateLike, UIElement }
+export { type StateLike, UIElement, elementName, valueString }

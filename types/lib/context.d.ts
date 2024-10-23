@@ -61,7 +61,9 @@ declare class ContextRequestEvent<T extends UnknownContext> extends Event {
 /**
  * Initialize context provider / consumer for a UIElement instance
  *
- * @param {UIelement} host - UIElement instance to initialize context for
+ * @since 0.9.0
+ * @param {UIElement} host - UIElement instance to initialize context for
+ * @return {boolean} - true if context provider was initialized successfully, false otherwise
  */
-declare const initContext: (host: UIElement) => void;
-export { type Context, type UnknownContext, CONTEXT_REQUEST, ContextRequestEvent, initContext };
+declare const useContext: (host: UIElement) => boolean;
+export { type Context, type UnknownContext, CONTEXT_REQUEST, ContextRequestEvent, useContext };

@@ -8,7 +8,7 @@ import { result, match, type Maybe, maybe, none, TYPE_FAIL } from '../core/maybe
  * Parse a boolean attribute as an actual boolean value
  * 
  * @since 0.7.0
- * @param {Maybe<string>} value - maybe string value or nothing
+ * @param {Maybe<string>} value - maybe string value
  * @returns {Maybe<boolean>}
  */
 const asBoolean = (value: Maybe<string>): Maybe<boolean> =>
@@ -18,7 +18,7 @@ const asBoolean = (value: Maybe<string>): Maybe<boolean> =>
  * Parse an attribute as a number forced to integer
  * 
  * @since 0.7.0
- * @param {Maybe<string>} value - maybe string value or nothing
+ * @param {Maybe<string>} value - maybe string value
  * @returns {Maybe<number>}
  */
 const asInteger = (value: Maybe<string>): Maybe<number> =>
@@ -28,7 +28,7 @@ const asInteger = (value: Maybe<string>): Maybe<number> =>
  * Parse an attribute as a number
  * 
  * @since 0.7.0
- * @param {Maybe<string>} value - maybe string value or nothing
+ * @param {Maybe<string>} value - maybe string value
  * @returns {Maybe<number>}
  */
 const asNumber = (value: Maybe<string>): Maybe<number> =>
@@ -38,16 +38,25 @@ const asNumber = (value: Maybe<string>): Maybe<number> =>
  * Parse an attribute as a string
  * 
  * @since 0.7.0
- * @param {Maybe<string>} value - maybe string value or nothing
+ * @param {Maybe<string>} value - maybe string value
  * @returns {Maybe<string>}
  */
 const asString = (value: Maybe<string>): Maybe<string> => value
 
 /**
+ * Parse an attribute as a tri-state value (true, false, mixed)
+ * 
+ * @since 0.9.0
+ * @param {string[]} valid - array of valid values
+ */
+const asEnum = (valid: string[]) => (value: Maybe<string>): Maybe<string> =>
+	value.filter(v => valid.includes(v.toLowerCase()))
+
+/**
  * Parse an attribute as a JSON serialized object
  * 
  * @since 0.7.2
- * @param {Maybe<string>} value - maybe string value or nothing
+ * @param {Maybe<string>} value - maybe string value
  * @returns {Maybe<unknown>}
  */
 const asJSON = (value: Maybe<string>): Maybe<unknown> => {
@@ -60,4 +69,6 @@ const asJSON = (value: Maybe<string>): Maybe<unknown> => {
 	})(r)
 }
 
-export { asBoolean, asInteger, asNumber, asString, asJSON }
+export {
+	asBoolean, asInteger, asNumber, asString, asEnum, asJSON,
+}

@@ -20,7 +20,7 @@
 	<script type="module">
 		import { runTests } from '@web/test-runner-mocha'
 		import { assert } from '@esm-bundle/chai'
-		import { UIElement, setText } from '../index.js'
+		import { UIElement, useContext, setText } from '../index.js'
 
 		const wait = ms => new Promise(resolve => setTimeout(resolve, ms))
 		const paint = () => new Promise(resolve => requestAnimationFrame(resolve))
@@ -30,9 +30,9 @@
 			static providedContexts = ['reduced-motion']
 
 			connectedCallback() {
+				useContext(this)
 				const mql = matchMedia('(prefers-reduced-motion)')
 				this.set('reduced-motion', mql.matches)
-				super.connectedCallback()
 				mql.onchange = e => this.set('reduced-motion', e.matches)
 			}
 		}
@@ -42,7 +42,7 @@
 			static consumedContexts = ['reduced-motion']
 
 			connectedCallback() {
-				super.connectedCallback()
+				useContext(this)
 				this.first('span').map(setText('reduced-motion'))
 			}
 		}
@@ -51,6 +51,10 @@
 		class UserContext extends UIElement {
 			static observedAttributes = ['display-name']
 			static providedContexts = ['display-name']
+
+			connectedCallback() {
+                useContext(this)
+            }
 		}
 		UserContext.define('user-context')
 
@@ -58,7 +62,7 @@
 			static consumedContexts = ['display-name']
 
 			connectedCallback() {
-				super.connectedCallback();
+				useContext(this)
 				this.first('span').map(setText('display-name'))
 			}
 		}

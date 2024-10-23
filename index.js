@@ -16,13 +16,56 @@ const isDefinedObject = (value) => isDefined(value) && (isObject(value) || isFun
 const isObjectOfType = (value, type) => isDefinedObject(value) && (Symbol.toStringTag in value) && value[Symbol.toStringTag] === type;
 const isComment = (node) => node.nodeType === Node.COMMENT_NODE;
 
-/* === Types === */
-/* === Constants === */
 const LOG_DEBUG = 'debug';
 const LOG_INFO = 'info';
 const LOG_WARN = 'warn';
 const LOG_ERROR = 'error';
-/* === Default Export */
+/* === Internal Functions === */
+/**
+ * Return selector string for the id of the element
+ *
+ * @since 0.7.0
+ * @param {string} id
+ * @returns {string} - id string for the element with '#' prefix
+ */
+const idString = (id) => id ? `#${id}` : '';
+/**
+ * Return a selector string for classes of the element
+ *
+ * @since 0.7.0
+ * @param {DOMTokenList} classList - DOMTokenList to convert to a string
+ * @returns {string} - class string for the DOMTokenList with '.' prefix if any
+ */
+const classString = (classList) => classList.length ? `.${Array.from(classList).join('.')}` : '';
+/* === Exported Functions === */
+/**
+ * Return a HyperScript string representation of the Element instance
+ *
+ * @since 0.7.0
+ * @param {Element} el
+ * @returns {string}
+ */
+const elementName = (el) => `<${el.localName}${idString(el.id)}${classString(el.classList)}>`;
+/**
+ * Return a string representation of a JavaScript variable
+ *
+ * @since 0.7.0
+ * @param {unknown} value
+ * @returns {string}
+ */
+const valueString = (value) => isString(value) ? `"${value}"`
+    : isObject(value) ? JSON.stringify(value)
+        : isDefined(value) ? String(value)
+            : 'undefined';
+/**
+ * Log a message to the console with the specified level
+ *
+ * @since 0.7.0
+ * @param {T} value - value to inspect
+ * @param {string} msg - message to log
+ * @param {LogLevel} level - log level
+ * @returns {T} - value passed through
+ */
 const log = (value, msg, level = LOG_DEBUG) => {
     console[level](msg, value);
     return value;
@@ -381,115 +424,14 @@ const isAttributeParser = (value) => isFunction(value) && !!value.length;
  * @param {string} value - attribute value
  * @param {string | undefined} [old=undefined] - old attribute value
  */
-const parse = (host, name, value, old = undefined) => maybe(host.constructor.attributeMap[name])
-    .guard(isAttributeParser)
-    .map(parser => parser(maybe(value), host, old))
-    .or(value)
-    .get();
-
-/* === Constants === */
-const CONTEXT_REQUEST = 'context-request';
-/* === Exported class === */
-/**
- * Class for context-request events
- *
- * An event fired by a context requester to signal it desires a named context.
- *
- * A provider should inspect the `context` property of the event to determine if it has a value that can
- * satisfy the request, calling the `callback` with the requested value if so.
- *
- * If the requested context event contains a truthy `subscribe` value, then a provider can call the callback
- * multiple times if the value is changed, if this is the case the provider should pass an `unsubscribe`
- * function to the callback which requesters can invoke to indicate they no longer wish to receive these updates.
- *
- * @class ContextRequestEvent
- * @extends {Event}
- *
- * @property {T} context - context key
- * @property {ContextCallback<ContextType<T>>} callback - callback function for value getter and unsubscribe function
- * @property {boolean} [subscribe=false] - whether to subscribe to context changes
- */
-class ContextRequestEvent extends Event {
-    context;
-    callback;
-    subscribe;
-    constructor(context, callback, subscribe = false) {
-        super(CONTEXT_REQUEST, {
-            bubbles: true,
-            composed: true
-        });
-        this.context = context;
-        this.callback = callback;
-        this.subscribe = subscribe;
-    }
-}
-/**
- * Initialize context provider / consumer for a UIElement instance
- *
- * @param {UIelement} host - UIElement instance to initialize context for
- */
-const initContext = (host) => {
-    const proto = host.constructor;
-    // context consumers
-    const consumed = proto.consumedContexts || [];
-    /* for (const context of consumed)
-        host.set(String(context), undefined, false) */
-    setTimeout(() => {
-        for (const context of consumed)
-            host.dispatchEvent(new ContextRequestEvent(context, (value) => host.set(String(context), value)));
-    });
-    // context providers
-    const provided = proto.providedContexts || [];
-    if (!provided.length)
-        return;
-    host.addEventListener(CONTEXT_REQUEST, (e) => {
-        const { context, callback } = e;
-        if (!provided.includes(context) || !isFunction(callback))
-            return;
-        e.stopPropagation();
-        callback(host.signals.get(String(context)));
-    });
+const parse = (host, name, value, old = undefined) => {
+    const parser = host.constructor.attributeMap[name];
+    return isAttributeParser(parser) ? parser(maybe(value), host, old) : value;
 };
 
 /* === Constants === */
 const DEBUG_PROP = 'debug';
-/* === Internal Functions === */
-/**
- * Return selector string for the id of the element
- *
- * @since 0.7.0
- * @param {string} id
- * @returns {string} - id string for the element with '#' prefix
- */
-const idString = (id) => id ? `#${id}` : '';
-/**
- * Return a selector string for classes of the element
- *
- * @since 0.7.0
- * @param {DOMTokenList} classList - DOMTokenList to convert to a string
- * @returns {string} - class string for the DOMTokenList with '.' prefix if any
- */
-const classString = (classList) => classList.length ? `.${Array.from(classList).join('.')}` : '';
-/**
- * Return a HyperScript string representation of the Element instance
- *
- * @since 0.7.0
- * @param {Element} el
- * @returns {string}
- */
-const elementName = (el) => `<${el.localName}${idString(el.id)}${classString(el.classList)}>`;
-/**
- * Return a string representation of a JavaScript variable
- *
- * @since 0.7.0
- * @param {unknown} value
- * @returns {string}
- */
-const valueString = (value) => isString(value) ? `"${value}"`
-    : isObject(value) ? JSON.stringify(value)
-        : isDefined(value) ? String(value)
-            : 'undefined';
-/* === Exported Class and Functions === */
+/* === Exported Class === */
 /**
  * Base class for reactive custom elements
  *
@@ -561,8 +503,6 @@ class UIElement extends HTMLElement {
     connectedCallback() {
         if (isString(this.getAttribute(DEBUG_PROP)))
             this[DEBUG_PROP] = true;
-        initContext(this);
-        // syncInternals(this)
         if (this[DEBUG_PROP])
             log(elementName(this), 'Connected');
     }
@@ -670,6 +610,73 @@ class UIElement extends HTMLElement {
     all = all(this);
 }
 
+/* === Constants === */
+const CONTEXT_REQUEST = 'context-request';
+/* === Exported class === */
+/**
+ * Class for context-request events
+ *
+ * An event fired by a context requester to signal it desires a named context.
+ *
+ * A provider should inspect the `context` property of the event to determine if it has a value that can
+ * satisfy the request, calling the `callback` with the requested value if so.
+ *
+ * If the requested context event contains a truthy `subscribe` value, then a provider can call the callback
+ * multiple times if the value is changed, if this is the case the provider should pass an `unsubscribe`
+ * function to the callback which requesters can invoke to indicate they no longer wish to receive these updates.
+ *
+ * @class ContextRequestEvent
+ * @extends {Event}
+ *
+ * @property {T} context - context key
+ * @property {ContextCallback<ContextType<T>>} callback - callback function for value getter and unsubscribe function
+ * @property {boolean} [subscribe=false] - whether to subscribe to context changes
+ */
+class ContextRequestEvent extends Event {
+    context;
+    callback;
+    subscribe;
+    constructor(context, callback, subscribe = false) {
+        super(CONTEXT_REQUEST, {
+            bubbles: true,
+            composed: true
+        });
+        this.context = context;
+        this.callback = callback;
+        this.subscribe = subscribe;
+    }
+}
+/**
+ * Initialize context provider / consumer for a UIElement instance
+ *
+ * @since 0.9.0
+ * @param {UIElement} host - UIElement instance to initialize context for
+ * @return {boolean} - true if context provider was initialized successfully, false otherwise
+ */
+const useContext = (host) => {
+    const proto = host.constructor;
+    // context consumers
+    const consumed = proto.consumedContexts || [];
+    /* for (const context of consumed)
+        host.set(String(context), undefined, false) */
+    setTimeout(() => {
+        for (const context of consumed)
+            host.dispatchEvent(new ContextRequestEvent(context, (value) => host.set(String(context), value)));
+    });
+    // context providers
+    const provided = proto.providedContexts || [];
+    if (!provided.length)
+        return false;
+    host.addEventListener(CONTEXT_REQUEST, (e) => {
+        const { context, callback } = e;
+        if (!provided.includes(context) || !isFunction(callback))
+            return;
+        e.stopPropagation();
+        callback(host.signals.get(String(context)));
+    });
+    return true;
+};
+
 /* === Exported Type === */
 /* === Exported Function === */
 /**
@@ -765,7 +772,7 @@ const emit = (event, state = event) =>
  * Parse a boolean attribute as an actual boolean value
  *
  * @since 0.7.0
- * @param {Maybe<string>} value - maybe string value or nothing
+ * @param {Maybe<string>} value - maybe string value
  * @returns {Maybe<boolean>}
  */
 const asBoolean = (value) => maybe(isDefined(value.get()));
@@ -773,7 +780,7 @@ const asBoolean = (value) => maybe(isDefined(value.get()));
  * Parse an attribute as a number forced to integer
  *
  * @since 0.7.0
- * @param {Maybe<string>} value - maybe string value or nothing
+ * @param {Maybe<string>} value - maybe string value
  * @returns {Maybe<number>}
  */
 const asInteger = (value) => value.map(v => parseInt(v, 10)).filter(Number.isFinite);
@@ -781,7 +788,7 @@ const asInteger = (value) => value.map(v => parseInt(v, 10)).filter(Number.isFin
  * Parse an attribute as a number
  *
  * @since 0.7.0
- * @param {Maybe<string>} value - maybe string value or nothing
+ * @param {Maybe<string>} value - maybe string value
  * @returns {Maybe<number>}
  */
 const asNumber = (value) => value.map(parseFloat).filter(Number.isFinite);
@@ -789,15 +796,22 @@ const asNumber = (value) => value.map(parseFloat).filter(Number.isFinite);
  * Parse an attribute as a string
  *
  * @since 0.7.0
- * @param {Maybe<string>} value - maybe string value or nothing
+ * @param {Maybe<string>} value - maybe string value
  * @returns {Maybe<string>}
  */
 const asString = (value) => value;
 /**
+ * Parse an attribute as a tri-state value (true, false, mixed)
+ *
+ * @since 0.9.0
+ * @param {string[]} valid - array of valid values
+ */
+const asEnum = (valid) => (value) => value.filter(v => valid.includes(v.toLowerCase()));
+/**
  * Parse an attribute as a JSON serialized object
  *
  * @since 0.7.2
- * @param {Maybe<string>} value - maybe string value or nothing
+ * @param {Maybe<string>} value - maybe string value
  * @returns {Maybe<unknown>}
  */
 const asJSON = (value) => {
@@ -922,8 +936,12 @@ const setStyle = (prop, state = prop) => updateElement(state, {
 /* === Constants === */
 const ARIA_PREFIX = 'aria';
 const ROLES = {
+    alert: 'alert',
+    alertdialog: 'alertdialog',
+    application: 'application',
     button: 'button',
     checkbox: 'checkbox',
+    columnheader: 'columnheader',
     combobox: 'combobox',
     dialog: 'dialog',
     grid: 'grid',
@@ -932,23 +950,32 @@ const ROLES = {
     link: 'link',
     listbox: 'listbox',
     listitem: 'listitem',
+    log: 'log',
+    marquee: 'marquee',
+    menu: 'menu',
+    menubar: 'menubar',
     menuitem: 'menuitem',
     menuitemcheckbox: 'menuitemcheckbox',
     menuitemradio: 'menuitemradio',
     option: 'option',
     progressbar: 'progressbar',
     radio: 'radio',
-    range: 'range',
+    radiogroup: 'radiogroup',
     row: 'row',
+    rowheader: 'rowheader',
     scrollbar: 'scrollbar',
+    searchbox: 'searchbox',
     separator: 'separator',
     slider: 'slider',
     spinbutton: 'spinbutton',
+    status: 'status',
     switch: 'switch',
     tab: 'tab',
     table: 'table',
+    tablist: 'tablist',
     tabpanel: 'tabpanel',
     textbox: 'textbox',
+    timer: 'timer',
     tree: 'tree',
     treegrid: 'treegrid',
     treeitem: 'treeitem',
@@ -994,6 +1021,99 @@ const STATES = {
     valuenow: ['valuenow', 'ValueNow'],
     valuetext: ['valuetext', 'ValueText'],
 };
+const ENUM_TRISTATE = ['false', 'mixed', 'true'];
+const ENUM_CURRENT = ['date', 'false', 'location', 'page', 'step', 'time', 'true'];
+// const ENUM_INVALID = ['false', 'grammar', 'spelling', 'true']
+const ROLES_CHECKED = [
+    ROLES.checkbox,
+    ROLES.menuitemcheckbox,
+    ROLES.menuitemradio,
+    ROLES.option,
+    ROLES.radio,
+    ROLES.switch,
+    ROLES.treeitem
+];
+const ROLES_EXPANDED = [
+    ROLES.application,
+    ROLES.button,
+    ROLES.checkbox,
+    ROLES.columnheader,
+    ROLES.combobox,
+    ROLES.gridcell,
+    ROLES.link,
+    ROLES.listbox,
+    ROLES.menuitem,
+    ROLES.menuitemcheckbox,
+    ROLES.menuitemradio,
+    ROLES.row,
+    ROLES.rowheader,
+    ROLES.switch,
+    ROLES.tab,
+    ROLES.treeitem
+];
+/* const ROLES_INVALID = [
+    ROLES.application,
+    ROLES.checkbox,
+    ROLES.columnheader,
+    ROLES.combobox,
+    ROLES.gridcell,
+    ROLES.listbox,
+    ROLES.radiogroup,
+    ROLES.rowheader,
+    ROLES.searchbox,
+    ROLES.slider,
+    ROLES.spinbutton,
+    ROLES.switch,
+    ROLES.textbox,
+    ROLES.tree,
+    ROLES.treegrid,
+] */
+/* const ROLES_LIVE = [
+    ROLES.alert,
+    ROLES.log,
+    ROLES.marquee,
+    ROLES.status,
+    ROLES.timer,
+] */
+const ROLES_SELECTED = [
+    ROLES.columnheader,
+    ROLES.gridcell,
+    ROLES.option,
+    ROLES.row,
+    ROLES.rowheader,
+    ROLES.tab,
+    ROLES.treeitem,
+];
+/* === Internal Functions === */
+const capitalize = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+const getPair = (internal) => {
+    if (Array.isArray(internal))
+        return internal;
+    return [internal, ARIA_PREFIX + capitalize(internal)];
+};
+const hasRole = (role, allowedRoles) => allowedRoles.includes(role);
+const validateRole = (role, allowedRoles, host, key) => {
+    if (hasRole(role, allowedRoles))
+        return true;
+    log(role, `Role for ${elementName(host)} does not support aria-${key}. Use one of ${valueString(allowedRoles)}`, LOG_WARN);
+    return false;
+};
+const booleanInternal = (host, state, allowedRoles) => {
+    const role = host.role;
+    const [key, prop] = getPair(state);
+    if (Array.isArray(allowedRoles) && !validateRole(role, allowedRoles, host, key))
+        return false;
+    toggleInternal(key, `${ARIA_PREFIX}${prop}`)(host);
+    return true;
+};
+const stringInternal = (host, state, parser, allowedRoles) => {
+    const role = host.role;
+    const [key, prop] = getPair(state);
+    if (Array.isArray(allowedRoles) && !validateRole(role, allowedRoles, host, key))
+        return false;
+    setInternal(key, `${ARIA_PREFIX}${prop}`, parser)(host);
+    return true;
+};
 /* === Exported Functions === */
 /**
  * Auto-effect for setting internals of a Web Component according to a given state
@@ -1005,7 +1125,9 @@ const STATES = {
 const updateInternal = (state, updater) => (host) => {
     if (!host.internals)
         return;
-    const { key, initial, read, update } = updater;
+    const { key, parser, initial, read, update } = updater;
+    const proto = host.constructor;
+    proto.attributeMap[key] = parser;
     host.set(state, initial(host), false);
     effect((enqueue) => {
         const current = read(host);
@@ -1026,6 +1148,7 @@ const updateInternal = (state, updater) => (host) => {
  */
 const toggleInternal = (name, ariaProp) => updateInternal(name, {
     key: `i-${name}`,
+    parser: asBoolean,
     initial: (el) => el.hasAttribute(name),
     read: (el) => el.internals.states.has(name),
     update: (value) => (el) => () => {
@@ -1044,9 +1167,10 @@ const toggleInternal = (name, ariaProp) => updateInternal(name, {
  * @param {string} name - name of internal state to be toggled
  * @param {string} ariaProp - aria property to be updated when internal state changes
  */
-const setInternal = (name, ariaProp) => updateInternal(name, {
+const setInternal = (name, ariaProp, parser) => updateInternal(name, {
     key: `i-${name}`,
-    initial: (el) => el.getAttribute(name),
+    parser,
+    initial: (el) => el.getAttribute(`aria-${name}`),
     read: (el) => parse(el, name, el.internals[ariaProp]),
     update: (value) => (el) => () => {
         el.internals[ariaProp] = value;
@@ -1058,190 +1182,136 @@ const setInternal = (name, ariaProp) => updateInternal(name, {
     }
 });
 /**
- * Synchronize internal states of an element with corresponding HTML attributes and aria properties
- *
- * @param host host UIElement to sync internals
+ * Use element internals; will setup the global disabled and hidden states if they are observed attributes
  */
-const syncInternals = (host) => {
-    const proto = host.constructor;
-    if (!proto.observedAttributes)
-        return;
-    const capitalize = (s) => s.charAt(0).toUpperCase() + s.slice(1);
-    const addInternals = (map, internals) => internals.forEach((internal) => Array.isArray(internal)
-        ? map.set(internal[0], internal[1])
-        : internal && map.set(internal, capitalize(internal)));
-    const hasRole = (role, allowedRoles) => allowedRoles.includes(role);
-    const isAutocompletable = (role) => hasRole(role, [
-        ROLES.combobox,
-        ROLES.textbox
-    ]);
-    const isCheckable = (role) => hasRole(role, [
-        ROLES.checkbox,
-        ROLES.menuitemcheckbox,
-        ROLES.menuitemradio,
-        ROLES.radio,
-        ROLES.switch
-    ]);
-    const isExpandable = (role) => hasRole(role, [
-        ROLES.button,
-        ROLES.combobox,
-        ROLES.grid,
-        ROLES.link,
-        ROLES.listbox,
-        ROLES.menuitem,
-        ROLES.row,
-        ROLES.tabpanel,
-        ROLES.treeitem
-    ]);
-    const isMultiSelectable = (role) => hasRole(role, [
-        ROLES.listbox,
-        ROLES.grid,
-        ROLES.table,
-        ROLES.tree,
-    ]);
-    const isPressable = (role) => hasRole(role, [
-        ROLES.button,
-        ROLES.switch,
-    ]);
-    const isSelectable = (role) => hasRole(role, [
-        ROLES.gridcell,
-        ROLES.listitem,
-        ROLES.option,
-        ROLES.tab,
-        ROLES.treeitem
-    ]);
-    const isTabular = (role) => hasRole(role, [
-        ROLES.grid,
-        ROLES.table,
-        ROLES.treegrid,
-    ]);
-    const maybeReadOnly = (role) => hasRole(role, [
-        ROLES.gridcell,
-        ROLES.spinbutton,
-        ROLES.textbox,
-    ]);
-    const maybeRequired = (role) => hasRole(role, [
-        ROLES.combobox,
-        ROLES.listbox,
-        ROLES.gridcell,
-        ROLES.spinbutton,
-        ROLES.textbox,
-    ]);
-    const mayHavePopup = (role) => hasRole(role, [
-        ROLES.button,
-        ROLES.link,
-        ROLES.menuitem,
-        ROLES.combobox,
-        ROLES.gridcell,
-    ]);
-    const hasLevel = (role) => hasRole(role, [
-        ROLES.heading,
-        ROLES.listitem,
-        ROLES.treeitem,
-    ]);
-    const hasOrientation = (role) => hasRole(role, [
-        ROLES.tabpanel,
-        ROLES.progressbar,
-        ROLES.scrollbar,
-        ROLES.separator,
-        ROLES.slider,
-    ]);
-    const hasPosInSet = (role) => hasRole(role, [
-        ROLES.listitem,
-        ROLES.treeitem,
-    ]);
-    const hasSetSize = (role) => hasRole(role, [
-        ROLES.listitem,
-        ROLES.option,
-        ROLES.row,
-        ROLES.tab,
-        ROLES.treeitem,
-    ]);
-    const hasNumericValue = (role) => hasRole(role, [
-        ROLES.range,
-        ROLES.progressbar,
-        ROLES.slider,
-        ROLES.spinbutton,
-    ]);
+const useInternals = (host) => {
     if (!host.internals)
         host.internals = host.attachInternals();
+    const proto = host.constructor;
+    const map = new Map([
+        [STATES.busy, useBusy],
+        [STATES.current, useCurrent],
+        [STATES.disabled, useDisabled],
+        [STATES.hidden, useHidden],
+    ]);
     const role = host.role;
-    const bools = new Map([]);
-    addInternals(bools, [
-        STATES.disabled, STATES.hidden,
-        hasRole(role, [ROLES.dialog]) && STATES.modal,
-        hasRole(role, [ROLES.textbox]) && STATES.multiline,
-        isMultiSelectable(role) && STATES.multiselectable,
-        maybeReadOnly(role) && STATES.readonly,
-        maybeRequired(role) && STATES.required,
-        isSelectable(role) && STATES.selected,
-        hasNumericValue(role) && STATES.valuetext,
-    ]);
-    const numbers = new Map();
-    if (hasLevel(role))
-        addInternals(numbers, [STATES.level]);
-    if (hasPosInSet(role))
-        addInternals(numbers, [STATES.posinset]);
-    if (hasSetSize(role))
-        addInternals(numbers, [STATES.setsize]);
-    if (isTabular(role))
-        addInternals(numbers, [
-            STATES.colcount,
-            STATES.colindex,
-            STATES.colspan,
-            STATES.rowcount,
-            STATES.rowspan,
-            STATES.rowindex,
-        ]);
-    if (hasNumericValue(role))
-        addInternals(numbers, [
-            STATES.valuemax,
-            STATES.valuemin,
-            STATES.valuenow
-        ]);
-    const strings = new Map();
-    addInternals(strings, [
-        isAutocompletable(role) && STATES.autocomplete,
-        STATES.controls,
-        STATES.description,
-        isExpandable(role) && STATES.expanded,
-        STATES.keyshortcuts,
-        STATES.label,
-        hasOrientation(role) && STATES.orientation,
-        hasRole(role, [ROLES.textbox]) && STATES.placeholder,
-        role && STATES.roledescription,
-        isTabular(role) && STATES.sorted,
-    ]);
-    // Conditional on whether parsed as boolean
-    addInternals(proto.attributeMap[STATES.current] === asBoolean ? bools : strings, [STATES.current]);
-    if (isCheckable(role))
-        addInternals(proto.attributeMap[STATES.checked] === asBoolean ? bools : strings, [STATES.checked]);
-    if (mayHavePopup(role))
-        addInternals(proto.attributeMap[STATES.haspopup[0]] === asBoolean ? bools : strings, [STATES.haspopup]);
-    if (isPressable(role))
-        addInternals(proto.attributeMap[STATES.pressed] === asBoolean ? bools : strings, [STATES.pressed]);
-    // Conditional on aria-live attribute
-    if (host.hasAttribute(`${ARIA_PREFIX}-${STATES.live}`)) {
-        addInternals(bools, [STATES.atomic, STATES.busy]);
-        addInternals(strings, [STATES.live, STATES.relevant]);
+    if (ROLES_CHECKED.includes(role))
+        map.set(STATES.checked, useChecked);
+    if (ROLES_EXPANDED.includes(role))
+        map.set(STATES.expanded, useExpanded);
+    if (role === ROLES.button)
+        map.set(STATES.pressed, usePressed);
+    if (ROLES_SELECTED.includes(role))
+        map.set(STATES.selected, useSelected);
+    for (const [attr, hook] of map) {
+        if (proto.observedAttributes.includes(attr))
+            hook(host);
     }
-    for (const attr of proto.observedAttributes) {
-        if (numbers.has(attr)) {
-            if (!Object.hasOwn(proto.attributeMap, attr))
-                proto.attributeMap[attr] = attr.slice(0, 5) === 'value'
-                    ? asNumber
-                    : asInteger;
-            setInternal(attr, `${ARIA_PREFIX}${numbers.get(attr)}`)(host);
-        }
-        else if (strings.has(attr)) {
-            setInternal(attr, `${ARIA_PREFIX}${strings.get(attr)}`)(host);
-        }
-        else if (bools.has(attr)) {
-            if (!Object.hasOwn(proto.attributeMap, attr))
-                proto.attributeMap[attr] = asBoolean;
-            toggleInternal(attr, `${ARIA_PREFIX}${bools.get(attr)}`)(host);
-        }
-    }
+    return true;
 };
+/**
+ * Use a busy state for a live region and sync it with element internals and aria properties
+ *
+ * @since 0.9.0
+ * @param {UIElement} host - host UIElement
+ * @returns {boolean} - whether the busy state was successfully setup
+ */
+const useBusy = (host) => {
+    host.internals.ariaLive = 'polite';
+    return booleanInternal(host, STATES.busy);
+};
+/**
+ * Use a checked state and sync it with element internals and aria properties
+ *
+ * @since 0.9.0
+ * @param {UIElement} host - host UIElement
+ * @param {boolean} [isTriState=false] - whether to support tri-state checked state
+ * @returns {boolean} - whether the checked state was successfully setup
+ */
+const useChecked = (host, isTriState = false) => {
+    const role = host.role;
+    const [key, prop] = getPair(STATES.checked);
+    if (!validateRole(role, ROLES_CHECKED, host, key))
+        return false;
+    const allowsTriState = [ROLES.checkbox, ROLES.menuitemcheckbox, ROLES.option];
+    if (isTriState && !hasRole(role, allowsTriState) && isTriState) {
+        log(role, `Role for ${elementName(host)} does not support tri-state aria-checked. Use one of ${valueString(allowsTriState)} instead.`, LOG_WARN);
+        isTriState = false;
+    }
+    if (isTriState)
+        setInternal(key, `${ARIA_PREFIX}${prop}`, asEnum(ENUM_TRISTATE))(host);
+    else
+        toggleInternal(key, `${ARIA_PREFIX}${prop}`)(host);
+    return true;
+};
+const useCurrent = (host, isEnumState = false) => {
+    if (isEnumState)
+        stringInternal(host, STATES.current, asEnum(ENUM_CURRENT));
+    else
+        booleanInternal(host, STATES.current);
+    return true;
+};
+/**
+ * Use a disabled state and sync it with element internals and aria properties
+ *
+ * @since 0.9.0
+ * @param {UIElement} host - host UIElement
+ * @returns {boolean} - whether the disabled state was successfully setup
+ */
+const useDisabled = (host) => booleanInternal(host, STATES.disabled);
+/**
+ * Use an expanded state and sync it with element internals and aria properties
+ *
+ * @since 0.9.0
+ * @param {UIElement} host - host UIElement
+ * @returns {boolean} - whether the expanded state was successfully setup
+ */
+const useExpanded = (host) => booleanInternal(host, STATES.expanded, ROLES_EXPANDED);
+/**
+ * Use a hidden state and sync it with element internals and aria properties
+ *
+ * @since 0.9.0
+ * @param {UIElement} host - host UIElement
+ * @returns {boolean} - whether the hidden state was successfully setup
+ */
+const useHidden = (host) => booleanInternal(host, STATES.hidden);
+/**
+ * Use an invalid state and sync it with element internals and aria properties
+ *
+ * @since 0.9.0
+ * @param {UIElement} host - host UIElement
+ * @returns {boolean} - whether the invalid state was successfully setup
+ ** /
+const useInvalid = (host: UIElement): boolean => {
+    log(host, 'Invalid state is not yet supported.', LOG_WARN)
+    // Implementation pending - we need to use checkValidity() / setValidity() instead of boolean internal
+    return false
+} */
+/**
+ * Use a pressed state and sync it with element internals and aria properties
+ *
+ * @since 0.9.0
+ * @param {UIElement} host - host UIElement
+ * @returns {boolean} - whether the pressed state was successfully setup
+ */
+const usePressed = (host, isTriState = false) => {
+    const role = host.role;
+    const [key, prop] = getPair(STATES.pressed);
+    if (!validateRole(role, [ROLES.button], host, key))
+        return false;
+    if (isTriState)
+        setInternal(key, `${ARIA_PREFIX}${prop}`, asEnum(ENUM_TRISTATE))(host);
+    else
+        toggleInternal(key, `${ARIA_PREFIX}${prop}`)(host);
+    return true;
+};
+/**
+ * Use a selected state and sync it with element internals and aria properties
+ *
+ * @since 0.9.0
+ * @param {UIElement} host - host UIElement
+ * @returns {boolean} - whether the selected state was successfully setup
+ */
+const useSelected = (host) => booleanInternal(host, STATES.selected, ROLES_SELECTED);
 
-export { LOG_DEBUG, LOG_ERROR, LOG_INFO, LOG_WARN, TYPE_COMPUTED, TYPE_FAIL, TYPE_NONE, TYPE_OK, TYPE_STATE, TYPE_UI, UIElement, all, asBoolean, asInteger, asJSON, asNumber, asString, callFunction, computed, effect, emit, fail, first, flow, isComment, isComputed, isDefined, isDefinedObject, isFail, isFunction, isNone, isNull, isNullish, isNumber, isObject, isObjectOfType, isOk, isPropertyKey, isResult, isSignal, isState, isString, isSymbol, log, match, maybe, none, off, ok, on, parse, pass, result, self, setAttribute, setInternal, setProperty, setStyle, setText, state, syncInternals, task, toggleAttribute, toggleClass, toggleInternal, ui, updateElement };
+export { LOG_DEBUG, LOG_ERROR, LOG_INFO, LOG_WARN, TYPE_COMPUTED, TYPE_FAIL, TYPE_NONE, TYPE_OK, TYPE_STATE, TYPE_UI, UIElement, all, asBoolean, asEnum, asInteger, asJSON, asNumber, asString, callFunction, computed, effect, elementName, emit, fail, first, flow, isComment, isComputed, isDefined, isDefinedObject, isFail, isFunction, isNone, isNull, isNullish, isNumber, isObject, isObjectOfType, isOk, isPropertyKey, isResult, isSignal, isState, isString, isSymbol, log, match, maybe, none, off, ok, on, parse, pass, result, self, setAttribute, setInternal, setProperty, setStyle, setText, state, task, toggleAttribute, toggleClass, toggleInternal, ui, updateElement, useBusy, useChecked, useContext, useCurrent, useDisabled, useExpanded, useHidden, useInternals, usePressed, useSelected, valueString };

@@ -4,14 +4,14 @@ import type { UIElement } from '../ui-element'
 
 /* === Types === */
 
-type AttributeParser = (value: Maybe<string>, element: UIElement, old: string | undefined) => Maybe<unknown>
+type AttributeParser<T> = (value: Maybe<string>, element: UIElement, old: string | undefined) => Maybe<T>
 
-type AttributeMap = Record<string, AttributeParser>
+type AttributeMap = Record<string, AttributeParser<unknown>>
 
 /* === Internal Functions === */
 
-const isAttributeParser = (value: unknown): value is AttributeParser =>
-	isFunction(value) && !!(value as AttributeParser).length
+const isAttributeParser = (value: unknown): value is AttributeParser<unknown> =>
+	isFunction(value) && !!(value as AttributeParser<unknown>).length
 
 /* === Exported Functions === */
 
@@ -24,11 +24,14 @@ const isAttributeParser = (value: unknown): value is AttributeParser =>
  * @param {string} value - attribute value
  * @param {string | undefined} [old=undefined] - old attribute value
  */
-const parse = (host: UIElement, name: string, value: string, old: string | undefined = undefined) =>
-	maybe((host.constructor as typeof UIElement).attributeMap[name])
-		.guard(isAttributeParser)
-		.map(parser => parser(maybe(value), host, old))
-		.or(value)
-		.get()
+const parse = (
+	host: UIElement,
+	name: string,
+	value: string,
+	old: string | undefined = undefined
+) => {
+	const parser = (host.constructor as typeof UIElement).attributeMap[name]
+	return isAttributeParser(parser) ? parser(maybe(value), host, old) : value
+}
 
 export { type AttributeParser, type AttributeMap, parse }

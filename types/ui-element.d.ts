@@ -1,8 +1,9 @@
 import { type Maybe, type Ok } from './core/maybe';
 import { type Signal } from './core/cause-effect';
+import { elementName, valueString } from './core/log';
 import { type AttributeMap } from './core/parse';
 import { type UI } from './core/ui';
-import { type UnknownContext } from './core/context';
+import type { UnknownContext } from './lib/context';
 type StateLike<T> = PropertyKey | Signal<T> | ((old: T | undefined) => T) | (() => T);
 /**
  * Base class for reactive custom elements
@@ -113,4 +114,4 @@ declare class UIElement extends HTMLElement {
      */
     all: (selector: string) => UI<Element>[];
 }
-export { type StateLike, UIElement };
+export { type StateLike, UIElement, elementName, valueString };

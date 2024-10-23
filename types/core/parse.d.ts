@@ -1,7 +1,7 @@
 import { type Maybe } from './maybe';
 import type { UIElement } from '../ui-element';
-type AttributeParser = (value: Maybe<string>, element: UIElement, old: string | undefined) => Maybe<unknown>;
-type AttributeMap = Record<string, AttributeParser>;
+type AttributeParser<T> = (value: Maybe<string>, element: UIElement, old: string | undefined) => Maybe<T>;
+type AttributeMap = Record<string, AttributeParser<unknown>>;
 /**
  * Parse according to static attributeMap
  *
